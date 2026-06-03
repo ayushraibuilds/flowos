@@ -15,6 +15,8 @@ import '../screens/report/weekly_review_screen.dart';
 import '../screens/brain_dump/brain_dump_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/auth/auth_screen.dart';
+import '../screens/focus/deep_work_screen.dart';
+import '../screens/insights/insights_dashboard_screen.dart';
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
@@ -116,6 +118,24 @@ final appRouter = GoRouter(
       path: '/auth',
       name: 'auth',
       builder: (context, state) => const AuthScreen(),
+    ),
+
+    // ─── Phase 5: Deep Work + Insights ──────────────────────────
+    GoRoute(
+      path: '/deep-work',
+      name: 'deepWork',
+      builder: (context, state) {
+        final extras = state.extra as Map<String, dynamic>? ?? {};
+        return DeepWorkScreen(
+          taskTitle: extras['taskTitle'] as String?,
+          taskId: extras['taskId'] as String?,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/insights',
+      name: 'insights',
+      builder: (context, state) => const InsightsDashboardScreen(),
     ),
   ],
 );
