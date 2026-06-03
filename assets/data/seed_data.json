@@ -1,0 +1,90 @@
+{
+  "seed_tasks": [
+    {
+      "title": "Write FlowOS weekly review",
+      "energy_level": "deep",
+      "estimated_minutes": 45,
+      "category": "work",
+      "is_mit": true
+    },
+    {
+      "title": "Review pull requests",
+      "energy_level": "medium",
+      "estimated_minutes": 30,
+      "category": "work",
+      "is_mit": true
+    },
+    {
+      "title": "Reply to emails",
+      "energy_level": "light",
+      "estimated_minutes": 15,
+      "category": "admin",
+      "is_mit": false
+    },
+    {
+      "title": "Design database schema",
+      "energy_level": "deep",
+      "estimated_minutes": 60,
+      "category": "work",
+      "is_mit": true
+    },
+    {
+      "title": "Update project README",
+      "energy_level": "light",
+      "estimated_minutes": 10,
+      "category": "admin",
+      "is_mit": false
+    },
+    {
+      "title": "Research animation libraries",
+      "energy_level": "medium",
+      "estimated_minutes": 25,
+      "category": "learning",
+      "is_mit": false
+    },
+    {
+      "title": "Refactor auth module",
+      "energy_level": "deep",
+      "estimated_minutes": 50,
+      "category": "work",
+      "is_mit": false
+    },
+    {
+      "title": "Plan tomorrow's tasks",
+      "energy_level": "light",
+      "estimated_minutes": 5,
+      "category": "planning",
+      "is_mit": false
+    }
+  ],
+  "seed_quotes": [
+    "The secret of getting ahead is getting started. — Mark Twain",
+    "Focus is more about saying no than saying yes. — Steve Jobs",
+    "Amateurs sit and wait for inspiration. The rest of us just get up and go to work. — Stephen King",
+    "You don't have to be great to start, but you have to start to be great. — Zig Ziglar",
+    "The best time to plant a tree was 20 years ago. The second best time is now.",
+    "What we fear doing most is usually what we most need to do. — Tim Ferriss",
+    "Energy, not time, is the fundamental currency of high performance. — Jim Loehr",
+    "Deep work is the ability to focus without distraction on a cognitively demanding task. — Cal Newport",
+    "Your mind is for having ideas, not holding them. — David Allen",
+    "The successful warrior is the average man, with laser-like focus. — Bruce Lee"
+  ],
+  "seed_break_content": {
+    "riddles": [
+      {"question": "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "answer": "An echo"},
+      {"question": "The more you take, the more you leave behind. What am I?", "answer": "Footsteps"},
+      {"question": "I have cities, but no houses live there. I have mountains, but no trees grow there. I have water, but no fish swim there. What am I?", "answer": "A map"}
+    ],
+    "facts": [
+      "Your brain uses about 20% of your body's total energy, despite being only 2% of your body weight.",
+      "The average person has about 6,200 thoughts per day. Focus helps you direct them.",
+      "Studies show that it takes an average of 23 minutes to refocus after a distraction.",
+      "Walking for just 5 minutes can boost creative output by up to 60%.",
+      "The 'flow state' was first described by psychologist Mihaly Csikszentmihalyi in 1975."
+    ],
+    "breathing_patterns": [
+      {"name": "4-7-8 Relaxing Breath", "inhale": 4, "hold": 7, "exhale": 8, "cycles": 4},
+      {"name": "Box Breathing", "inhale": 4, "hold": 4, "exhale": 4, "rest": 4, "cycles": 4}
+    ]
+  }
+}
