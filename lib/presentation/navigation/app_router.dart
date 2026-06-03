@@ -10,6 +10,9 @@ import '../screens/morning_intention/morning_intention_screen.dart';
 import '../screens/break_screen/break_screen.dart';
 import '../screens/scroll_tracker/scroll_tracker_screen.dart';
 import '../screens/shutdown/shutdown_screen.dart';
+import '../screens/report/daily_report_screen.dart';
+import '../screens/report/weekly_review_screen.dart';
+import '../screens/brain_dump/brain_dump_screen.dart';
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
@@ -84,6 +87,21 @@ final appRouter = GoRouter(
       path: '/shutdown',
       name: 'shutdown',
       builder: (context, state) => const ShutdownRitualScreen(),
+    ),
+    GoRoute(
+      path: '/daily-report',
+      name: 'dailyReport',
+      builder: (context, state) => const DailyReportScreen(),
+    ),
+    GoRoute(
+      path: '/weekly-review',
+      name: 'weeklyReview',
+      builder: (context, state) => const WeeklyReviewScreen(),
+    ),
+    GoRoute(
+      path: '/brain-dump',
+      name: 'brainDump',
+      builder: (context, state) => const BrainDumpScreen(),
     ),
   ],
 );

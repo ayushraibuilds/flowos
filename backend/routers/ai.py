@@ -1,0 +1,229 @@
+"""FlowOS AI Router — all AI-powered endpoints.
+
+POST /ai/daily-report    → daily data → structured insight
+POST /ai/break-suggestion → session context → break content
+POST /ai/brain-dump      → raw text → sorted tasks
+POST /ai/weekly-review   → weekly data → insights + questions
+"""
+
+import random
+import logging
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
+
+from ..models.schemas import (
+    DailyReportRequest, DailyReportResponse, DailyReportInsight,
+    BreakSuggestionRequest, BreakSuggestionResponse,
+    BrainDumpRequest, BrainDumpResponse, SortedTask,
+    WeeklyReviewRequest, WeeklyReviewResponse,
+    BreakContentType,
+)
+from ..services.gemini_service import (
+    generate_json,
+    FALLBACK_REPORT, FALLBACK_BREAK_SUGGESTIONS, FALLBACK_WEEKLY,
+)
+from ..prompts.v1 import (
+    DAILY_REPORT_PROMPT, BREAK_SUGGESTION_PROMPT,
+    BRAIN_DUMP_PROMPT, WEEKLY_REVIEW_PROMPT,
+    VERSION as PROMPT_VERSION,
+)
+
+logger = logging.getLogger("flowos.ai")
+router = APIRouter(prefix="/ai", tags=["AI"])
+
+
+# ─── Daily Report ────────────────────────────────────────────────
+
+@router.post("/daily-report", response_model=DailyReportResponse)
+async def generate_daily_report(req: DailyReportRequest):
+    """Generate AI-powered daily report from productivity data."""
+
+    # Build task details (respecting private mode)
+    task_details = ""
+    if not req.private_mode and req.task_summaries:
+        task_lines = []
+        for t in req.task_summaries:
+            status = "✅" if t.completed else "❌"
+            mit = " (MIT)" if t.is_mit else ""
+            task_lines.append(f"  {status} {t.title}{mit} [{t.energy_level.value}]")
+        task_details = "\nTasks:\n" + "\n".join(task_lines)
+
+    # Calculate grade
+    grade = _score_to_grade(req.daily_score)
+
+    prompt = DAILY_REPORT_PROMPT.format(
+        daily_score=req.daily_score,
+        grade=grade,
+        xp_earned_today=req.xp_earned_today,
+        level=req.level,
+        streak_days=req.streak_days,
+        total_focus_minutes=req.total_focus_minutes,
+        session_count=len(req.sessions),
+        tasks_completed=req.tasks_completed,
+        tasks_total=req.tasks_total,
+        mits_completed=req.mits_completed,
+        scroll_minutes=req.scroll_minutes,
+        scroll_budget=req.scroll_budget,
+        recovery_actions_taken=req.recovery_actions_taken,
+        energy_readings=req.energy_readings or "Not recorded",
+        intention_completed=req.intention_completed,
+        shutdown_completed=req.shutdown_completed,
+        task_details=task_details,
+    )
+
+    result = await generate_json(prompt)
+
+    if not result:
+        logger.warning("AI failed for daily report, using fallback")
+        return DailyReportResponse(
+            insight=DailyReportInsight(**FALLBACK_REPORT),
+            prompt_version=PROMPT_VERSION,
+        )
+
+    try:
+        insight = DailyReportInsight(**result)
+        return DailyReportResponse(
+            insight=insight,
+            prompt_version=PROMPT_VERSION,
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse report response: {e}")
+        return DailyReportResponse(
+            insight=DailyReportInsight(**FALLBACK_REPORT),
+            prompt_version=PROMPT_VERSION,
+        )
+
+
+# ─── Break Suggestion ────────────────────────────────────────────
+
+@router.post("/break-suggestion", response_model=BreakSuggestionResponse)
+async def generate_break_suggestion(req: BreakSuggestionRequest):
+    """Generate a break content suggestion after a focus session."""
+
+    # Determine content type
+    content_type = req.preferred_type or random.choice(list(BreakContentType))
+
+    prompt = BREAK_SUGGESTION_PROMPT.format(
+        session_type=req.session_type.value,
+        focus_minutes=req.focus_minutes,
+        quality_grade=req.quality_grade,
+        xp_earned=req.xp_earned,
+        energy_level=req.energy_level or "unknown",
+        preferred_type=content_type.value,
+        content_type=content_type.value,
+    )
+
+    result = await generate_json(prompt, temperature=0.9)
+
+    if not result:
+        # Use fallback — pick one matching the content type or random
+        matching = [f for f in FALLBACK_BREAK_SUGGESTIONS
+                    if f["content_type"] == content_type.value]
+        fallback = random.choice(matching) if matching else random.choice(FALLBACK_BREAK_SUGGESTIONS)
+        return BreakSuggestionResponse(
+            **fallback,
+            prompt_version=PROMPT_VERSION,
+        )
+
+    try:
+        return BreakSuggestionResponse(
+            content_type=BreakContentType(result.get("content_type", content_type.value)),
+            content=result["content"],
+            answer=result.get("answer"),
+            source=result.get("source"),
+            prompt_version=PROMPT_VERSION,
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse break suggestion: {e}")
+        fallback = random.choice(FALLBACK_BREAK_SUGGESTIONS)
+        return BreakSuggestionResponse(**fallback, prompt_version=PROMPT_VERSION)
+
+
+# ─── Brain Dump ───────────────────────────────────────────────────
+
+@router.post("/brain-dump", response_model=BrainDumpResponse)
+async def process_brain_dump(req: BrainDumpRequest):
+    """Process raw brain dump text into sorted, actionable tasks."""
+
+    prompt = BRAIN_DUMP_PROMPT.format(
+        raw_text=req.raw_text,
+        current_energy=req.current_energy or "unknown",
+    )
+
+    result = await generate_json(prompt, temperature=0.4, max_tokens=2048)
+
+    if not result or "tasks" not in result:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable. Try again or add tasks manually."
+        )
+
+    try:
+        tasks = [SortedTask(**t) for t in result["tasks"]]
+        return BrainDumpResponse(
+            tasks=tasks,
+            prompt_version=PROMPT_VERSION,
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse brain dump: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="AI returned unexpected format. Try again."
+        )
+
+
+# ─── Weekly Review ────────────────────────────────────────────────
+
+@router.post("/weekly-review", response_model=WeeklyReviewResponse)
+async def generate_weekly_review(req: WeeklyReviewRequest):
+    """Generate AI-powered weekly review with insights and reflection questions."""
+
+    avg_score = (sum(req.daily_scores) / len(req.daily_scores)
+                 if req.daily_scores else 0)
+
+    prompt = WEEKLY_REVIEW_PROMPT.format(
+        week_start=req.week_start,
+        week_end=req.week_end,
+        daily_scores=req.daily_scores,
+        avg_score=round(avg_score, 1),
+        total_focus_hours=req.total_focus_hours,
+        total_tasks_completed=req.total_tasks_completed,
+        total_xp=req.total_xp,
+        scroll_total_minutes=req.scroll_total_minutes,
+        recovery_actions=req.recovery_actions,
+        streak_days=req.streak_days,
+        best_day_score=req.best_day_score,
+        worst_day_score=req.worst_day_score,
+        mits_completed=req.mits_completed,
+        mits_total=req.mits_total,
+    )
+
+    result = await generate_json(prompt)
+
+    if not result:
+        return WeeklyReviewResponse(**FALLBACK_WEEKLY, prompt_version=PROMPT_VERSION)
+
+    try:
+        return WeeklyReviewResponse(
+            summary=result.get("summary", FALLBACK_WEEKLY["summary"]),
+            wins=result.get("wins", FALLBACK_WEEKLY["wins"]),
+            growth_areas=result.get("growth_areas", FALLBACK_WEEKLY["growth_areas"]),
+            reflection_questions=result.get("reflection_questions", FALLBACK_WEEKLY["reflection_questions"]),
+            next_week_focus=result.get("next_week_focus", FALLBACK_WEEKLY["next_week_focus"]),
+            prompt_version=PROMPT_VERSION,
+        )
+    except Exception as e:
+        logger.error(f"Failed to parse weekly review: {e}")
+        return WeeklyReviewResponse(**FALLBACK_WEEKLY, prompt_version=PROMPT_VERSION)
+
+
+# ─── Helpers ──────────────────────────────────────────────────────
+
+def _score_to_grade(score: int) -> str:
+    if score >= 90: return "A+"
+    if score >= 80: return "A"
+    if score >= 70: return "B"
+    if score >= 55: return "C"
+    if score >= 40: return "D"
+    return "F"
