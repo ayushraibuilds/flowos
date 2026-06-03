@@ -1,13 +1,21 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/constants/xp_constants.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../data/local/tables/focus_sessions_table.dart';
+import '../../../data/local/tables/xp_ledger_table.dart';
+
+const _uuid = Uuid();
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
@@ -28,6 +36,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   int _pauseCount = 0;
   int _backgroundCount = 0;
   Timer? _timer;
+  String _sessionId = '';
 
   // Session config
   int _selectedSessionType = 0; // 0=pomodoro, 1=deep, 2=custom
@@ -64,15 +73,29 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     }
   }
 
-  void _startTimer() {
+  void _startTimer() async {
+    _sessionId = _uuid.v4();
+    final sessionType = SessionTypeColumn.values[_selectedSessionType];
+    final minutes = _sessionTypes[_selectedSessionType].minutes;
+
     setState(() {
       _isRunning = true;
       _isPaused = false;
-      _totalSeconds = _sessionTypes[_selectedSessionType].minutes * 60;
+      _totalSeconds = minutes * 60;
       _remainingSeconds = _totalSeconds;
       _pauseCount = 0;
       _backgroundCount = 0;
     });
+
+    // Persist session start to DB
+    final db = ref.read(databaseProvider);
+    await db.focusSessionsDao.insertSession(FocusSessionsCompanion(
+      id: Value(_sessionId),
+      sessionType: Value(sessionType),
+      durationMinutes: Value(minutes),
+      startedAt: Value(DateTime.now()),
+    ));
+
     _runTimer();
   }
 
@@ -101,19 +124,113 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     HapticFeedback.selectionClick();
   }
 
-  void _onComplete() {
+  void _onComplete() async {
     HapticFeedback.heavyImpact();
+    final elapsed = _totalSeconds - _remainingSeconds;
+    final actualMin = (elapsed / 60).round();
+
+    // Quality: A (0 pauses, 0 bg), B (1-2), C (3+)
+    final interrupts = _pauseCount + _backgroundCount;
+    final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
+
+    // XP from XpConstants
+    final isDeepWork = _selectedSessionType == 1;
+    final baseXP = isDeepWork ? XpConstants.deepWorkComplete : XpConstants.pomodoroComplete;
+    final xp = quality == 'A' ? baseXP : (baseXP * 0.8).round();
+
+    // Update session in DB
+    final db = ref.read(databaseProvider);
+    await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+      id: Value(_sessionId),
+      actualMinutes: Value(actualMin),
+      pauseCount: Value(_pauseCount),
+      appBackgroundCount: Value(_backgroundCount),
+      xpEarned: Value(xp),
+      qualityScore: Value(quality),
+      completedAt: Value(DateTime.now()),
+    ));
+
+    // Append XP ledger entry
+    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+      id: Value(_uuid.v4()),
+      actionType: const Value(XpActionTypeColumn.focusComplete),
+      pointsDelta: Value(xp),
+      sourceEntityId: Value(_sessionId),
+      explanation: Value(
+        'Completed ${actualMin}m ${_sessionTypes[_selectedSessionType].label} session (Quality: $quality)'),
+    ));
+
     setState(() => _isRunning = false);
-    // TODO: Record session, calculate XP, navigate to break screen
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('+$xp XP! ${quality == "A" ? "Perfect focus! 🔥" : "Session complete! ⚡"}'),
+          backgroundColor: AppColors.emerald,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
-  void _stopSession() {
+  void _stopSession() async {
     _timer?.cancel();
+    final elapsed = _totalSeconds - _remainingSeconds;
+    final pct = elapsed / _totalSeconds;
+    final actualMin = (elapsed / 60).round();
+
+    final db = ref.read(databaseProvider);
+
+    if (pct >= 0.6 && actualMin >= 10) {
+      // Partial credit: 50% XP if > 60% complete
+      final baseXP = _selectedSessionType == 1
+          ? XpConstants.deepWorkComplete
+          : XpConstants.pomodoroComplete;
+      final partialXP = (baseXP * pct * 0.5).round();
+
+      await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+        id: Value(_sessionId),
+        actualMinutes: Value(actualMin),
+        pauseCount: Value(_pauseCount),
+        appBackgroundCount: Value(_backgroundCount),
+        xpEarned: Value(partialXP),
+        qualityScore: const Value('D'),
+        completedAt: Value(DateTime.now()),
+      ));
+
+      await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.focusComplete),
+        pointsDelta: Value(partialXP),
+        sourceEntityId: Value(_sessionId),
+        explanation: Value(
+          'Partial ${actualMin}m session (${(pct * 100).round()}% complete)'),
+      ));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('+$partialXP XP (partial credit)'),
+            backgroundColor: AppColors.warningAmber,
+          ),
+        );
+      }
+    } else if (_sessionId.isNotEmpty) {
+      // No credit for < 60% — still record the attempt
+      await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+        id: Value(_sessionId),
+        actualMinutes: Value(actualMin),
+        pauseCount: Value(_pauseCount),
+        appBackgroundCount: Value(_backgroundCount),
+        qualityScore: const Value('F'),
+        completedAt: Value(DateTime.now()),
+      ));
+    }
+
     setState(() {
       _isRunning = false;
       _isPaused = false;
     });
-    // TODO: Handle partial credit if > 60% complete
   }
 
   String get _timeString {

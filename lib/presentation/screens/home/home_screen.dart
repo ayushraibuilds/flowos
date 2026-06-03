@@ -6,9 +6,14 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
+import '../../../features/dashboard/providers/dashboard_providers.dart';
+import '../../../features/tasks/providers/task_providers.dart';
+import '../../widgets/task_card.dart';
+import '../../../data/local/database/app_database.dart';
 
 /// Home Dashboard — the "command center."
 /// Shows Flow Score, XP bar, MITs, quick actions, and attention budget.
+/// All data is now reactive from Drift DAOs via Riverpod providers.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -23,22 +28,22 @@ class HomeScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: AppSpacing.lg),
               // ─── Header: Level + Streak ────────────────────────
-              _buildHeader(context),
+              _buildHeader(context, ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Flow Score Card ────────────────────────────────
-              _buildFlowScoreCard(context),
+              _buildFlowScoreCard(context, ref),
               const SizedBox(height: AppSpacing.md),
               // ─── XP Progress Bar ───────────────────────────────
-              _buildXPBar(context),
+              _buildXPBar(context, ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── MITs Section ──────────────────────────────────
-              _buildMITsSection(context),
+              _buildMITsSection(context, ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Quick Actions ─────────────────────────────────
               _buildQuickActions(context),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Attention Budget ──────────────────────────────
-              _buildAttentionBudget(context),
+              _buildAttentionBudget(context, ref),
               const SizedBox(height: AppSpacing.xxxl),
             ],
           ),
@@ -47,7 +52,12 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    final level = ref.watch(currentLevelProvider);
+    final tier = ref.watch(currentTierProvider);
+    final streakAsync = ref.watch(streakProvider);
+    final streak = streakAsync.valueOrNull ?? 0;
+
     return Row(
       children: [
         // Level badge
@@ -60,7 +70,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           child: Center(
             child: Text(
-              '1',
+              '$level',
               style: AppTypography.monoSmall.copyWith(
                 color: AppColors.emerald,
               ),
@@ -73,14 +83,14 @@ class HomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Level 1 · ${XpConstants.tierName(1)}',
+                'Level $level · $tier',
                 style: AppTypography.h3.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                'Getting started',
+                level == 0 ? 'Getting started' : 'Keep building momentum',
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -104,9 +114,11 @@ class HomeScreen extends ConsumerWidget {
               const Text('🔥', style: TextStyle(fontSize: 16)),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                '0',
+                '$streak',
                 style: AppTypography.monoSmall.copyWith(
-                  color: AppColors.warningAmber,
+                  color: streak > 0
+                      ? AppColors.warningAmber
+                      : AppColors.textTertiary,
                 ),
               ),
             ],
@@ -116,7 +128,21 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFlowScoreCard(BuildContext context) {
+  Widget _buildFlowScoreCard(BuildContext context, WidgetRef ref) {
+    final scoreAsync = ref.watch(dailyScoreProvider);
+    final score = scoreAsync.valueOrNull;
+    final grade = score?.grade ?? '—';
+    final value = score?.score ?? 0;
+    final message = score?.message ?? 'Loading...';
+
+    final gradeColor = switch (grade) {
+      'A+' || 'A' => AppColors.gradeA,
+      'B' => AppColors.gradeB,
+      'C' => AppColors.gradeC,
+      'D' => AppColors.gradeD,
+      _ => AppColors.textTertiary,
+    };
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -138,22 +164,22 @@ class HomeScreen extends ConsumerWidget {
       child: Column(
         children: [
           Text(
-            'B',
+            grade,
             style: AppTypography.display.copyWith(
-              color: AppColors.gradeB,
+              color: gradeColor,
               fontSize: 64,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            '72',
+            '$value',
             style: AppTypography.monoSmall.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            'Solid start. Keep building momentum.',
+            message,
             style: AppTypography.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -163,10 +189,14 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildXPBar(BuildContext context) {
-    const currentXP = 0;
-    final nextLevelXP = XpConstants.xpForLevel(2);
-    final progress = currentXP / nextLevelXP;
+  Widget _buildXPBar(BuildContext context, WidgetRef ref) {
+    final lifetimeXP = ref.watch(lifetimeXpProvider).valueOrNull ?? 0;
+    final level = ref.watch(currentLevelProvider);
+    final currentLevelXP = XpConstants.xpForLevel(level);
+    final nextLevelXP = XpConstants.xpForLevel(level + 1);
+    final xpInLevel = lifetimeXP - currentLevelXP;
+    final xpNeeded = nextLevelXP - currentLevelXP;
+    final progress = xpNeeded > 0 ? xpInLevel / xpNeeded : 0.0;
 
     return Column(
       children: [
@@ -184,14 +214,14 @@ class HomeScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '$currentXP / $nextLevelXP XP',
+              '$lifetimeXP / $nextLevelXP XP',
               style: AppTypography.monoSmall.copyWith(
                 color: AppColors.textSecondary,
                 fontSize: 12,
               ),
             ),
             Text(
-              'Level 2',
+              'Level ${level + 1}',
               style: AppTypography.caption.copyWith(
                 color: AppColors.textTertiary,
               ),
@@ -202,7 +232,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMITsSection(BuildContext context) {
+  Widget _buildMITsSection(BuildContext context, WidgetRef ref) {
+    final mitsAsync = ref.watch(mitsProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -211,47 +243,71 @@ class HomeScreen extends ConsumerWidget {
           style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.md),
-        // Placeholder for empty state
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.xxl),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.06),
-              width: 0.5,
-            ),
-          ),
-          child: Column(
-            children: [
-              const Text('🎯', style: TextStyle(fontSize: 32)),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'No MITs set yet',
-                style: AppTypography.body.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Start your morning intention to pick 3 MITs',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => context.push('/morning-intention'),
-                  child: const Text('Set Morning Intention'),
-                ),
-              ),
-            ],
-          ),
+        mitsAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (mits) {
+            if (mits.isEmpty) {
+              return _buildEmptyMITs(context);
+            }
+            return Column(
+              children: mits.map((task) => TaskCard(
+                task: task,
+                onComplete: () async {
+                  final db = ref.read(databaseProvider);
+                  await db.tasksDao.completeTask(task.id, XpConstants.mitComplete);
+                },
+                onDelete: () async {
+                  final db = ref.read(databaseProvider);
+                  await db.tasksDao.toggleMIT(task.id, false);
+                },
+              )).toList(),
+            );
+          },
         ),
       ],
+    );
+  }
+
+  Widget _buildEmptyMITs(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      decoration: BoxDecoration(
+        color: AppColors.background2,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.06),
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          const Text('🎯', style: TextStyle(fontSize: 32)),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'No MITs set yet',
+            style: AppTypography.body.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Start your morning intention to pick 3 MITs',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => context.push('/morning-intention'),
+              child: const Text('Set Morning Intention'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -259,7 +315,7 @@ class HomeScreen extends ConsumerWidget {
     final actions = [
       (icon: '🎯', label: 'Focus', onTap: () => context.go('/focus')),
       (icon: '📝', label: 'Add Task', onTap: () => context.go('/tasks')),
-      (icon: '📱', label: 'Log Scroll', onTap: () {}),
+      (icon: '📱', label: 'Log Scroll', onTap: () => context.push('/scroll-tracker')),
     ];
 
     return SingleChildScrollView(
@@ -285,7 +341,14 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAttentionBudget(BuildContext context) {
+  Widget _buildAttentionBudget(BuildContext context, WidgetRef ref) {
+    final scrollAsync = ref.watch(dailyScrollProvider);
+    final scrollUsed = scrollAsync.valueOrNull ?? 0;
+    final scoreAsync = ref.watch(dailyScoreProvider);
+    final budget = scoreAsync.valueOrNull?.scrollBudget ?? 30;
+    final progress = budget > 0 ? scrollUsed / budget : 0.0;
+    final isOver = scrollUsed > budget;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -299,9 +362,9 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
             Text(
-              '0 / 30 min',
+              '$scrollUsed / $budget min',
               style: AppTypography.monoSmall.copyWith(
-                color: AppColors.emerald,
+                color: isOver ? AppColors.dangerCoral : AppColors.emerald,
                 fontSize: 12,
               ),
             ),
@@ -310,11 +373,13 @@ class HomeScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: const LinearProgressIndicator(
-            value: 0,
+          child: LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
             minHeight: 4,
             backgroundColor: AppColors.background2,
-            valueColor: AlwaysStoppedAnimation(AppColors.emerald),
+            valueColor: AlwaysStoppedAnimation(
+              isOver ? AppColors.dangerCoral : AppColors.emerald,
+            ),
           ),
         ),
       ],

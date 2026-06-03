@@ -77,3 +77,4 @@ coverage/
 *~
 Thumbs.db
 doc/api/
+__pycache__/

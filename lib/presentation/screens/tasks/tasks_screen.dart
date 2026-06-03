@@ -1,11 +1,24 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/constants/xp_constants.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../data/local/tables/tasks_table.dart';
+import '../../../data/local/tables/xp_ledger_table.dart';
+import '../../../features/tasks/providers/task_providers.dart';
+import '../../widgets/task_card.dart';
+import '../../widgets/state_widgets.dart';
+
+const _uuid = Uuid();
 
 /// Tasks screen — energy-grouped task list with add, reorder, and complete.
+/// Now wired to Drift DAOs for real persistence.
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
 
@@ -15,7 +28,7 @@ class TasksScreen extends ConsumerStatefulWidget {
 
 class _TasksScreenState extends ConsumerState<TasksScreen> {
   int _selectedSegment = 0;
-  final _segments = ['Today', 'This Week', 'All'];
+  final _segments = ['All', '🔥 Deep', '⚡ Med', '🌿 Light'];
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +131,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                         ? AppColors.textPrimary
                         : AppColors.textTertiary,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -129,49 +143,137 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   }
 
   Widget _buildTaskList() {
-    // Empty state
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('✨', style: TextStyle(fontSize: 48)),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Your task list is clear.',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            'Enjoy the calm. Or add something.',
-            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.xxl),
-          ElevatedButton.icon(
-            onPressed: () => _showAddTaskSheet(context),
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text('Add Task'),
-          ),
-        ],
+    final tasksAsync = ref.watch(activeTasksProvider);
+
+    return tasksAsync.when(
+      loading: () => const FlowLoadingState(message: 'Loading tasks...'),
+      error: (e, _) => FlowErrorState(
+        message: e.toString(),
+        onRetry: () => ref.invalidate(activeTasksProvider),
       ),
+      data: (tasks) {
+        // Filter by energy segment
+        final filtered = _selectedSegment == 0
+            ? tasks
+            : tasks.where((t) {
+                return t.energyLevel == EnergyLevelColumn.values[_selectedSegment - 1];
+              }).toList();
+
+        if (filtered.isEmpty) {
+          if (_selectedSegment > 0 && tasks.isNotEmpty) {
+            return Center(
+              child: Text(
+                'No ${_segments[_selectedSegment]} tasks',
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            );
+          }
+          return FlowEmptyState.tasks(
+            onAdd: () => _showAddTaskSheet(context),
+          );
+        }
+
+        // Group: incomplete first, then completed
+        final incomplete = filtered.where((t) => !t.isCompleted).toList();
+        final completed = filtered.where((t) => t.isCompleted).toList();
+
+        return ListView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          children: [
+            // Incomplete tasks
+            ...incomplete.map((task) => TaskCard(
+                  task: task,
+                  onComplete: () => _completeTask(task),
+                  onDelete: () => _deleteTask(task),
+                )),
+
+            // Completed section
+            if (completed.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Completed (${completed.length})',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              ...completed.map((task) => TaskCard(
+                    task: task,
+                    onComplete: () {},
+                    onDelete: () => _deleteTask(task),
+                  )),
+            ],
+
+            const SizedBox(height: 80), // FAB clearance
+          ],
+        );
+      },
     );
+  }
+
+  Future<void> _completeTask(Task task) async {
+    HapticFeedback.mediumImpact();
+    final db = ref.read(databaseProvider);
+
+    // Calculate XP: MIT gets mitComplete, normal gets taskComplete
+    final xp = task.isMIT ? XpConstants.mitComplete : XpConstants.taskComplete;
+
+    // Mark task complete in DB
+    await db.tasksDao.completeTask(task.id, xp);
+
+    // Append XP ledger entry
+    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+      id: Value(_uuid.v4()),
+      actionType: Value(task.isMIT
+          ? XpActionTypeColumn.mitComplete
+          : XpActionTypeColumn.taskComplete),
+      pointsDelta: Value(xp),
+      sourceEntityId: Value(task.id),
+      explanation: Value(
+          'Completed ${task.isMIT ? "MIT" : "task"}: ${task.title}'),
+    ));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('+$xp XP! ${task.isMIT ? "⭐ MIT done!" : "Task done!"}'),
+          backgroundColor: AppColors.emerald,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteTask(Task task) async {
+    final db = ref.read(databaseProvider);
+    await db.tasksDao.softDelete(task.id);
   }
 
   void _showAddTaskSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _AddTaskSheet(),
+      backgroundColor: AppColors.background1,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => const _AddTaskSheet(),
     );
   }
 }
 
 /// Add task bottom sheet — title, energy, estimated time, MIT toggle.
-class _AddTaskSheet extends StatefulWidget {
+/// Now persists to Drift via TasksDao.
+class _AddTaskSheet extends ConsumerStatefulWidget {
+  const _AddTaskSheet();
+
   @override
-  State<_AddTaskSheet> createState() => _AddTaskSheetState();
+  ConsumerState<_AddTaskSheet> createState() => _AddTaskSheetState();
 }
 
-class _AddTaskSheetState extends State<_AddTaskSheet> {
+class _AddTaskSheetState extends ConsumerState<_AddTaskSheet> {
   final _titleController = TextEditingController();
   int _selectedEnergy = 1; // 0=deep, 1=medium, 2=light
   int _estimatedMinutes = 25;
@@ -299,16 +401,34 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Save task to database
-                Navigator.pop(context);
-              },
+              onPressed: _saveTask,
               child: const Text('Add Task'),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _saveTask() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) return;
+
+    HapticFeedback.mediumImpact();
+
+    final db = ref.read(databaseProvider);
+    final id = _uuid.v4();
+
+    await db.tasksDao.insertTask(TasksCompanion(
+      id: Value(id),
+      title: Value(title),
+      energyLevel: Value(EnergyLevelColumn.values[_selectedEnergy]),
+      estimatedMinutes: Value(_estimatedMinutes),
+      isMIT: Value(_isMIT),
+      category: const Value(TaskCategoryColumn.personal),
+    ));
+
+    if (mounted) Navigator.pop(context);
   }
 
   Widget _energyButton(int index, String label, Color color) {

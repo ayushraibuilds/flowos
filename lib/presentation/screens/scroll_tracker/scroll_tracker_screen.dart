@@ -1,12 +1,18 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/constants/xp_constants.dart';
+import '../../../data/local/database/app_database.dart';
+
+const _uuid = Uuid();
 
 /// Scroll Tracker — manual scroll time logging with live timer,
 /// quick-log slider, attention budget bar, and recovery actions.
@@ -27,9 +33,27 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   // Quick log
   double _quickLogMinutes = 10;
 
-  // Budget
-  final int _dailyTotal = 0; // TODO: from DB
-  final int _budget = 30; // TODO: from daily plan
+  // Budget — loaded from DB
+  int _dailyTotal = 0;
+  int _budget = 30;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBudget();
+  }
+
+  Future<void> _loadBudget() async {
+    final db = ref.read(databaseProvider);
+    final total = await db.scrollLogsDao.getDailyTotal();
+    final plan = await db.dailyPlansDao.getToday();
+    if (mounted) {
+      setState(() {
+        _dailyTotal = total;
+        _budget = plan?.scrollBudgetMinutes ?? 30;
+      });
+    }
+  }
 
   final _apps = [
     (name: 'Instagram', emoji: '📸', color: Color(0xFFE4405F)),
@@ -70,10 +94,22 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     }
   }
 
-  void _logScroll(String appName, int minutes) {
-    // TODO: Save to DB via ScrollLogsDao
+  Future<void> _logScroll(String appName, int minutes) async {
+    final db = ref.read(databaseProvider);
+    final impact = (minutes ~/ 10) * XpConstants.scrollCostPer10Min;
+
+    await db.scrollLogsDao.insertLog(ScrollLogsCompanion(
+      id: Value(_uuid.v4()),
+      appName: Value(appName),
+      durationMinutes: Value(minutes),
+      dailyScoreImpact: Value(impact),
+    ));
+
+    // Refresh budget display
+    await _loadBudget();
+
     // Show recovery action sheet
-    _showRecoverySheet(context, appName, minutes);
+    if (mounted) _showRecoverySheet(context, appName, minutes);
   }
 
   void _quickLog() {

@@ -56,4 +56,13 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
           shutdownCompleted: Value(true),
         ),
       );
+
+  /// Get plan for a specific date range (for streak counting).
+  Future<DailyPlan?> getByDateRange(DateTime start, DateTime end) {
+    return (select(dailyPlans)
+          ..where((p) =>
+              p.date.isBiggerOrEqualValue(start) &
+              p.date.isSmallerThanValue(end)))
+        .getSingleOrNull();
+  }
 }

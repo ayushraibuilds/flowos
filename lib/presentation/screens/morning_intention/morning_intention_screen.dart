@@ -1,11 +1,19 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/constants/xp_constants.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../data/local/tables/tasks_table.dart';
+import '../../../data/local/tables/xp_ledger_table.dart';
+
+const _uuid = Uuid();
 
 /// Morning Intention — start your day with energy, MITs, and scroll budget.
 class MorningIntentionScreen extends ConsumerStatefulWidget {
@@ -21,6 +29,23 @@ class _MorningIntentionScreenState
   int _energy = 3; // 1-5
   int _scrollBudget = 30; // minutes
   final _energyEmojis = ['😴', '😐', '🙂', '⚡', '🔥'];
+  final Set<String> _selectedMitIds = {};
+  List<Task> _incompleteTasks = [];
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final db = ref.read(databaseProvider);
+    final tasks = await db.tasksDao.getIncomplete();
+    if (mounted) {
+      setState(() => _incompleteTasks = tasks);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,32 +162,124 @@ class _MorningIntentionScreenState
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              // Placeholder — will be populated from tasks DB
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.xxl),
-                decoration: BoxDecoration(
-                  color: AppColors.background2,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'No tasks yet',
-                      style: AppTypography.body.copyWith(
-                        color: AppColors.textTertiary,
+              // MITs from real task list
+              if (_incompleteTasks.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
+                  decoration: BoxDecoration(
+                    color: AppColors.background2,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'No tasks yet',
+                        style: AppTypography.body.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Add tasks first, then pick your MITs here',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ..._incompleteTasks.map((task) {
+                  final isSelected = _selectedMitIds.contains(task.id);
+                  final energyEmoji = switch (task.energyLevel) {
+                    EnergyLevelColumn.deep => '🔥',
+                    EnergyLevelColumn.medium => '⚡',
+                    EnergyLevelColumn.light => '🌿',
+                  };
+                  return GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        if (isSelected) {
+                          _selectedMitIds.remove(task.id);
+                        } else if (_selectedMitIds.length < 3) {
+                          _selectedMitIds.add(task.id);
+                        }
+                      });
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.emerald.withValues(alpha: 0.1)
+                            : AppColors.background2,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.emerald
+                              : Colors.white.withValues(alpha: 0.06),
+                          width: isSelected ? 1.5 : 0.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected
+                                  ? AppColors.emerald
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.emerald
+                                    : AppColors.textTertiary,
+                                width: 2,
+                              ),
+                            ),
+                            child: isSelected
+                                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                : null,
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Text(energyEmoji, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            '${task.estimatedMinutes}m',
+                            style: AppTypography.monoSmall.copyWith(
+                              color: AppColors.textTertiary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Add tasks first, then pick your MITs here',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
+                  );
+                }),
+              if (_selectedMitIds.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    '${_selectedMitIds.length}/3 MITs selected',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.emerald,
                     ),
-                  ],
+                  ),
                 ),
-              ),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Scroll Budget ────────────────────────────────
               Row(
@@ -211,12 +328,11 @@ class _MorningIntentionScreenState
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.heavyImpact();
-                    // TODO: Save daily plan to DB
-                    context.go('/home');
-                  },
-                  child: const Text('Start Your Day'),
+                  onPressed: _saving ? null : _saveAndStart,
+                  child: _saving
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Start Your Day'),
                 ),
               ),
               const SizedBox(height: AppSpacing.xxxl),
@@ -225,5 +341,42 @@ class _MorningIntentionScreenState
         ),
       ),
     );
+  }
+
+  Future<void> _saveAndStart() async {
+    setState(() => _saving = true);
+    HapticFeedback.heavyImpact();
+
+    final db = ref.read(databaseProvider);
+    final mitIds = _selectedMitIds.toList();
+    final planId = _uuid.v4();
+
+    // Save daily plan
+    await db.dailyPlansDao.insertPlan(DailyPlansCompanion(
+      id: Value(planId),
+      date: Value(DateTime.now()),
+      mit1Id: Value(mitIds.isNotEmpty ? mitIds[0] : null),
+      mit2Id: Value(mitIds.length > 1 ? mitIds[1] : null),
+      mit3Id: Value(mitIds.length > 2 ? mitIds[2] : null),
+      morningEnergy: Value(_energy),
+      scrollBudgetMinutes: Value(_scrollBudget),
+      intentionCompleted: const Value(true),
+    ));
+
+    // Mark selected tasks as MITs
+    for (final id in mitIds) {
+      await db.tasksDao.toggleMIT(id, true);
+    }
+
+    // Award intention XP
+    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+      id: Value(_uuid.v4()),
+      actionType: const Value(XpActionTypeColumn.focusRitualComplete),
+      pointsDelta: const Value(XpConstants.focusRitualComplete),
+      sourceEntityId: Value(planId),
+      explanation: const Value('Completed morning intention ritual'),
+    ));
+
+    if (mounted) context.go('/home');
   }
 }

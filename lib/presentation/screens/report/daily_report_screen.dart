@@ -12,6 +12,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
+import '../../../data/local/database/app_database.dart';
 
 /// Daily Report Screen — the "honest mirror" for your day.
 /// Shows daily score, AI insight, XP, streak, attention cost, and share button.
@@ -28,15 +29,17 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   late AnimationController _animController;
   late Animation<double> _fadeIn;
 
-  // Report data (will be populated from DB + AI)
-  final int _dailyScore = 72;
-  String _grade = 'B';
-  final int _xpToday = 340;
-  final int _focusMinutes = 87;
-  final int _tasksCompleted = 4;
-  final int _mitsCompleted = 2;
-  final int _scrollMinutes = 18;
-  final int _streakDays = 5;
+  // Report data — populated from DAOs in _loadReport()
+  int _dailyScore = 0;
+  String _grade = '—';
+  int _xpToday = 0;
+  int _focusMinutes = 0;
+  int _tasksCompleted = 0;
+  int _mitsCompleted = 0;
+  int _scrollMinutes = 0;
+  int _streakDays = 0;
+  int _scrollBudget = 30;
+  bool _intentionCompleted = false;
   DailyReportInsight _insight = DailyReportInsight.fallback();
   bool _loading = true;
 
@@ -58,29 +61,68 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   }
 
   Future<void> _loadReport() async {
-    // TODO: Collect real data from DAOs
+    final db = ref.read(databaseProvider);
+
+    // Collect real data from DAOs
+    _focusMinutes = await db.focusSessionsDao.totalFocusMinutesToday();
+    _tasksCompleted = await db.tasksDao.countCompletedToday();
+    final mits = await db.tasksDao.getMITs();
+    _mitsCompleted = mits.where((t) => t.isCompleted).length;
+    _scrollMinutes = await db.scrollLogsDao.getDailyTotal();
+    _xpToday = await db.xpLedgerDao.getDailyXP();
+    final lifetimeXP = await db.xpLedgerDao.getLifetimeXP();
+    final level = XpConstants.levelFromXP(lifetimeXP);
+    final plan = await db.dailyPlansDao.getToday();
+    _scrollBudget = plan?.scrollBudgetMinutes ?? 30;
+    _intentionCompleted = plan?.intentionCompleted ?? false;
+
+    // Calculate streak
+    _streakDays = 0;
+    if (plan != null && plan.intentionCompleted) _streakDays = 1;
+    for (int i = 1; i <= 365; i++) {
+      final d = DateTime.now().subtract(Duration(days: i));
+      final start = DateTime(d.year, d.month, d.day);
+      final end = start.add(const Duration(days: 1));
+      final p = await db.dailyPlansDao.getByDateRange(start, end);
+      if (p != null && p.intentionCompleted) {
+        _streakDays++;
+      } else {
+        break;
+      }
+    }
+
+    // Calculate score
+    _dailyScore = DailyScoreCalculator.calculate(
+      focusMinutes: _focusMinutes,
+      mitsCompleted: _mitsCompleted,
+      scrollMinutes: _scrollMinutes,
+      scrollBudget: _scrollBudget,
+      intentionCompleted: _intentionCompleted,
+      shutdownCompleted: plan?.shutdownCompleted ?? false,
+      energyCheckIns: 0,
+    );
     _grade = DailyScoreCalculator.gradeFromScore(_dailyScore);
 
-    // Try AI
+    // Try AI insight with real data
     final aiService = AiService();
     final aiInsight = await aiService.generateDailyReport(dailyData: {
       'date': DateTime.now().toIso8601String().split('T')[0],
       'daily_score': _dailyScore,
       'xp_earned_today': _xpToday,
-      'lifetime_xp': 1200,
-      'level': 3,
+      'lifetime_xp': lifetimeXP,
+      'level': level,
       'streak_days': _streakDays,
       'total_focus_minutes': _focusMinutes,
       'sessions': [],
       'tasks_completed': _tasksCompleted,
-      'tasks_total': 6,
+      'tasks_total': (await db.tasksDao.getAllActive()).length,
       'mits_completed': _mitsCompleted,
       'scroll_minutes': _scrollMinutes,
-      'scroll_budget': 30,
-      'recovery_actions_taken': 1,
-      'energy_readings': [3, 4, 3],
-      'intention_completed': true,
-      'shutdown_completed': false,
+      'scroll_budget': _scrollBudget,
+      'recovery_actions_taken': 0,
+      'energy_readings': [],
+      'intention_completed': _intentionCompleted,
+      'shutdown_completed': plan?.shutdownCompleted ?? false,
       'private_mode': false,
       'prompt_version': 1,
     });
@@ -298,8 +340,8 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   }
 
   Widget _buildAttentionCost() {
-    final ratio = 30 > 0 ? (_scrollMinutes / 30).clamp(0.0, 1.5) : 0.0;
-    final isOver = _scrollMinutes > 30;
+    final ratio = _scrollBudget > 0 ? (_scrollMinutes / _scrollBudget).clamp(0.0, 1.5) : 0.0;
+    final isOver = _scrollMinutes > _scrollBudget;
 
     return Container(
       width: double.infinity,
@@ -328,7 +370,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
                 ),
               ),
               Text(
-                '${isOver ? "Over" : "Within"} budget (30m)',
+                '${isOver ? "Over" : "Within"} budget (${_scrollBudget}m)',
                 style: AppTypography.caption.copyWith(
                   color: isOver ? AppColors.dangerCoral : AppColors.emerald,
                 ),
