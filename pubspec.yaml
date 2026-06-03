@@ -21,7 +21,7 @@ dependencies:
   path: ^1.9.1
 
   # Backend sync
-  supabase_flutter: ^2.9.0
+  supabase_flutter: ^2.12.4
 
   # Navigation
   go_router: ^14.8.1

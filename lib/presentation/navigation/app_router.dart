@@ -13,6 +13,8 @@ import '../screens/shutdown/shutdown_screen.dart';
 import '../screens/report/daily_report_screen.dart';
 import '../screens/report/weekly_review_screen.dart';
 import '../screens/brain_dump/brain_dump_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/auth/auth_screen.dart';
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
@@ -102,6 +104,18 @@ final appRouter = GoRouter(
       path: '/brain-dump',
       name: 'brainDump',
       builder: (context, state) => const BrainDumpScreen(),
+    ),
+
+    // ─── Auth & Onboarding ───────────────────────────────────────
+    GoRoute(
+      path: '/onboarding',
+      name: 'onboarding',
+      builder: (context, state) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: '/auth',
+      name: 'auth',
+      builder: (context, state) => const AuthScreen(),
     ),
   ],
 );
