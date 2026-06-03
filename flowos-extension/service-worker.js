@@ -262,10 +262,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // ─── Supabase Sync ──────────────────────────────────────────────
 
 async function syncToSupabase() {
-  const { supabaseUrl, supabaseKey, accessToken } =
-    await chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accessToken']);
+  const { supabaseUrl, supabaseKey, accessToken, userId } =
+    await chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accessToken', 'userId']);
 
-  if (!supabaseUrl || !supabaseKey || !accessToken) return;
+  if (!supabaseUrl || !supabaseKey || !accessToken || !userId) return;
 
   const { visits = [], lastSyncTime = 0 } = await chrome.storage.local.get(['visits', 'lastSyncTime']);
 
@@ -275,12 +275,14 @@ async function syncToSupabase() {
 
   try {
     const payload = unsynced.map(v => ({
+      id: crypto.randomUUID(),
+      user_id: userId,
       domain: v.domain,
       url: v.url,
       title: v.title,
       category: v.category,
-      start_time: new Date(v.startTime).toISOString(),
-      end_time: new Date(v.endTime).toISOString(),
+      started_at: new Date(v.startTime).toISOString(),
+      ended_at: new Date(v.endTime).toISOString(),
       duration_seconds: Math.round(v.duration / 1000),
       device_id: 'chrome-extension',
     }));

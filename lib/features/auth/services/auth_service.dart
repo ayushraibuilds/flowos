@@ -8,18 +8,24 @@ import '../../../core/config/supabase_config.dart';
 // ─── Supabase client provider ───────────────────────────────────
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
+  if (!SupabaseConfig.isConfigured) {
+    throw StateError('Supabase not configured — running in local-only mode');
+  }
   return Supabase.instance.client;
 });
 
 // ─── Auth state ─────────────────────────────────────────────────
 
 /// Reactive auth state — emits on every login/logout/token refresh.
+/// Returns empty stream if Supabase not configured.
 final authStateProvider = StreamProvider<AuthState>((ref) {
+  if (!SupabaseConfig.isConfigured) return const Stream.empty();
   return Supabase.instance.client.auth.onAuthStateChange;
 });
 
 /// Current user (nullable)
 final currentUserProvider = Provider<User?>((ref) {
+  if (!SupabaseConfig.isConfigured) return null;
   return Supabase.instance.client.auth.currentUser;
 });
 
