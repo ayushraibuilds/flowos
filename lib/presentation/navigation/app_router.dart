@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/tasks/tasks_screen.dart';
 import '../screens/focus/focus_screen.dart';
+import '../screens/focus/focus_ritual_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/morning_intention/morning_intention_screen.dart';
 import '../screens/break_screen/break_screen.dart';
+import '../screens/scroll_tracker/scroll_tracker_screen.dart';
+import '../screens/shutdown/shutdown_screen.dart';
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
@@ -65,7 +68,23 @@ final appRouter = GoRouter(
         );
       },
     ),
-    // TODO: Add shutdown ritual, daily report, onboarding routes
+    GoRoute(
+      path: '/scroll-tracker',
+      name: 'scrollTracker',
+      builder: (context, state) => const ScrollTrackerScreen(),
+    ),
+    GoRoute(
+      path: '/focus-ritual',
+      name: 'focusRitual',
+      builder: (context, state) => FocusRitualScreen(
+        onComplete: () => Navigator.pop(context),
+      ),
+    ),
+    GoRoute(
+      path: '/shutdown',
+      name: 'shutdown',
+      builder: (context, state) => const ShutdownRitualScreen(),
+    ),
   ],
 );
 
