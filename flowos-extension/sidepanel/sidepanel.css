@@ -1,0 +1,265 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0A0E14;
+  color: #E8ECF1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  padding: 16px;
+  line-height: 1.5;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #00D68F;
+}
+
+.sync-status {
+  font-size: 8px;
+  color: #00D68F;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ─── Score Ring ──────────────────────────────── */
+
+.score-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.score-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #1A2230;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: conic-gradient(#00D68F 0%, #1A2230 0%);
+  transition: background 0.5s;
+}
+
+.score-inner {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #0A0E14;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-grade {
+  font-size: 32px;
+  font-weight: 800;
+  color: #00D68F;
+}
+
+.score-value {
+  font-size: 11px;
+  color: #7A8BA5;
+  font-family: 'SF Mono', monospace;
+}
+
+.score-label {
+  font-size: 11px;
+  color: #4A5568;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ─── Sections ───────────────────────────────── */
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7A8BA5;
+  margin-bottom: 12px;
+}
+
+/* ─── Breakdown Bar ──────────────────────────── */
+
+.breakdown-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: #1A2230;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.bar-segment {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.bar-segment.productive { background: #00D68F; }
+.bar-segment.neutral { background: #4A5568; }
+.bar-segment.distracting { background: #FF6B6B; }
+
+.breakdown-legend {
+  display: flex;
+  justify-content: space-between;
+}
+
+.legend-item {
+  font-size: 11px;
+  color: #7A8BA5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-item strong {
+  color: #E8ECF1;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.dot.productive { background: #00D68F; }
+.dot.neutral { background: #4A5568; }
+.dot.distracting { background: #FF6B6B; }
+
+/* ─── Timeline ───────────────────────────────── */
+
+.timeline {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.timeline-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  gap: 8px;
+}
+
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.timeline-dot.productive { background: #00D68F; }
+.timeline-dot.neutral { background: #4A5568; }
+.timeline-dot.distracting { background: #FF6B6B; }
+
+.timeline-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-domain {
+  font-size: 12px;
+  color: #E8ECF1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-time {
+  font-size: 10px;
+  color: #4A5568;
+  font-family: 'SF Mono', monospace;
+}
+
+.timeline-duration {
+  font-size: 11px;
+  color: #7A8BA5;
+  font-family: 'SF Mono', monospace;
+  flex-shrink: 0;
+}
+
+/* ─── Top Sites ──────────────────────────────── */
+
+.site-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.site-rank {
+  font-size: 11px;
+  color: #4A5568;
+  width: 20px;
+  font-family: 'SF Mono', monospace;
+}
+
+.site-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.site-dot.productive { background: #00D68F; }
+.site-dot.neutral { background: #4A5568; }
+.site-dot.distracting { background: #FF6B6B; }
+
+.site-domain {
+  flex: 1;
+  font-size: 12px;
+  color: #E8ECF1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-time {
+  font-size: 11px;
+  color: #7A8BA5;
+  font-family: 'SF Mono', monospace;
+}
+
+/* ─── Focus Button ───────────────────────────── */
+
+.focus-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #00D68F;
+  color: #0A0E14;
+  transition: all 0.2s;
+}
+
+.focus-btn:hover { opacity: 0.9; }
+.focus-btn.active { background: #FF6B6B; color: #fff; }
+
+/* ─── Empty state ────────────────────────────── */
+
+.empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #4A5568;
+  font-size: 12px;
+}

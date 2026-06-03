@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowOS Dashboard</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="header">
+    <h1>⚡ FlowOS Dashboard</h1>
+    <span class="sync-status" id="syncStatus">●</span>
+  </div>
+
+  <!-- Flow Score Card -->
+  <div class="score-section">
+    <div class="score-ring" id="scoreRing">
+      <div class="score-inner">
+        <div class="score-grade" id="scoreGrade">—</div>
+        <div class="score-value" id="scoreValue">0%</div>
+      </div>
+    </div>
+    <div class="score-label">Today's Flow Score</div>
+  </div>
+
+  <!-- Time Breakdown -->
+  <div class="section">
+    <h2>⏱️ Time Breakdown</h2>
+    <div class="breakdown-bar" id="breakdownBar"></div>
+    <div class="breakdown-legend">
+      <div class="legend-item">
+        <span class="dot productive"></span>
+        <span>Productive <strong id="prodMinutes">0m</strong></span>
+      </div>
+      <div class="legend-item">
+        <span class="dot neutral"></span>
+        <span>Neutral <strong id="neutMinutes">0m</strong></span>
+      </div>
+      <div class="legend-item">
+        <span class="dot distracting"></span>
+        <span>Distracting <strong id="distMinutes">0m</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="section">
+    <h2>📋 Today's Timeline</h2>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <!-- Top Sites -->
+  <div class="section">
+    <h2>🌐 Top Sites</h2>
+    <div class="top-sites" id="topSitesList"></div>
+  </div>
+
+  <!-- Focus Mode -->
+  <div class="section">
+    <button class="focus-btn" id="focusToggle">🔒 Start Focus Mode</button>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

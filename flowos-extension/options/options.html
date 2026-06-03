@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowOS Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0A0E14; color: #E8ECF1;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      padding: 32px; max-width: 600px; margin: 0 auto;
+    }
+    h1 { font-size: 20px; color: #00D68F; margin-bottom: 24px; }
+    h2 { font-size: 14px; color: #7A8BA5; margin-bottom: 12px; margin-top: 24px; }
+    .card {
+      background: #1A2230; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    label { display: block; font-size: 13px; color: #7A8BA5; margin-bottom: 4px; }
+    input[type="text"], input[type="password"] {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #222E3E;
+      background: #0A0E14; color: #E8ECF1; font-size: 13px; margin-bottom: 12px;
+      outline: none;
+    }
+    input:focus { border-color: #00D68F; }
+    .btn {
+      padding: 10px 20px; border-radius: 8px; border: none; font-size: 13px;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: #00D68F; color: #0A0E14; }
+    .btn-danger { background: #FF6B6B; color: #fff; }
+    .btn:hover { opacity: 0.9; }
+    .status { font-size: 12px; color: #4A5568; margin-top: 8px; }
+    .status.success { color: #00D68F; }
+    .status.error { color: #FF6B6B; }
+    .category-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .category-domain { font-size: 13px; color: #E8ECF1; }
+    select {
+      padding: 6px 8px; border-radius: 6px; border: 1px solid #222E3E;
+      background: #0A0E14; color: #E8ECF1; font-size: 12px;
+    }
+    .remove-btn {
+      background: none; border: none; color: #FF6B6B; cursor: pointer; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚡ FlowOS Settings</h1>
+
+  <h2>☁️ Supabase Connection</h2>
+  <div class="card">
+    <label>Supabase URL</label>
+    <input type="text" id="supabaseUrl" placeholder="https://xxx.supabase.co">
+    <label>Supabase Anon Key</label>
+    <input type="password" id="supabaseKey" placeholder="eyJ...">
+    <label>Email</label>
+    <input type="text" id="email" placeholder="you@example.com">
+    <label>Password</label>
+    <input type="password" id="password">
+    <button class="btn btn-primary" id="loginBtn">Sign In</button>
+    <div class="status" id="authStatus"></div>
+  </div>
+
+  <h2>🏷️ Custom Site Categories</h2>
+  <div class="card">
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <input type="text" id="newDomain" placeholder="example.com" style="flex: 1; margin-bottom: 0;">
+      <select id="newCategory">
+        <option value="productive">Productive</option>
+        <option value="neutral">Neutral</option>
+        <option value="distracting">Distracting</option>
+      </select>
+      <button class="btn btn-primary" id="addCategoryBtn">Add</button>
+    </div>
+    <div id="categoryList"></div>
+  </div>
+
+  <h2>🗑️ Data</h2>
+  <div class="card">
+    <button class="btn btn-danger" id="clearDataBtn">Clear All Browsing Data</button>
+    <div class="status" id="clearStatus"></div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

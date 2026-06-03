@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Blocked — FlowOS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0A0E14;
+      color: #E8ECF1;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 420px;
+      padding: 40px;
+    }
+
+    .emoji {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #E8ECF1;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #7A8BA5;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .quote {
+      background: #1A2230;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 32px;
+      border-left: 3px solid #00D68F;
+    }
+
+    .quote-text {
+      font-size: 14px;
+      color: #E8ECF1;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .quote-author {
+      font-size: 11px;
+      color: #4A5568;
+      margin-top: 8px;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn-back {
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #00D68F;
+      color: #0A0E14;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover { opacity: 0.9; }
+
+    .btn-override {
+      padding: 8px;
+      background: none;
+      border: none;
+      color: #4A5568;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-override:hover { color: #7A8BA5; }
+
+    .override-warning {
+      display: none;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 8px;
+    }
+
+    .override-warning p {
+      font-size: 12px;
+      color: #FF6B6B;
+      margin-bottom: 8px;
+    }
+
+    .btn-confirm {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #FF6B6B;
+      background: none;
+      color: #FF6B6B;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="emoji">🛡️</div>
+    <h1>Focus Mode Active</h1>
+    <p class="subtitle">
+      This site is blocked during your focus session.<br>
+      Get back to what matters.
+    </p>
+
+    <div class="quote" id="quoteCard">
+      <div class="quote-text" id="quoteText">
+        "The successful warrior is the average man, with laser-like focus."
+      </div>
+      <div class="quote-author" id="quoteAuthor">— Bruce Lee</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-back" id="goBackBtn">← Go Back to Work</button>
+      <button class="btn-override" id="overrideBtn">I really need this site (costs 10 XP)</button>
+      <div class="override-warning" id="overrideWarning">
+        <p>⚠️ This will cost you 10 XP and be logged in your daily report.</p>
+        <button class="btn-confirm" id="confirmOverride">Continue Anyway (-10 XP)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

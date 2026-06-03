@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "FlowOS — Focus & Productivity Tracker",
+  "version": "1.0.0",
+  "description": "Auto-track your browsing productivity. See your Flow Score. Block distractions during focus sessions.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms",
+    "notifications",
+    "sidePanel",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
+  ],
+  "host_permissions": [],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
+  },
+  "options_page": "options/options.html",
+  "declarative_net_request": {
+    "rule_resources": []
+  }
+}
