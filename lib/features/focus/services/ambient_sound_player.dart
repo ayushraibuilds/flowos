@@ -16,10 +16,10 @@ class AmbientSoundPlayer {
 
   /// Asset paths for bundled ambient sounds
   static const _assets = {
-    'binaural': 'assets/audio/binaural_40hz.mp3',
-    'rain': 'assets/audio/rain_loop.mp3',
-    'cafe': 'assets/audio/cafe_ambiance.mp3',
-    'forest': 'assets/audio/forest_loop.mp3',
+    'binaural': 'assets/sounds/binaural_40hz.mp3',
+    'rain': 'assets/sounds/rain_loop.mp3',
+    'cafe': 'assets/sounds/cafe_ambiance.mp3',
+    'forest': 'assets/sounds/forest_loop.mp3',
   };
 
   /// Start playing a sound loop
