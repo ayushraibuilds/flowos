@@ -65,4 +65,14 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
               p.date.isSmallerThanValue(end)))
         .getSingleOrNull();
   }
+
+  /// Get a plan by ID.
+  Future<DailyPlan?> getById(String id) =>
+      (select(dailyPlans)..where((p) => p.id.equals(id))).getSingleOrNull();
+
+  /// Get plans created since a given timestamp (for sync push).
+  Future<List<DailyPlan>> getModifiedSince(DateTime since) =>
+      (select(dailyPlans)
+            ..where((p) => p.createdAt.isBiggerOrEqualValue(since)))
+          .get();
 }

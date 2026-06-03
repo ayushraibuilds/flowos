@@ -62,4 +62,11 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
     final sessions = await getToday();
     return sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes);
   }
+
+  /// Get sessions started since a given timestamp (for sync push).
+  Future<List<FocusSession>> getModifiedSince(DateTime since) =>
+      (select(focusSessions)
+            ..where((s) => s.startedAt.isBiggerOrEqualValue(since))
+            ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
+          .get();
 }

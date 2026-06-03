@@ -32,4 +32,18 @@ class AchievementsDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
     return result != null;
   }
+
+  /// Get by ID (for sync pull lookup).
+  Future<Achievement?> getById(String id) =>
+      (select(achievements)..where((a) => a.id.equals(id))).getSingleOrNull();
+
+  /// Insert an achievement (alias for unlock, used by sync engine).
+  Future<void> insertAchievement(AchievementsCompanion entry) =>
+      into(achievements).insert(entry);
+
+  /// Get achievements since a given timestamp (for sync push).
+  Future<List<Achievement>> getModifiedSince(DateTime since) =>
+      (select(achievements)
+            ..where((a) => a.unlockedAt.isBiggerOrEqualValue(since)))
+          .get();
 }

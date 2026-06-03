@@ -4,12 +4,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/sync_engine.dart';
 import '../../auth/services/auth_service.dart';
+import '../../../data/local/database/app_database.dart';
 
 // ─── Sync Engine Provider ───────────────────────────────────────
 
 final syncEngineProvider = Provider<SyncEngine>((ref) {
   final client = ref.watch(supabaseClientProvider);
-  return SyncEngine(client);
+  final db = ref.watch(databaseProvider);
+  return SyncEngine(client, db);
 });
 
 // ─── Sync Status ────────────────────────────────────────────────

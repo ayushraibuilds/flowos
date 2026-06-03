@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../data/local/tables/tasks_table.dart';
+import '../../../data/local/tables/focus_sessions_table.dart';
 
 /// Sync Engine — Drift (local) ↔ Supabase (cloud).
 ///
@@ -14,17 +19,35 @@ import '../../../core/config/supabase_config.dart';
 ///
 /// Sync runs:
 /// 1. On app open (pull then push)
-/// 2. After every mutation (push only)
+/// 2. After every mutation (push only, debounced 300ms)
 /// 3. On network reconnect (full sync)
 class SyncEngine {
   final SupabaseClient _client;
+  final AppDatabase _db;
   bool _isSyncing = false;
   Timer? _debounceTimer;
 
-  SyncEngine(this._client);
+  /// Key used to store last sync timestamp in SharedPreferences.
+  static const _lastSyncKey = 'flowos_last_sync_at';
+
+  SyncEngine(this._client, this._db);
 
   String get _userId => _client.auth.currentUser!.id;
   bool get isAuthenticated => _client.auth.currentUser != null;
+
+  /// Get last successful sync timestamp.
+  Future<DateTime> _getLastSyncAt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ms = prefs.getInt(_lastSyncKey);
+    if (ms == null) return DateTime(2000); // Never synced → pull everything
+    return DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  /// Update last sync timestamp.
+  Future<void> _setLastSyncAt(DateTime dt) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_lastSyncKey, dt.millisecondsSinceEpoch);
+  }
 
   // ─── Full Sync ─────────────────────────────────────────────
 
@@ -54,6 +77,9 @@ class SyncEngine {
       pushed += await _pushEnergy();
       pushed += await _pushPlans();
       pushed += await _pushAchievements();
+
+      // Mark sync time
+      await _setLastSyncAt(DateTime.now());
 
       debugPrint('✅ Sync complete: ↑$pushed ↓$pulled');
     } catch (e) {
@@ -91,7 +117,9 @@ class SyncEngine {
     }
   }
 
-  // ─── Pull (Server → Local) ─────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════
+  // PULL (Server → Local)
+  // ═══════════════════════════════════════════════════════════════
 
   Future<int> _pullTasks() async {
     try {
@@ -101,13 +129,56 @@ class SyncEngine {
           .order('updated_at', ascending: false)
           .limit(500);
 
-      // TODO: Upsert into Drift using updated_at comparison
-      // For each server row:
-      //   - If local row exists and server.updated_at > local.updated_at → update local
-      //   - If local row doesn't exist → insert local
-      //   - If server.deleted_at is set → soft-delete local
+      int count = 0;
+      for (final row in (data as List)) {
+        final serverId = row['id'] as String;
+        final serverUpdatedAt = DateTime.parse(row['updated_at']);
+        final local = await _db.tasksDao.getById(serverId);
 
-      return (data as List).length;
+        if (local == null) {
+          // New from server → insert locally
+          await _db.tasksDao.insertTask(TasksCompanion(
+            id: Value(serverId),
+            title: Value(row['title'] ?? ''),
+            energyLevel: Value(_parseEnergyLevel(row['energy_level'])),
+            estimatedMinutes: Value(row['estimated_minutes'] ?? 25),
+            category: Value(_parseCategory(row['category'])),
+            isMIT: Value(row['is_mit'] ?? false),
+            isCompleted: Value(row['is_completed'] ?? false),
+            completedAt: Value(row['completed_at'] != null
+                ? DateTime.parse(row['completed_at'])
+                : null),
+            sortOrder: Value(row['sort_order'] ?? 0),
+            createdAt: Value(DateTime.parse(row['created_at'])),
+            updatedAt: Value(serverUpdatedAt),
+            deletedAt: Value(row['deleted_at'] != null
+                ? DateTime.parse(row['deleted_at'])
+                : null),
+          ));
+          count++;
+        } else if (serverUpdatedAt.isAfter(local.updatedAt)) {
+          // Server is newer → update local
+          await _db.tasksDao.updateTask(TasksCompanion(
+            id: Value(serverId),
+            title: Value(row['title'] ?? local.title),
+            energyLevel: Value(_parseEnergyLevel(row['energy_level'])),
+            estimatedMinutes: Value(row['estimated_minutes'] ?? local.estimatedMinutes),
+            isMIT: Value(row['is_mit'] ?? local.isMIT),
+            isCompleted: Value(row['is_completed'] ?? local.isCompleted),
+            completedAt: Value(row['completed_at'] != null
+                ? DateTime.parse(row['completed_at'])
+                : local.completedAt),
+            sortOrder: Value(row['sort_order'] ?? local.sortOrder),
+            updatedAt: Value(serverUpdatedAt),
+            deletedAt: Value(row['deleted_at'] != null
+                ? DateTime.parse(row['deleted_at'])
+                : local.deletedAt),
+          ));
+          count++;
+        }
+        // If local is newer or same → skip (will be pushed)
+      }
+      return count;
     } catch (e) {
       debugPrint('Pull tasks error: $e');
       return 0;
@@ -116,12 +187,39 @@ class SyncEngine {
 
   Future<int> _pullSessions() async {
     try {
+      final lastSync = await _getLastSyncAt();
       final data = await _client
           .from('focus_sessions')
           .select()
+          .gte('updated_at', lastSync.toIso8601String())
           .order('updated_at', ascending: false)
           .limit(500);
-      return (data as List).length;
+
+      int count = 0;
+      for (final row in (data as List)) {
+        final serverId = row['id'] as String;
+        // Check if exists locally
+        final locals = await _db.focusSessionsDao.getByTask(serverId);
+        final exists = locals.any((s) => s.id == serverId);
+
+        if (!exists) {
+          await _db.focusSessionsDao.insertSession(FocusSessionsCompanion(
+            id: Value(serverId),
+            taskId: Value(row['task_id']),
+            sessionType: Value(_parseSessionType(row['session_type'])),
+            durationMinutes: Value(row['duration_minutes']),
+            actualMinutes: Value(row['actual_minutes'] ?? 0),
+            xpEarned: Value(row['xp_earned'] ?? 0),
+            qualityScore: Value(row['quality_score'] ?? ''),
+            startedAt: Value(DateTime.parse(row['started_at'])),
+            completedAt: Value(row['completed_at'] != null
+                ? DateTime.parse(row['completed_at'])
+                : null),
+          ));
+          count++;
+        }
+      }
+      return count;
     } catch (e) {
       debugPrint('Pull sessions error: $e');
       return 0;
@@ -135,7 +233,28 @@ class SyncEngine {
           .select()
           .order('plan_date', ascending: false)
           .limit(60);
-      return (data as List).length;
+
+      int count = 0;
+      for (final row in (data as List)) {
+        final serverId = row['id'] as String;
+        final local = await _db.dailyPlansDao.getById(serverId);
+
+        if (local == null) {
+          await _db.dailyPlansDao.insertPlan(DailyPlansCompanion(
+            id: Value(serverId),
+            date: Value(DateTime.parse(row['plan_date'])),
+            mit1Id: Value(row['mit_1_id']),
+            mit2Id: Value(row['mit_2_id']),
+            mit3Id: Value(row['mit_3_id']),
+            morningEnergy: Value(row['morning_energy'] ?? 3),
+            scrollBudgetMinutes: Value(row['scroll_budget_minutes'] ?? 30),
+            intentionCompleted: Value(row['intention_completed'] ?? false),
+            shutdownCompleted: Value(row['shutdown_completed'] ?? false),
+          ));
+          count++;
+        }
+      }
+      return count;
     } catch (e) {
       debugPrint('Pull plans error: $e');
       return 0;
@@ -145,51 +264,223 @@ class SyncEngine {
   Future<int> _pullAchievements() async {
     try {
       final data = await _client.from('achievements').select();
-      return (data as List).length;
+
+      int count = 0;
+      for (final row in (data as List)) {
+        final serverId = row['id'] as String;
+        final local = await _db.achievementsDao.getById(serverId);
+
+        if (local == null) {
+          await _db.achievementsDao.insertAchievement(AchievementsCompanion(
+            id: Value(serverId),
+            achievementKey: Value(row['achievement_key']),
+            unlockedAt: Value(DateTime.parse(row['unlocked_at'])),
+          ));
+          count++;
+        }
+      }
+      return count;
     } catch (e) {
       debugPrint('Pull achievements error: $e');
       return 0;
     }
   }
 
-  // ─── Push (Local → Server) ─────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════
+  // PUSH (Local → Server)
+  // ═══════════════════════════════════════════════════════════════
 
   Future<int> _pushTasks() async {
-    // TODO: Query Drift for tasks with updated_at > last_synced_at
-    // Upsert to Supabase with device_id and conflict on id
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final tasks = await _db.tasksDao.getAllActive();
+      // Include soft-deleted tasks too — they need to sync their deleted_at
+      final allTasks = await _db.tasksDao.getModifiedSince(lastSync);
+      final toPush = allTasks.isNotEmpty ? allTasks : tasks;
+
+      if (toPush.isEmpty) return 0;
+
+      final rows = toPush.map((t) => {
+        'id': t.id,
+        'title': t.title,
+        'energy_level': t.energyLevel.name,
+        'estimated_minutes': t.estimatedMinutes,
+        'category': t.category.name,
+        'is_mit': t.isMIT,
+        'is_completed': t.isCompleted,
+        'completed_at': t.completedAt?.toIso8601String(),
+        'sort_order': t.sortOrder,
+        'friction_score': t.frictionScore,
+        'parent_task_id': t.parentTaskId,
+        'recurrence_rule': t.recurrenceRule?.name,
+        'created_at': t.createdAt.toIso8601String(),
+        'updated_at': t.updatedAt.toIso8601String(),
+        'deleted_at': t.deletedAt?.toIso8601String(),
+      }).toList();
+
+      await _upsertBatch('tasks', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push tasks error: $e');
+      return 0;
+    }
   }
 
   Future<int> _pushSessions() async {
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final sessions = await _db.focusSessionsDao.getModifiedSince(lastSync);
+
+      if (sessions.isEmpty) return 0;
+
+      final rows = sessions.map((s) => {
+        'id': s.id,
+        'task_id': s.taskId,
+        'session_type': s.sessionType.name,
+        'duration_minutes': s.durationMinutes,
+        'actual_minutes': s.actualMinutes,
+        'quality_score': s.qualityScore,
+        'xp_earned': s.xpEarned,
+        'started_at': s.startedAt.toIso8601String(),
+        'completed_at': s.completedAt?.toIso8601String(),
+      }).toList();
+
+      await _upsertBatch('focus_sessions', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push sessions error: $e');
+      return 0;
+    }
   }
 
   /// XP Ledger — append-only. Only push entries not yet synced.
   Future<int> _pushXpLedger() async {
-    // TODO: Query Drift for XP entries not yet in Supabase
-    // INSERT only, never UPDATE. No conflicts possible.
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final entries = await _db.xpLedgerDao.getByDateRange(
+        lastSync,
+        DateTime.now().add(const Duration(days: 1)),
+      );
+
+      if (entries.isEmpty) return 0;
+
+      final rows = entries.map((e) => {
+        'id': e.id,
+        'action_type': e.actionType.name,
+        'points_delta': e.pointsDelta,
+        'source_entity_id': e.sourceEntityId,
+        'explanation': e.explanation,
+        'prompt_version': e.promptVersion,
+        'created_at': e.timestamp.toIso8601String(),
+      }).toList();
+
+      await _appendBatch('xp_ledger', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push XP ledger error: $e');
+      return 0;
+    }
   }
 
   Future<int> _pushScrollLogs() async {
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final logs = await _db.scrollLogsDao.getModifiedSince(lastSync);
+
+      if (logs.isEmpty) return 0;
+
+      final rows = logs.map((l) => {
+        'id': l.id,
+        'app_name': l.appName,
+        'duration_minutes': l.durationMinutes,
+        'logged_at': l.timestamp.toIso8601String(),
+        'recovery_action_taken': l.recoveryActionTaken,
+        'recovery_action_type': l.recoveryActionType,
+      }).toList();
+
+      await _appendBatch('scroll_logs', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push scroll logs error: $e');
+      return 0;
+    }
   }
 
   Future<int> _pushEnergy() async {
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final checkins = await _db.energyCheckInsDao.getModifiedSince(lastSync);
+
+      if (checkins.isEmpty) return 0;
+
+      final rows = checkins.map((c) => {
+        'id': c.id,
+        'energy_level': c.value,
+        'note': c.timeOfDay.name,
+        'checked_in_at': c.date.toIso8601String(),
+      }).toList();
+
+      await _appendBatch('energy_checkins', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push energy error: $e');
+      return 0;
+    }
   }
 
   Future<int> _pushPlans() async {
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final plans = await _db.dailyPlansDao.getModifiedSince(lastSync);
+
+      if (plans.isEmpty) return 0;
+
+      final rows = plans.map((p) => {
+        'id': p.id,
+        'plan_date': DateTime(p.date.year, p.date.month, p.date.day)
+            .toIso8601String()
+            .split('T')[0],
+        'mit_1_id': p.mit1Id,
+        'mit_2_id': p.mit2Id,
+        'mit_3_id': p.mit3Id,
+        'morning_energy': p.morningEnergy,
+        'scroll_budget_minutes': p.scrollBudgetMinutes,
+        'intention_completed': p.intentionCompleted,
+        'shutdown_completed': p.shutdownCompleted,
+      }).toList();
+
+      await _upsertBatch('daily_plans', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push plans error: $e');
+      return 0;
+    }
   }
 
   Future<int> _pushAchievements() async {
-    return 0;
+    try {
+      final lastSync = await _getLastSyncAt();
+      final achievements = await _db.achievementsDao.getModifiedSince(lastSync);
+
+      if (achievements.isEmpty) return 0;
+
+      final rows = achievements.map((a) => {
+        'id': a.id,
+        'achievement_key': a.achievementKey,
+        'unlocked_at': a.unlockedAt.toIso8601String(),
+      }).toList();
+
+      await _appendBatch('achievements', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push achievements error: $e');
+      return 0;
+    }
   }
 
   // ─── Helpers ───────────────────────────────────────────────
 
-  /// Upsert a batch of rows to Supabase table.
+  /// Upsert a batch of rows to Supabase table (for mutable entities).
   Future<void> _upsertBatch(String table, List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return;
 
@@ -202,6 +493,7 @@ class SyncEngine {
   }
 
   /// Append-only insert (for XP ledger, scroll logs, energy).
+  /// Uses ignoreDuplicates to skip already-synced rows.
   Future<void> _appendBatch(String table, List<Map<String, dynamic>> rows) async {
     if (rows.isEmpty) return;
 
@@ -209,9 +501,34 @@ class SyncEngine {
       row['user_id'] = _userId;
     }
 
-    // Use insert with ignoreDuplicates to skip already-synced rows
-    await _client.from(table).insert(rows);
+    // Insert with ignoreDuplicates — if id already exists, skip silently
+    await _client.from(table).upsert(rows, onConflict: 'id', ignoreDuplicates: true);
   }
+
+  // ─── Enum Parsers ─────────────────────────────────────────
+
+  EnergyLevelColumn _parseEnergyLevel(String? val) => switch (val) {
+    'deep' => EnergyLevelColumn.deep,
+    'medium' => EnergyLevelColumn.medium,
+    'light' => EnergyLevelColumn.light,
+    _ => EnergyLevelColumn.medium,
+  };
+
+  TaskCategoryColumn _parseCategory(String? val) => switch (val) {
+    'work' => TaskCategoryColumn.work,
+    'personal' => TaskCategoryColumn.personal,
+    'health' => TaskCategoryColumn.health,
+    'learning' => TaskCategoryColumn.learning,
+    'admin' => TaskCategoryColumn.admin,
+    _ => TaskCategoryColumn.personal,
+  };
+
+  SessionTypeColumn _parseSessionType(String? val) => switch (val) {
+    'pomodoro' => SessionTypeColumn.pomodoro,
+    'deepWork' => SessionTypeColumn.deepWork,
+    'custom' => SessionTypeColumn.custom,
+    _ => SessionTypeColumn.pomodoro,
+  };
 
   void dispose() {
     _debounceTimer?.cancel();

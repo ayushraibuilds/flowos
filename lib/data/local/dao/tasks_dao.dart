@@ -109,4 +109,12 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
         .get();
     return result.length;
   }
+
+  /// Get tasks modified since a given timestamp (for sync push).
+  /// Includes soft-deleted tasks so their deletion syncs.
+  Future<List<Task>> getModifiedSince(DateTime since) =>
+      (select(tasks)
+            ..where((t) => t.updatedAt.isBiggerOrEqualValue(since))
+            ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+          .get();
 }

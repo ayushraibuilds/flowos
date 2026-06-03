@@ -41,4 +41,10 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
           ..orderBy([(l) => OrderingTerm.asc(l.timestamp)]))
         .get();
   }
+
+  /// Get logs since a given timestamp (for sync push).
+  Future<List<ScrollLog>> getModifiedSince(DateTime since) =>
+      (select(scrollLogs)
+            ..where((l) => l.timestamp.isBiggerOrEqualValue(since)))
+          .get();
 }

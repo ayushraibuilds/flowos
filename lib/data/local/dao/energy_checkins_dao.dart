@@ -29,4 +29,10 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
     final checkins = await getForDate(DateTime.now());
     return checkins.length;
   }
+
+  /// Get check-ins since a given timestamp (for sync push).
+  Future<List<EnergyCheckIn>> getModifiedSince(DateTime since) =>
+      (select(energyCheckIns)
+            ..where((e) => e.date.isBiggerOrEqualValue(since)))
+          .get();
 }
