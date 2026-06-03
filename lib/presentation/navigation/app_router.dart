@@ -17,6 +17,7 @@ import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/focus/deep_work_screen.dart';
 import '../screens/insights/insights_dashboard_screen.dart';
+import '../screens/settings/settings_screen.dart';
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
@@ -136,6 +137,11 @@ final appRouter = GoRouter(
       path: '/insights',
       name: 'insights',
       builder: (context, state) => const InsightsDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      name: 'settings',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );
