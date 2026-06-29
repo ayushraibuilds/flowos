@@ -9,6 +9,9 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/auth/services/auth_service.dart';
 import '../../../features/themes/models/flow_theme.dart';
 import '../../../features/notifications/services/notification_service.dart';
+import '../../../features/sync/providers/sync_providers.dart';
+import '../../../features/dashboard/providers/dashboard_providers.dart';
+import '../../../data/local/database/app_database.dart';
 
 /// Full Settings Screen — notification prefs, themes, scroll budget,
 /// sync controls, account management.
@@ -132,19 +135,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             value: _autoSync,
             onChanged: (v) => setState(() => _autoSync = v),
           ),
-          _actionTile(
+           _actionTile(
             title: 'Sync now',
             subtitle: 'Force a full sync with the server',
             icon: Icons.sync_rounded,
-            onTap: () {
+            onTap: () async {
               HapticFeedback.mediumImpact();
-              // TODO: Trigger full sync via SyncController
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Syncing...'),
                   duration: Duration(seconds: 1),
                 ),
               );
+              try {
+                final result = await ref.read(syncControllerProvider).sync();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result.hasErrors 
+                          ? 'Sync completed with errors.' 
+                          : 'Sync successful!'),
+                      backgroundColor: result.hasErrors ? AppColors.dangerCoral : AppColors.emerald,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Sync failed: $e'),
+                      backgroundColor: AppColors.dangerCoral,
+                    ),
+                  );
+                }
+              }
             },
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -180,16 +204,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _actionTile(
             title: 'Privacy Policy',
             icon: Icons.privacy_tip_outlined,
-            onTap: () {
-              // TODO: Open privacy policy URL
-            },
+            onTap: () => _showPrivacyPolicy(),
           ),
           _actionTile(
             title: 'Terms of Service',
             icon: Icons.description_outlined,
-            onTap: () {
-              // TODO: Open ToS URL
-            },
+            onTap: () => _showTermsOfService(),
           ),
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -398,8 +418,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // ─── Theme Selector ──────────────────────────────────────
 
   Widget _buildThemeSelector(FlowTheme currentTheme) {
-    // TODO: Get real level from XP provider
-    const currentLevel = 5;
+    final currentLevel = ref.watch(currentLevelProvider);
     final themeNotifier = ref.read(themeProvider.notifier);
 
     return Container(
@@ -538,21 +557,119 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              // TODO: Delete all local + Supabase data
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All data deleted'),
-                  backgroundColor: AppColors.dangerCoral,
-                ),
-              );
+              final db = ref.read(databaseProvider);
+              await db.clearAllData();
+              
+              final isLoggedIn = ref.read(isLoggedInProvider);
+              if (isLoggedIn) {
+                await ref.read(authServiceProvider).signOut();
+              }
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All data deleted successfully'),
+                    backgroundColor: AppColors.dangerCoral,
+                  ),
+                );
+                context.go('/auth');
+              }
             },
             child: Text('Delete Everything',
                 style: TextStyle(color: AppColors.dangerCoral)),
           ),
         ],
       ),
+    );
+  }
+
+  void _showScrollableDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background2,
+        title: Text(title, style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: SingleChildScrollView(
+            child: Text(
+              content,
+              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, height: 1.4),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy() {
+    _showScrollableDialog(
+      'Privacy Policy',
+      '''Last Updated: June 2026
+
+Overview
+FlowOS ("the App") is a productivity and focus tracking application. Your privacy is important to us.
+
+Data We Collect
+- Task Data: Titles, descriptions, energy levels, completion status
+- Focus Sessions: Session type, duration, quality grades
+- Energy Check-ins: Energy level readings (1-5 scale) with optional notes
+- Brain Dump Text: Free-text entries you submit for AI sorting
+- XP & Achievements: Experience points and achievements unlocked
+- Scroll Tracking: Self-reported scrolling time on social media apps
+
+Data We Do NOT Collect
+- We do not access your device's Screen Time or Digital Wellbeing APIs
+- We do not access contacts, photos, location, or files
+- We do not collect advertising identifiers
+
+How We Use Your Data
+1. Core Functionality: Your tasks, sessions, and XP are stored locally.
+2. AI Insights: Task and session data is sent to our backend proxy server, which uses Google's Gemini API to generate daily reports, break suggestions, and task sorting.
+3. Cloud Sync: If you create an account, your data is synced to Supabase.
+4. No Selling: We never sell your data to third parties.
+
+Data Storage & Security
+- Local First: All data is stored locally on your device in an SQLite database.
+- Encryption: All data in transit uses HTTPS/TLS encryption.
+- Deletion: You can delete all your data permanently from Settings → Account → Delete All Data.''',
+    );
+  }
+
+  void _showTermsOfService() {
+    _showScrollableDialog(
+      'Terms of Service',
+      '''Last Updated: June 2026
+
+1. Acceptance of Terms
+By downloading or using FlowOS, you agree to these Terms of Service.
+
+2. Description of Service
+FlowOS provides tools for productivity, time management, and attention tracking, including local database persistence, AI task sorting, and cloud backup capabilities.
+
+3. Account Registration
+To use cloud sync, you must create a Supabase account. You are responsible for maintaining account confidentiality.
+
+4. User Content
+You retain all ownership of the tasks, notes, and text dumps you input into the app. We do not claim ownership of your data.
+
+5. AI Feature Use
+The app includes AI-powered task classification and report generation. The AI-generated output is provided "as is". FlowOS is not liable for any inaccuracies in AI recommendations.
+
+6. Disclaimer of Warranties
+FlowOS is provided "as is" without warranty of any kind, either express or implied.
+
+7. Termination
+We reserve the right to suspend accounts that violate these terms or engage in abuse of server APIs.''',
     );
   }
 }

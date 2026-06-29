@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
+import '../../../presentation/navigation/app_router.dart';
+
 /// Home Widget Data Provider — sends FlowOS data to iOS WidgetKit
 /// and Android Jetpack Glance widgets via home_widget package.
 ///
@@ -83,7 +85,15 @@ class HomeWidgetProvider {
     // flowos://tasks → navigate to tasks
     debugPrint('Widget tapped: $uri');
 
-    // TODO: Use GoRouter to navigate based on uri.path
+    final path = uri.path.isNotEmpty ? uri.path : '/${uri.host}';
+    final formattedPath = path.startsWith('/') ? path : '/$path';
+    debugPrint('Navigating to widget deep link: $formattedPath');
+    
+    try {
+      appRouter.go(formattedPath);
+    } catch (e) {
+      debugPrint('Deep link navigation failed: $e');
+    }
   }
 
   /// Clear widget data (on logout)

@@ -1,0 +1,613 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+.wrap{padding:1rem 0;font-family:var(--font-sans);}
+.tabs{display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.25rem;overflow-x:auto;}
+.tab{font-size:11px;font-weight:500;padding:7px 12px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab.on{color:#1D9E75;border-bottom-color:#1D9E75;}
+.pane{display:none;}.pane.on{display:block;}
+.lbl{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-secondary);margin-bottom:8px;margin-top:.9rem;}
+.lbl:first-child{margin-top:0;}
+.callout{border-radius:var(--border-radius-md);padding:11px 13px;margin-bottom:.9rem;}
+.callout p{font-size:13px;line-height:1.65;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:9px;margin-bottom:.9rem;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:.9rem;}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:.9rem;}
+.met{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:9px 11px;}
+.ml{font-size:10px;color:var(--color-text-secondary);margin-bottom:2px;}
+.mv{font-size:12px;font-weight:500;color:var(--color-text-primary);}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem;margin-bottom:9px;}
+.ct{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px;}
+.cb{font-size:12px;color:var(--color-text-secondary);line-height:1.6;}
+.feature-row{display:flex;flex-direction:column;gap:7px;margin-bottom:.9rem;}
+.feat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:9px 12px;border-left:3px solid transparent;}
+.feat-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.feat-name{font-size:13px;font-weight:500;color:var(--color-text-primary);}
+.feat-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;}
+.feat-body{font-size:12px;color:var(--color-text-secondary);line-height:1.5;}
+.code{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:11px 13px;margin-bottom:.9rem;font-family:var(--font-mono);font-size:11px;color:var(--color-text-primary);line-height:1.8;white-space:pre-wrap;overflow-x:auto;}
+.code .kw{color:#1D9E75;font-weight:500;}
+.code .cm{color:#6B7280;}
+.code .st{color:#BA7517;}
+.code .fn{color:#185FA5;}
+.file-tree{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:11px 13px;margin-bottom:.9rem;font-family:var(--font-mono);font-size:11px;line-height:1.9;}
+.ft-dir{color:#1D9E75;font-weight:500;}
+.ft-file{color:var(--color-text-primary);}
+.ft-cm{color:#6B7280;}
+.sprint-block{border-radius:var(--border-radius-md);padding:10px 13px;margin-bottom:7px;}
+.sb-label{font-size:10px;font-weight:500;color:white;padding:2px 9px;border-radius:99px;display:inline-block;margin-bottom:5px;}
+.sb-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:5px;}
+.sb-tasks{display:flex;flex-direction:column;gap:4px;}
+.sb-task{display:flex;gap:7px;font-size:12px;color:var(--color-text-primary);line-height:1.4;}
+.sb-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.screen{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:12px;margin-bottom:8px;}
+.screen-title{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px;}
+.screen-desc{font-size:11px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:6px;}
+.screen-elements{display:flex;flex-wrap:wrap;gap:4px;}
+.se{font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;background:var(--color-background-primary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);}
+.xp-item{display:flex;justify-content:space-between;align-items:center;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px;margin-bottom:5px;}
+.xi-label{font-size:12px;color:var(--color-text-primary);}
+.xi-points{font-size:13px;font-weight:500;color:#1D9E75;}
+.step-row{display:flex;flex-direction:column;gap:5px;margin-bottom:.9rem;}
+.step{display:flex;gap:10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 10px;}
+.sw{font-size:11px;font-weight:500;color:#1D9E75;min-width:62px;padding-top:1px;white-space:nowrap;}
+.st{font-size:12px;color:var(--color-text-primary);line-height:1.5;}
+.tag{font-size:11px;font-weight:500;padding:3px 9px;border-radius:var(--border-radius-md);display:inline-block;margin:2px 2px 2px 0;}
+.tg{background:#EAF3DE;color:#3B6D11;}.tp{background:#EEEDFE;color:#534AB7;}
+.ta{background:#FAEEDA;color:#854F0B;}.tt{background:#E1F5EE;color:#0F6E56;}
+.tb{background:#E6F1FB;color:#0C447C;}.tr{background:#FCEBEB;color:#A32D2D;}
+.ts{background:var(--color-background-secondary);color:var(--color-text-secondary);}
+.install-step{display:flex;gap:10px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px 11px;margin-bottom:5px;}
+.is-num{font-size:14px;font-weight:500;min-width:24px;color:#1D9E75;}
+.is-body{}
+.is-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:2px;}
+.is-text{font-size:12px;color:var(--color-text-secondary);line-height:1.5;}
+.askbtn{width:100%;margin-top:.75rem;padding:10px;border-radius:var(--border-radius-md);border:1.5px solid #1D9E75;background:transparent;cursor:pointer;font-size:13px;font-weight:500;color:#1D9E75;}
+</style>
+
+<div class="wrap">
+<div class="tabs">
+  <div class="tab on" onclick="sw('vision')">Vision</div>
+  <div class="tab" onclick="sw('features')">Features</div>
+  <div class="tab" onclick="sw('xp')">XP system</div>
+  <div class="tab" onclick="sw('screens')">Screens</div>
+  <div class="tab" onclick="sw('stack')">Tech stack</div>
+  <div class="tab" onclick="sw('files')">File structure</div>
+  <div class="tab" onclick="sw('claude')">Claude prompts</div>
+  <div class="tab" onclick="sw('sprint')">Sprint plan</div>
+  <div class="tab" onclick="sw('install')">Install on iPhone</div>
+</div>
+
+<!-- VISION -->
+<div id="p-vision" class="pane on">
+  <div class="callout" style="background:#E1F5EE;">
+    <p style="color:#04342C;">This isn't a todo app. It's a personal operating system for your time. The core insight: productivity tools fail because they're about managing tasks, not managing energy and attention. This app manages all three — tasks, energy, and attention — and rewards you when they align. Flutter (you already know it) means one codebase: iOS personal use today, Android Play Store tomorrow.</p>
+  </div>
+
+  <div class="lbl">The name: <strong>FlowOS</strong></div>
+  <div class="card">
+    <div class="ct">What makes this different from every other productivity app</div>
+    <div class="cb">Every todo app makes you feel guilty when you don't finish. FlowOS is designed around flow states — the psychological condition where you're fully absorbed, deeply focused, and the most productive version of yourself. Tasks are assigned "energy levels" (not just priority). The app matches high-energy tasks to your peak hours (tracked over time). It rewards effort, not just completion. A 25-minute deep focus session on a hard problem earns more XP than checking off 10 easy tasks. The AI daily report doesn't judge — it finds patterns and shows you when, where, and how you do your best work.</div>
+  </div>
+
+  <div class="lbl">Core philosophy — 4 pillars</div>
+  <div class="grid2">
+    <div class="card"><div class="ct">🎯 Intentional Starts</div><div class="cb">Every day begins with a 2-minute "Daily Intention" — you pick 3 Most Important Tasks (MITs) and set an energy budget. This 2-minute ritual is scientifically proven to increase task completion by 40%.</div></div>
+    <div class="card"><div class="ct">⚡ Energy-Aware Scheduling</div><div class="cb">Tasks have energy costs (Deep Work / Light Work / Admin). The app learns your energy patterns over 2 weeks and suggests high-energy tasks during your peak hours. Never schedule a hard decision at 3 PM again.</div></div>
+    <div class="card"><div class="ct">🏆 Effort-Based Rewards</div><div class="cb">XP earned by actual time in focus — not by ticking boxes. 25 minutes of unbroken deep work = 50 XP. 10 social media check-ins = -10 XP. The scorecard reflects reality, not self-deception.</div></div>
+    <div class="card"><div class="ct">🤖 AI Reflection, Not Judgement</div><div class="cb">Daily Claude report says: "You do your deepest work between 9–11 AM. Your Tuesday afternoons are consistently your weakest. You've completed 89% of tasks you set before 8 AM." Patterns, not lectures.</div></div>
+  </div>
+
+  <div class="grid4">
+    <div class="met"><div class="ml">Platform</div><div class="mv">Flutter (iOS + Android)</div></div>
+    <div class="met"><div class="ml">Backend</div><div class="mv">Supabase + FastAPI</div></div>
+    <div class="met"><div class="ml">AI</div><div class="mv">Claude Haiku</div></div>
+    <div class="met"><div class="ml">Build time</div><div class="mv">4–5 weeks to v1</div></div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div id="p-features" class="pane">
+  <div class="lbl">Core feature modules</div>
+
+  <div class="feature-row">
+    <div class="feat" style="border-color:#1D9E75;">
+      <div class="feat-head"><div class="feat-name">🎯 Smart Task Manager</div><span class="feat-badge" style="background:#EAF3DE;color:#3B6D11;">Sprint 1</span></div>
+      <div class="feat-body">Tasks have: title, energy level (🔴 Deep / 🟡 Medium / 🟢 Light), estimated time, deadline, category. 3 MITs (Most Important Tasks) per day highlighted. Drag-to-reorder. Swipe to complete with satisfying haptic feedback. Recurring tasks. Sub-tasks. Brain dump mode: type everything → AI sorts by energy level.</div>
+    </div>
+    <div class="feat" style="border-color:#534AB7;">
+      <div class="feat-head"><div class="feat-name">⏱️ Focus Timer (Advanced Pomodoro)</div><span class="feat-badge" style="background:#EEEDFE;color:#534AB7;">Sprint 1</span></div>
+      <div class="feat-body">3 modes: Pomodoro (25/5), Deep Work (90 min / 20 min break), Custom. During focus: phone locks to the app (no notification visible), ambient sound options (rain, café, binaural beats). Break suggestions rotate: 5-min walk prompt, breathing exercise, quick riddle, book recommendation, eye exercise. Session ends with XP reward animation.</div>
+    </div>
+    <div class="feat" style="border-color:#BA7517;">
+      <div class="feat-head"><div class="feat-name">📱 Mindless Scrolling Tracker</div><span class="feat-badge" style="background:#FAEEDA;color:#854F0B;">Sprint 2</span></div>
+      <div class="feat-body">Honest manual logging: big red "I just opened [Instagram/Twitter/YouTube/Reddit]" button → logs time → adds to daily scroll total → deducts XP. iOS Screen Time integration reads total app usage (with permission). When you log scrolling: Claude suggests a 3-minute alternative: a book fact, a riddle, a breathing exercise, a creative prompt. "You've scrolled 47 minutes today. Here's what you could have learned instead."</div>
+    </div>
+    <div class="feat" style="border-color:#1D9E75;">
+      <div class="feat-head"><div class="feat-name">🏆 XP & Achievement System</div><span class="feat-badge" style="background:#EAF3DE;color:#3B6D11;">Sprint 1</span></div>
+      <div class="feat-body">Points earned for: focus sessions, task completion, early starts, MIT completion, streak maintenance. Points lost for: logged mindless scrolling, incomplete MITs, broken streaks. Weekly level-up with unlockable themes (space theme, forest theme, minimal theme). Achievement badges: "Flow Master" (5 consecutive 90-min sessions), "Early Bird" (7 days of 6 AM starts), "Scroll-Free Friday".</div>
+    </div>
+    <div class="feat" style="border-color:#0C447C;">
+      <div class="feat-head"><div class="feat-name">📊 AI Daily Productivity Report</div><span class="feat-badge" style="background:#E6F1FB;color:#0C447C;">Sprint 2</span></div>
+      <div class="feat-body">Generated every evening at 9 PM by Claude. Inputs: completed tasks, focus session durations, XP earned/lost, scroll time logged, break behavior, time of day for each activity. Output: 5-section report — (1) Today's Score, (2) Your best hour today, (3) One pattern Claude noticed, (4) Tomorrow's top recommendation, (5) Weekly streak status. Delivered as a beautiful card you can screenshot and share.</div>
+    </div>
+    <div class="feat" style="border-color:#534AB7;">
+      <div class="feat-head"><div class="feat-name">🧠 Break Content Engine</div><span class="feat-badge" style="background:#EEEDFE;color:#534AB7;">Sprint 2</span></div>
+      <div class="feat-body">When a focus session ends → random break content from Claude: (a) A fascinating fact from the field you're working in, (b) A lateral thinking riddle (answer revealed after 60 seconds), (c) A book recommendation with a 3-sentence hook, (d) A 4-7-8 breathing exercise prompt, (e) A micro-creative challenge ("Describe your current task as a movie title"). These make breaks feel earned and mentally refreshing.</div>
+    </div>
+    <div class="feat" style="border-color:#BA7517;">
+      <div class="feat-head"><div class="feat-name">📅 Weekly Review</div><span class="feat-badge" style="background:#FAEEDA;color:#854F0B;">Sprint 3</span></div>
+      <div class="feat-body">Every Sunday 8 PM: 5-minute guided review. Claude analyses 7 days of data → generates insights: peak productivity day, average scroll time vs focus time, task completion rate by energy level. You answer 3 reflection questions (pre-set by Claude based on your week). Next week's top habit recommendation generated. Beautiful infographic of the week's data.</div>
+    </div>
+    <div class="feat" style="border-color:#1D9E75;">
+      <div class="feat-head"><div class="feat-name">⚡ Energy Level Tracker</div><span class="feat-badge" style="background:#EAF3DE;color:#3B6D11;">Sprint 2</span></div>
+      <div class="feat-body">Quick check-in widget: "How's your energy?" → 5-point scale, 3 taps. Logged 3× per day (morning, afternoon, evening). After 2 weeks, app shows your energy pattern: "You're typically at 8/10 from 9–11 AM and 4/10 from 2–4 PM." Tasks auto-sorted to your peak hours. This feature alone makes FlowOS more valuable than any other todo app.</div>
+    </div>
+  </div>
+</div>
+
+<!-- XP SYSTEM -->
+<div id="p-xp" class="pane">
+  <div class="callout" style="background:#E1F5EE;">
+    <p style="color:#04342C;">The XP system is designed so honest, hard work always beats gaming it. You can't earn XP by checking off fake tasks — only by actual time logged in focus sessions and verified completions. The loss mechanics (negative XP for scrolling) are visible but not punitive — they're honest accounting.</p>
+  </div>
+
+  <div class="lbl">XP earn table</div>
+  <div class="xp-item"><div class="xi-label">🎯 Complete a Most Important Task (MIT)</div><div class="xi-points">+75 XP</div></div>
+  <div class="xp-item"><div class="xi-label">⏱️ Complete a 25-min Pomodoro session</div><div class="xi-points">+40 XP</div></div>
+  <div class="xp-item"><div class="xi-label">🔥 Complete a 90-min Deep Work session</div><div class="xi-points">+120 XP</div></div>
+  <div class="xp-item"><div class="xi-label">✅ Complete a regular task</div><div class="xi-points">+20 XP</div></div>
+  <div class="xp-item"><div class="xi-label">🌅 Log first task before 8 AM</div><div class="xi-points">+30 XP</div></div>
+  <div class="xp-item"><div class="xi-label">⚡ Complete all 3 MITs in a day</div><div class="xi-points">+100 XP bonus</div></div>
+  <div class="xp-item"><div class="xi-label">📖 Use break content (not phone) during break</div><div class="xi-points">+15 XP</div></div>
+  <div class="xp-item"><div class="xi-label">🔄 7-day productivity streak</div><div class="xi-points">+200 XP</div></div>
+  <div class="xp-item"><div class="xi-label">🧘 Log energy check-in × 3 in a day</div><div class="xi-points">+20 XP</div></div>
+
+  <div class="lbl">XP loss table</div>
+  <div class="xp-item"><div class="xi-label">📱 Log 30 mins of mindless scrolling</div><div class="xi-points" style="color:#E24B4A;">-30 XP</div></div>
+  <div class="xp-item"><div class="xi-label">❌ Leave MIT incomplete at end of day</div><div class="xi-points" style="color:#E24B4A;">-50 XP</div></div>
+  <div class="xp-item"><div class="xi-label">🔔 Abandon a focus session before halfway</div><div class="xi-points" style="color:#E24B4A;">-20 XP</div></div>
+  <div class="xp-item"><div class="xi-label">📱 Log 60+ mins scrolling in one day</div><div class="xi-points" style="color:#E24B4A;">-80 XP</div></div>
+
+  <div class="lbl">Level tiers (thematic progression)</div>
+  <div class="grid3">
+    <div class="met"><div class="ml">Lvl 1–5 (0–2,000 XP)</div><div class="mv">🌱 Seedling</div></div>
+    <div class="met"><div class="ml">Lvl 6–10 (2,001–6,000)</div><div class="mv">⚡ Focuser</div></div>
+    <div class="met"><div class="ml">Lvl 11–20 (6,001–15,000)</div><div class="mv">🔥 Flow Rider</div></div>
+    <div class="met"><div class="ml">Lvl 21–35 (15,001–40,000)</div><div class="mv">🎯 Deep Worker</div></div>
+    <div class="met"><div class="ml">Lvl 36–50 (40,001–100,000)</div><div class="mv">🧠 Mind Master</div></div>
+    <div class="met"><div class="ml">Lvl 51+ (100,000+)</div><div class="mv">🌌 Flow State God</div></div>
+  </div>
+
+  <div class="lbl">Achievements (unlockable badges)</div>
+  <div class="grid2">
+    <div class="card"><div class="ct">🌅 Early Bird</div><div class="cb">Complete an MIT before 8 AM for 7 consecutive days</div></div>
+    <div class="card"><div class="ct">🔥 Flow Master</div><div class="cb">Complete 5 consecutive 90-minute deep work sessions</div></div>
+    <div class="card"><div class="ct">📵 Digital Detox</div><div class="cb">Log zero scrolling for an entire day</div></div>
+    <div class="card"><div class="ct">🎯 Triple Threat</div><div class="cb">Complete all 3 MITs for 30 consecutive days</div></div>
+    <div class="card"><div class="ct">📚 Reader</div><div class="cb">Choose the book recommendation break 25 times</div></div>
+    <div class="card"><div class="ct">🧘 Breath Master</div><div class="cb">Complete breathing exercises on 14 breaks</div></div>
+    <div class="card"><div class="ct">⚡ 1000 XP Day</div><div class="cb">Earn 1,000+ XP in a single day</div></div>
+    <div class="card"><div class="ct">🌌 Flow God</div><div class="cb">Reach Level 51</div></div>
+  </div>
+</div>
+
+<!-- SCREENS -->
+<div id="p-screens" class="pane">
+  <div class="lbl">App screens — every screen described</div>
+
+  <div class="screen">
+    <div class="screen-title">1. Morning Intention Screen (opens at first launch each day)</div>
+    <div class="screen-desc">Full-screen dark mode. Quote of the day (curated, not random). Energy check-in (5-point slider). Pick 3 MITs from task list. Estimated total time for MITs. "Start your day" button with XP preview.</div>
+    <div class="screen-elements"><span class="se">Daily quote</span><span class="se">Energy slider</span><span class="se">MIT picker</span><span class="se">XP preview</span><span class="se">Haptic feedback</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">2. Home Dashboard</div>
+    <div class="screen-desc">Today's XP bar (animated fill). MIT progress (3 boxes, checkable). Active focus timer (if running). Quick-add task FAB. Streak counter. Current level badge. Scroll time logged today (red if >30 min). 3 most urgent non-MIT tasks below.</div>
+    <div class="screen-elements"><span class="se">XP bar</span><span class="se">MIT checkboxes</span><span class="se">Focus timer widget</span><span class="se">Streak</span><span class="se">Scroll tracker</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">3. Focus Mode Screen</div>
+    <div class="screen-desc">Full screen takeover. Large circular timer (animated). Task name in center. Ambient sound selector (rain / café / white noise / silence). Cancel button (small, requires swipe-up confirmation to prevent accidents). XP preview updating in real-time. "Do Not Disturb" auto-enabled on iOS.</div>
+    <div class="screen-elements"><span class="se">Circular timer</span><span class="se">Ambient sounds</span><span class="se">Live XP counter</span><span class="se">Auto-DND</span><span class="se">Haptic tick</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">4. Break Screen (appears after each focus session)</div>
+    <div class="screen-desc">XP earned animation (confetti + number). Break suggestion (rotates: riddle / fact / book / breathing / creative prompt). Timer for break (countdown). "I scrolled during break" honest button (deducts XP). "Start next session" button. Skip break option (loses +15 XP bonus).</div>
+    <div class="screen-elements"><span class="se">XP animation</span><span class="se">Break content</span><span class="se">Break timer</span><span class="se">Honest scroll button</span><span class="se">Next session</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">5. Task Manager Screen</div>
+    <div class="screen-desc">Segmented control: Today / This Week / All. Tasks grouped by energy level (Deep Work / Medium / Light). Swipe right to complete (XP animation). Swipe left to reschedule. Long press to edit. Energy level shown as colored dot. Drag to reorder. Brain Dump button → type everything → Claude sorts by energy level.</div>
+    <div class="screen-elements"><span class="se">Energy grouping</span><span class="se">Swipe gestures</span><span class="se">Brain dump</span><span class="se">Claude sort</span><span class="se">Recurring tasks</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">6. Scrolling Tracker Screen</div>
+    <div class="screen-desc">Big honest red buttons: Instagram / YouTube / Twitter / Reddit / Other. Tap → starts logging timer → tap again to stop. Daily total (time and XP impact). "What I could have done instead" section — Claude shows: pages of a book you could have read, a skill you could have practiced. Week chart of scroll patterns.</div>
+    <div class="screen-elements"><span class="se">App buttons</span><span class="se">Live timer</span><span class="se">Daily total</span><span class="se">Claude alternatives</span><span class="se">Week chart</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">7. Daily Report Screen (unlocks at 9 PM)</div>
+    <div class="screen-desc">Beautiful card design. Score out of 100. "Your best hour" highlighted. One AI-generated insight. Tomorrow's recommendation. Shareable as image (Instagram-ready card). Streak visualization. Tap each section for more detail.</div>
+    <div class="screen-elements"><span class="se">Score card</span><span class="se">Best hour highlight</span><span class="se">AI insight</span><span class="se">Share button</span><span class="se">Streak viz</span></div>
+  </div>
+
+  <div class="screen">
+    <div class="screen-title">8. Profile / XP Screen</div>
+    <div class="screen-desc">Current level + XP progress bar. All achievement badges (locked/unlocked). Productivity stats: all-time focus hours, tasks completed, best streak. Heatmap calendar (GitHub-style, green = productive day). Themes unlocked at each level. Settings for: working hours, focus session defaults, notification preferences.</div>
+    <div class="screen-elements"><span class="se">Level card</span><span class="se">Achievements grid</span><span class="se">Heatmap</span><span class="se">Stats</span><span class="se">Themes</span></div>
+  </div>
+</div>
+
+<!-- TECH STACK -->
+<div id="p-stack" class="pane">
+  <div class="callout" style="background:#E1F5EE;">
+    <p style="color:#04342C;">Flutter is the right choice — you already know it, one codebase for iOS + Android, and Flutter's animation system is perfect for the XP/level-up moments that make productivity apps feel satisfying. All backend services are things you've already used.</p>
+  </div>
+
+  <div class="lbl">Flutter packages — every package you need</div>
+  <div class="code"><span class="cm"># pubspec.yaml dependencies</span>
+
+<span class="kw">dependencies:</span>
+  flutter:
+    sdk: flutter
+
+  <span class="cm"># State management</span>
+  flutter_riverpod: ^2.5.1       <span class="cm"># Reactive state (cleaner than Bloc for this)</span>
+  riverpod_annotation: ^2.3.5
+
+  <span class="cm"># Local database (offline-first)</span>
+  isar: ^3.1.0                   <span class="cm"># Fast local DB — stores tasks, sessions, XP</span>
+  isar_flutter_libs: ^3.1.0
+
+  <span class="cm"># Backend sync</span>
+  supabase_flutter: ^2.3.4       <span class="cm"># Auth + cloud sync</span>
+
+  <span class="cm"># Navigation</span>
+  go_router: ^13.2.0             <span class="cm"># Type-safe routing</span>
+
+  <span class="cm"># UI / Animations</span>
+  lottie: ^3.1.0                 <span class="cm"># XP animations, confetti</span>
+  flutter_animate: ^4.5.0        <span class="cm"># Smooth micro-animations</span>
+  fl_chart: ^0.67.0              <span class="cm"># Charts for reports</span>
+  percent_indicator: ^4.2.3      <span class="cm"># Circular timer, XP bar</span>
+  confetti: ^0.7.0               <span class="cm"># Task completion celebration</span>
+  flutter_slidable: ^3.1.0       <span class="cm"># Swipe-to-complete/delete on tasks</span>
+  calendar_date_picker2: ^1.1.2  <span class="cm"># Date picking</span>
+  table_calendar: ^3.1.0         <span class="cm"># Heatmap calendar</span>
+
+  <span class="cm"># Notifications</span>
+  flutter_local_notifications: ^17.1.2  <span class="cm"># Focus reminders, report alerts</span>
+  awesome_notifications: ^0.9.3         <span class="cm"># Rich notifications</span>
+
+  <span class="cm"># Audio (ambient sounds during focus)</span>
+  just_audio: ^0.9.37            <span class="cm"># Play rain/cafe/binaural sounds</span>
+  audio_session: ^0.1.21
+
+  <span class="cm"># Platform features</span>
+  wakelock_plus: ^1.1.4          <span class="cm"># Keep screen on during focus</span>
+  vibration: ^1.9.0              <span class="cm"># Haptic feedback patterns</span>
+  share_plus: ^9.0.0             <span class="cm"># Share daily report card</span>
+  screenshot: ^2.3.0             <span class="cm"># Capture report card as image</span>
+  app_usage: ^3.0.2              <span class="cm"># iOS/Android screen time data</span>
+
+  <span class="cm"># Utilities</span>
+  intl: ^0.19.0                  <span class="cm"># Date formatting</span>
+  uuid: ^4.3.3                   <span class="cm"># Task IDs</span>
+  http: ^1.2.1                   <span class="cm"># Claude API calls</span>
+  flutter_dotenv: ^5.1.0         <span class="cm"># API keys</span>
+  hive_flutter: ^1.1.0           <span class="cm"># Simple key-value (settings)</span></div>
+
+  <div class="lbl">Backend — minimal, what you know</div>
+  <div class="grid2">
+    <div class="card"><div class="ct">Supabase</div><div class="cb">Auth (Apple Sign In + email). Cloud sync for tasks and sessions. Realtime subscriptions for cross-device sync. Storage for report images. You know this already.</div></div>
+    <div class="card"><div class="ct">FastAPI microservice (Railway)</div><div class="cb">Single endpoint: POST /report/generate. Receives day's data from Flutter → calls Claude API → returns structured report JSON. Also: POST /break/suggest → returns break content. Claude Haiku — cheap, fast.</div></div>
+  </div>
+
+  <div class="lbl">Local-first architecture</div>
+  <div class="card">
+    <div class="ct">Why Isar (local DB) is the core</div>
+    <div class="cb">All tasks, sessions, XP, and daily logs are stored locally in Isar first. The app works 100% offline. Supabase sync happens in the background. This means: no loading spinners, no "you're offline" errors, instant responses. For a personal productivity app this is essential — you don't want network latency interrupting your focus state.</div>
+  </div>
+</div>
+
+<!-- FILE STRUCTURE -->
+<div id="p-files" class="pane">
+  <div class="file-tree">
+<span class="ft-dir">flowos/</span>
+│
+<span class="ft-dir">├── lib/</span>
+│   <span class="ft-file">├── main.dart</span>                    <span class="ft-cm"># App entry, Riverpod scope, theme</span>
+│   <span class="ft-file">├── router.dart</span>                  <span class="ft-cm"># Go Router routes</span>
+│   <span class="ft-file">├── theme.dart</span>                   <span class="ft-cm"># Dark/light theme, color scheme</span>
+│   │
+│   <span class="ft-dir">├── features/</span>
+│   │   <span class="ft-dir">├── tasks/</span>
+│   │   │   <span class="ft-file">├── data/task_repository.dart</span>     <span class="ft-cm"># Isar CRUD + Supabase sync</span>
+│   │   │   <span class="ft-file">├── domain/task_model.dart</span>        <span class="ft-cm"># @collection class for Isar</span>
+│   │   │   <span class="ft-file">├── presentation/tasks_screen.dart</span>
+│   │   │   <span class="ft-file">├── presentation/task_tile.dart</span>    <span class="ft-cm"># Slidable task row</span>
+│   │   │   <span class="ft-file">├── presentation/add_task_sheet.dart</span>
+│   │   │   └── <span class="ft-file">providers/tasks_provider.dart</span>
+│   │   │
+│   │   <span class="ft-dir">├── focus/</span>
+│   │   │   <span class="ft-file">├── data/session_repository.dart</span>
+│   │   │   <span class="ft-file">├── domain/session_model.dart</span>
+│   │   │   <span class="ft-file">├── presentation/focus_screen.dart</span>  <span class="ft-cm"># ⭐ Full-screen focus UI</span>
+│   │   │   <span class="ft-file">├── presentation/break_screen.dart</span>  <span class="ft-cm"># Break content + XP reveal</span>
+│   │   │   <span class="ft-file">├── services/timer_service.dart</span>     <span class="ft-cm"># Background-safe timer</span>
+│   │   │   <span class="ft-file">├── services/ambient_audio.dart</span>     <span class="ft-cm"># Rain/café sounds</span>
+│   │   │   └── <span class="ft-file">providers/focus_provider.dart</span>
+│   │   │
+│   │   <span class="ft-dir">├── xp/</span>
+│   │   │   <span class="ft-file">├── domain/xp_calculator.dart</span>       <span class="ft-cm"># ⭐ All XP earn/lose logic</span>
+│   │   │   <span class="ft-file">├── domain/achievement_checker.dart</span>  <span class="ft-cm"># Badge unlock detection</span>
+│   │   │   <span class="ft-file">├── presentation/level_up_overlay.dart</span><span class="ft-cm"># Full-screen level up</span>
+│   │   │   <span class="ft-file">├── presentation/xp_bar.dart</span>         <span class="ft-cm"># Animated XP fill widget</span>
+│   │   │   └── <span class="ft-file">providers/xp_provider.dart</span>
+│   │   │
+│   │   <span class="ft-dir">├── scrolling/</span>
+│   │   │   <span class="ft-file">├── presentation/scroll_tracker_screen.dart</span>
+│   │   │   <span class="ft-file">├── presentation/scroll_log_widget.dart</span>
+│   │   │   └── <span class="ft-file">providers/scroll_provider.dart</span>
+│   │   │
+│   │   <span class="ft-dir">├── report/</span>
+│   │   │   <span class="ft-file">├── data/report_service.dart</span>         <span class="ft-cm"># Calls FastAPI → Claude</span>
+│   │   │   <span class="ft-file">├── domain/report_model.dart</span>
+│   │   │   <span class="ft-file">├── presentation/report_screen.dart</span>  <span class="ft-cm"># ⭐ Beautiful report card UI</span>
+│   │   │   <span class="ft-file">├── presentation/report_card.dart</span>    <span class="ft-cm"># Shareable card widget</span>
+│   │   │   └── <span class="ft-file">providers/report_provider.dart</span>
+│   │   │
+│   │   <span class="ft-dir">├── home/</span>
+│   │   │   <span class="ft-file">├── presentation/home_screen.dart</span>    <span class="ft-cm"># ⭐ Main dashboard</span>
+│   │   │   <span class="ft-file">├── presentation/morning_intention.dart</span>
+│   │   │   └── <span class="ft-file">presentation/energy_checkin.dart</span>
+│   │   │
+│   │   └── <span class="ft-dir">profile/</span>
+│   │       <span class="ft-file">├── presentation/profile_screen.dart</span>
+│   │       <span class="ft-file">├── presentation/achievements_grid.dart</span>
+│   │       └── <span class="ft-file">presentation/heatmap_calendar.dart</span>
+│   │
+│   <span class="ft-dir">├── shared/</span>
+│   │   <span class="ft-file">├── widgets/animated_xp_bar.dart</span>
+│   │   <span class="ft-file">├── widgets/confetti_wrapper.dart</span>
+│   │   <span class="ft-file">├── widgets/energy_dot.dart</span>           <span class="ft-cm"># 🔴🟡🟢 energy indicator</span>
+│   │   └── <span class="ft-file">services/notification_service.dart</span>
+│   │
+│   └── <span class="ft-dir">core/</span>
+│       <span class="ft-file">├── database/isar_service.dart</span>        <span class="ft-cm"># Isar initialization</span>
+│       <span class="ft-file">├── api/claude_service.dart</span>           <span class="ft-cm"># FastAPI calls</span>
+│       <span class="ft-file">├── api/supabase_service.dart</span>
+│       └── <span class="ft-file">constants/xp_constants.dart</span>        <span class="ft-cm"># All XP values in one place</span>
+│
+<span class="ft-dir">├── backend/</span>                           <span class="ft-cm"># FastAPI — Railway deploy</span>
+│   <span class="ft-file">├── main.py</span>
+│   <span class="ft-file">├── routers/report.py</span>              <span class="ft-cm"># POST /report/generate</span>
+│   <span class="ft-file">├── routers/breaks.py</span>              <span class="ft-cm"># POST /break/suggest</span>
+│   <span class="ft-file">├── services/claude.py</span>
+│   <span class="ft-file">└── prompts/report_prompt.py</span>       <span class="ft-cm"># ⭐ The daily report prompt</span>
+│
+<span class="ft-file">├── pubspec.yaml</span>
+└── <span class="ft-file">README.md</span></div>
+</div>
+
+<!-- CLAUDE PROMPTS -->
+<div id="p-claude" class="pane">
+  <div class="lbl">Daily report prompt (the most important prompt)</div>
+  <div class="code">DAILY_REPORT_SYSTEM = <span class="st">"""
+You are FlowOS's productivity coach — analytical, supportive, 
+and brutally honest. You analyse one person's day and give them
+a clear-eyed, specific, actionable report. You never give generic
+advice. Every insight references the actual data provided.
+Tone: like a smart friend who has seen your data — caring but direct.
+"""</span>
+
+DAILY_REPORT_USER = <span class="st">"""
+Analyse today's productivity data for {name} and generate a report.
+
+TODAY'S DATA:
+Date: {date}
+Total focus time: {focus_minutes} minutes
+Focus sessions: {session_count} sessions
+Session breakdown: {sessions_list}
+  (format: [task_name, duration_min, energy_level, time_of_day])
+
+Tasks completed: {tasks_completed}
+MITs completed: {mits_completed}/3
+Tasks added but not done: {tasks_skipped}
+
+Mindless scrolling logged: {scroll_minutes} minutes
+Apps: {scroll_apps}
+
+Energy check-ins: {energy_readings}
+  (format: [morning: X/5, afternoon: X/5, evening: X/5])
+
+XP earned today: {xp_earned}
+XP lost today: {xp_lost}
+Current streak: {streak_days} days
+Current level: {level}
+
+YESTERDAY for context: {yesterday_summary}
+WEEKLY AVERAGE focus time: {weekly_avg_focus} min/day
+
+Generate a JSON report with exactly these fields:
+{{
+  "score": (0-100 based on focus time, MIT completion, scroll ratio),
+  "score_label": ("Exceptional"/"Strong"/"Decent"/"Weak"/"Rough day"),
+  "best_hour": "time range when they were most productive today",
+  "key_insight": "ONE specific observation from the data (max 2 sentences, very specific)",
+  "tomorrow_tip": "ONE concrete action for tomorrow based on today's patterns (specific, not generic)",
+  "streak_message": "acknowledge streak or reset (warm, not preachy)",
+  "scroll_reality": "honest one-liner about scroll time (with what they could have done instead)",
+  "highlight": "best thing they did today (find something to genuinely praise)"
+}}
+
+Rules:
+- Every insight must reference specific numbers from the data
+- Never say "great job" generically — be specific about what was good
+- Never lecture about scrolling — state facts, suggest alternative
+- If scroll time > focus time, acknowledge this plainly without shame
+"""</span></div>
+
+  <div class="lbl">Break content prompt</div>
+  <div class="code">BREAK_PROMPT = <span class="st">"""
+The user just completed a {duration}-minute {session_type} focus session
+working on: "{task_name}"
+Their energy level: {energy}/5
+Break duration: {break_minutes} minutes
+
+Generate ONE of the following (vary based on energy level):
+- If energy > 3: a lateral thinking riddle with answer hidden (json: type="riddle")
+- If energy 2-3: a fascinating 3-sentence fact related to {task_category} or science
+- Any energy: a breathing exercise instruction (4-7-8 method, friendly language)
+- Random: a book recommendation with 2-sentence hook for why they'd love it
+
+Return JSON:
+{{
+  "type": "riddle" | "fact" | "breathing" | "book",
+  "content": "the main content",
+  "answer": "only if riddle — shown after 45 seconds",
+  "duration_seconds": "how long this break activity takes"
+}}
+"""</span></div>
+
+  <div class="lbl">Brain dump sort prompt</div>
+  <div class="code">BRAIN_DUMP_PROMPT = <span class="st">"""
+The user has brain-dumped these tasks. Classify and sort each one.
+
+Tasks: {raw_task_list}
+
+For each task, return:
+{{
+  "title": "clean, action-verb task title",
+  "energy_level": "deep" | "medium" | "light",
+  "estimated_minutes": number,
+  "category": "work" | "personal" | "health" | "learning" | "admin",
+  "is_mit_candidate": true/false (only true for 3 maximum)
+}}
+
+Energy classification rules:
+- deep: requires sustained concentration, creativity, or difficult decisions
+- medium: requires attention but not peak cognitive load
+- light: can be done while tired, no decision-making required
+"""</span></div>
+</div>
+
+<!-- SPRINT PLAN -->
+<div id="p-sprint" class="pane">
+  <div class="sprint-block" style="background:#E1F5EE22;border:0.5px solid #1D9E75;">
+    <span class="sb-label" style="background:#1D9E75;">Sprint 1 — Week 1–2: Core loop working</span>
+    <div class="sb-title">Goal: Add task → start focus → complete → earn XP → see it on dashboard</div>
+    <div class="sb-tasks">
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>Set up Flutter project, Isar DB, Riverpod, Go Router. Dark theme with custom colors.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>Task model (Isar @collection): id, title, energyLevel, estimatedMinutes, dueDate, category, isMIT, isCompleted, completedAt, xpValue.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>Tasks screen: grouped by energy level. Swipe right to complete (confetti + XP). Add task bottom sheet with all fields. Drag reorder.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>Focus screen: circular timer (percent_indicator), Pomodoro mode, play/pause/stop. Auto-DND using platform channel on iOS. Keep screen awake (wakelock_plus).</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>XP system: xp_constants.dart defines all values. xp_calculator.dart handles earn/lose. Persistent XP in Isar. AnimatedXpBar widget (flutter_animate).</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>Home dashboard: MIT checkboxes, today's XP bar, streak counter. Morning Intention screen (triggers on first open each day).</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#1D9E75;"></div>Break screen: shows after session. XP reveal animation (Lottie). Simple break suggestion (static for now — Claude integration in Sprint 2).</div>
+    </div>
+  </div>
+
+  <div class="sprint-block" style="background:#EEEDFE22;border:0.5px solid #534AB7;">
+    <span class="sb-label" style="background:#534AB7;">Sprint 2 — Week 3–4: AI + scrolling tracker</span>
+    <div class="sb-title">Goal: Claude generates breaks + daily report. Scrolling tracked and shown.</div>
+    <div class="sb-tasks">
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>FastAPI backend (Railway): POST /break/suggest and POST /report/generate. Claude Haiku integration. Deploy and test endpoints.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>Break screen: call Claude break API when session ends. Show riddle / fact / breathing / book based on response. "Answer reveal" timer for riddles.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>Scroll tracker screen: Instagram / YouTube / Twitter / Reddit / Other buttons. Tap = start timer, tap again = stop + log. Daily total with XP impact.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>Energy check-in: 3× daily prompt (9 AM, 1 PM, 6 PM via local_notifications). Simple 5-point slider. Stored per day in Isar.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>Daily report: collect all day's data at 9 PM → call Claude API → display report card. Beautiful card design with fl_chart. Share button via screenshot + share_plus.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>Brain dump: long-press "Add task" → text field → send to Claude → get sorted task list back → display with accept/edit options.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#534AB7;"></div>Supabase: add auth (Apple Sign In on iOS). Cloud sync for tasks and XP history.</div>
+    </div>
+  </div>
+
+  <div class="sprint-block" style="background:#FAEEDA22;border:0.5px solid #BA7517;">
+    <span class="sb-label" style="background:#BA7517;">Sprint 3 — Week 5–6: Polish + achievements</span>
+    <div class="sb-title">Goal: Feels like a real product you want to use every day.</div>
+    <div class="sb-tasks">
+      <div class="sb-dot" style="background:#BA7517;"></div>Achievement system: achievement_checker.dart monitors conditions after every action. Full-screen level-up overlay (Lottie animation) when thresholds crossed.
+      <div class="sb-task"><div class="sb-dot" style="background:#BA7517;"></div>Profile screen: level badge, XP history chart (fl_chart line chart), achievement badges grid (locked=greyed out), GitHub-style heatmap calendar.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#BA7517;"></div>Ambient sounds: just_audio plays looping rain.mp3, cafe.mp3, whitenoise.mp3, binaural.mp3 during focus. Auto-fades when session ends.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#BA7517;"></div>Weekly review: Sunday 8 PM notification → 5-min guided reflection screen → Claude generates weekly insights → save as weekly summary card.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#BA7517;"></div>Themes: unlock new color themes at levels 10, 20, 35. Space theme (deep purple), Forest (dark green), Midnight (cool grey). Persist with Hive.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#BA7517;"></div>Widget (iOS home screen): Flutter home screen widget showing today's XP, streak, MIT count. Use home_widget package.</div>
+      <div class="sb-task"><div class="sb-dot" style="background:#BA7517;"></div>Deep Work 90-min mode: longer circular timer, different ambient sound default (binaural beats), higher XP reward, "flow state" visual indicator.</div>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL -->
+<div id="p-install" class="pane">
+  <div class="callout" style="background:#E1F5EE;">
+    <p style="color:#04342C;">Three ways to get Flutter apps on your own iPhone without the App Store. Ranked by effort vs stability. For a personal daily-use app: Option 2 (Developer account + direct install) is the right choice.</p>
+  </div>
+
+  <div class="lbl">Option 1 — Free: Xcode direct install (no paid account)</div>
+  <div class="install-step">
+    <div class="is-num">1</div>
+    <div class="is-body"><div class="is-title">Connect iPhone to Mac via USB</div><div class="is-text">Open Xcode → Devices and Simulators → trust your device. Flutter project will target your device.</div></div>
+  </div>
+  <div class="install-step">
+    <div class="is-num">2</div>
+    <div class="is-body"><div class="is-title">Sign with free Apple ID in Xcode</div><div class="is-text">Xcode → Signing & Capabilities → use your Apple ID as team. No payment needed.</div></div>
+  </div>
+  <div class="install-step">
+    <div class="is-num">3</div>
+    <div class="is-body"><div class="is-title">flutter run → installs on your device</div><div class="is-text">App installs and runs. Works great. But: expires in 7 days. You must reinstall weekly. Fine for testing. Annoying for daily use.</div></div>
+  </div>
+
+  <div class="lbl">Option 2 — ₹7,500/yr: Apple Developer Account (recommended)</div>
+  <div class="install-step">
+    <div class="is-num">1</div>
+    <div class="is-body"><div class="is-title">Join Apple Developer Program ($99/yr = ~₹7,500)</div><div class="is-text">developer.apple.com/programs/enroll — 24-48 hours to activate. Required for stable personal use + future App Store.</div></div>
+  </div>
+  <div class="install-step">
+    <div class="is-num">2</div>
+    <div class="is-body"><div class="is-title">Register your device UDID</div><div class="is-text">Xcode → Devices → add your iPhone UDID to provisioning profile. One-time setup per device.</div></div>
+  </div>
+  <div class="install-step">
+    <div class="is-num">3</div>
+    <div class="is-body"><div class="is-title">Deploy via Xcode or TestFlight personal</div><div class="is-text">Xcode direct: flutter build ios → open .xcworkspace → Product → Archive → distribute to device. Or TestFlight internal testing: upload once, install anytime, auto-updates. TestFlight is the best option for personal daily use.</div></div>
+  </div>
+  <div class="install-step">
+    <div class="is-num">4</div>
+    <div class="is-body"><div class="is-title">App never expires, auto-updates via TestFlight</div><div class="is-text">When you update the Flutter code: flutter build ipa → upload to TestFlight → your iPhone auto-prompts to update. This is the ideal personal development workflow.</div></div>
+  </div>
+
+  <div class="lbl">Android (when you're ready for Play Store)</div>
+  <div class="install-step">
+    <div class="is-num">1</div>
+    <div class="is-body"><div class="is-title">Zero extra code needed (Flutter advantage)</div><div class="is-text">Same Flutter codebase. Run: flutter build apk → install directly on Android phone for testing.</div></div>
+  </div>
+  <div class="install-step">
+    <div class="is-num">2</div>
+    <div class="is-body"><div class="is-title">Play Store: $25 one-time Google Play Console fee</div><div class="is-text">flutter build appbundle → upload to Play Console → internal testing track first → open testing → production. Much simpler than Apple's process.</div></div>
+  </div>
+
+  <div class="lbl">Mac requirement</div>
+  <div class="card">
+    <div class="ct">⚠️ You need a Mac to build for iOS</div>
+    <div class="cb">iOS builds require Xcode, which only runs on macOS. If you don't have a Mac: (a) Use a Mac cloud service like MacStadium or Github Codespaces (Mac) for the build step, (b) develop on any machine, build on cloud Mac, (c) or get a MacBook — you'll need one eventually for iOS development anyway. For Android development only: any OS works fine.</div>
+  </div>
+
+  <button class="askbtn" onclick="sendPrompt('Write me the complete home_screen.dart Flutter file for FlowOS — the main dashboard showing MIT checkboxes, XP bar, streak counter, active focus timer widget, and scroll time logged today. Use Riverpod for state and make the animations feel premium.')">Write the home_screen.dart file ↗</button>
+</div>
+</div>
+
+<script>
+function sw(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  const ids=['vision','features','xp','screens','stack','files','claude','sprint','install'];
+  document.querySelectorAll('.tab')[ids.indexOf(id)].classList.add('on');
+  document.getElementById('p-'+id).classList.add('on');
+}
+</script>

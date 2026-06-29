@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/ai/services/ai_service.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../data/local/tables/tasks_table.dart';
 
 /// Brain Dump Screen — text input → AI sorts → accept/edit flow.
 /// User dumps thoughts, AI organizes into actionable tasks with
 /// energy levels and friction scores.
-class BrainDumpScreen extends StatefulWidget {
+class BrainDumpScreen extends ConsumerStatefulWidget {
   const BrainDumpScreen({super.key});
 
   @override
-  State<BrainDumpScreen> createState() => _BrainDumpScreenState();
+  ConsumerState<BrainDumpScreen> createState() => _BrainDumpScreenState();
 }
 
-class _BrainDumpScreenState extends State<BrainDumpScreen> {
+class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
   final _textController = TextEditingController();
   bool _processing = false;
   List<BrainDumpTask>? _sortedTasks;
@@ -33,10 +38,14 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
     HapticFeedback.mediumImpact();
     setState(() => _processing = true);
 
+    final db = ref.read(databaseProvider);
+    final latestCheckin = await db.energyCheckInsDao.getLatest();
+    final energy = latestCheckin?.value ?? 3;
+
     final aiService = AiService();
     final tasks = await aiService.processBrainDump(
       rawText: _textController.text.trim(),
-      currentEnergy: 3, // TODO: Get from latest energy check-in
+      currentEnergy: energy,
     );
 
     setState(() {
@@ -287,10 +296,26 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Add accepted tasks to DB
+                  onPressed: () async {
                     HapticFeedback.heavyImpact();
-                    Navigator.pop(context, _sortedTasks);
+                    if (_sortedTasks != null) {
+                      final db = ref.read(databaseProvider);
+                      for (final task in _sortedTasks!) {
+                        final id = const Uuid().v4();
+                        await db.tasksDao.insertTask(TasksCompanion(
+                          id: Value(id),
+                          title: Value(task.title),
+                          energyLevel: Value(_parseEnergyLevel(task.energyLevel)),
+                          estimatedMinutes: Value(task.estimatedMinutes),
+                          frictionScore: Value((task.frictionScore * 100).round()),
+                          category: const Value(TaskCategoryColumn.personal),
+                          description: Value(task.reasoning),
+                        ));
+                      }
+                    }
+                    if (mounted) {
+                      Navigator.pop(context, true);
+                    }
                   },
                   child: const Text('Add All Tasks'),
                 ),
@@ -333,5 +358,17 @@ class _BrainDumpScreenState extends State<BrainDumpScreen> {
         ),
       ],
     );
+  }
+
+  EnergyLevelColumn _parseEnergyLevel(String level) {
+    switch (level.toLowerCase()) {
+      case 'deep':
+        return EnergyLevelColumn.deep;
+      case 'light':
+        return EnergyLevelColumn.light;
+      case 'medium':
+      default:
+        return EnergyLevelColumn.medium;
+    }
   }
 }

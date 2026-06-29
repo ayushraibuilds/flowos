@@ -351,8 +351,8 @@ class _MorningIntentionScreenState
     final mitIds = _selectedMitIds.toList();
     final planId = _uuid.v4();
 
-    // Save daily plan
-    await db.dailyPlansDao.insertPlan(DailyPlansCompanion(
+    // P0-1 fix: Upsert today's plan (safe to call multiple times per day)
+    final savedPlanId = await db.dailyPlansDao.upsertToday(DailyPlansCompanion(
       id: Value(planId),
       date: Value(DateTime.now()),
       mit1Id: Value(mitIds.isNotEmpty ? mitIds[0] : null),
@@ -362,6 +362,10 @@ class _MorningIntentionScreenState
       scrollBudgetMinutes: Value(_scrollBudget),
       intentionCompleted: const Value(true),
     ));
+
+    // P0-2 fix: Clear all existing MITs before setting today's new ones.
+    // This prevents stale MITs from previous days accumulating.
+    await db.tasksDao.clearAllMITs();
 
     // Mark selected tasks as MITs
     for (final id in mitIds) {
@@ -373,7 +377,7 @@ class _MorningIntentionScreenState
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.focusRitualComplete),
       pointsDelta: const Value(XpConstants.focusRitualComplete),
-      sourceEntityId: Value(planId),
+      sourceEntityId: Value(savedPlanId),
       explanation: const Value('Completed morning intention ritual'),
     ));
 

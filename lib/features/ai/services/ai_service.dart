@@ -11,7 +11,10 @@ class AiService {
   /// In production: https://flowos-api.railway.app (or similar)
   static const _devUrl = 'http://10.0.2.2:8000'; // Android emulator → host
   static const _iosDevUrl = 'http://localhost:8000';
-  static const _prodUrl = 'https://flowos-api.railway.app'; // TODO: set in .env
+  static const _prodUrl = String.fromEnvironment(
+    'AI_BACKEND_URL',
+    defaultValue: 'https://flowos-api.railway.app',
+  );
 
   AiService() {
     final baseUrl = kDebugMode

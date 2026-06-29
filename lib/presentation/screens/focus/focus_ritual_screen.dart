@@ -3,22 +3,26 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../features/xp/models/xp_calculator.dart';
 
 /// Focus Ritual — pre-focus checklist + optional breathing.
 /// Completing the ritual earns FOCUS_RITUAL_COMPLETE (+10 XP).
-class FocusRitualScreen extends StatefulWidget {
+class FocusRitualScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
 
   const FocusRitualScreen({super.key, required this.onComplete});
 
   @override
-  State<FocusRitualScreen> createState() => _FocusRitualScreenState();
+  ConsumerState<FocusRitualScreen> createState() => _FocusRitualScreenState();
 }
 
-class _FocusRitualScreenState extends State<FocusRitualScreen>
+class _FocusRitualScreenState extends ConsumerState<FocusRitualScreen>
     with SingleTickerProviderStateMixin {
   final _checklist = [
     (emoji: '💧', label: 'Water ready?', checked: false),
@@ -96,9 +100,11 @@ class _FocusRitualScreenState extends State<FocusRitualScreen>
     }
   }
 
-  void _complete() {
+  void _complete() async {
     HapticFeedback.heavyImpact();
-    // TODO: Award focus ritual XP
+    final db = ref.read(databaseProvider);
+    final xpCalc = XpCalculator(db.xpLedgerDao);
+    await xpCalc.awardFocusRitualXP();
     widget.onComplete();
   }
 

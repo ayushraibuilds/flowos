@@ -10,6 +10,7 @@ import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../features/tasks/providers/task_providers.dart';
 import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../features/tasks/services/task_completion_service.dart';
 
 /// Home Dashboard — the "command center."
 /// Shows Flow Score, XP bar, MITs, quick actions, and attention budget.
@@ -255,12 +256,14 @@ class HomeScreen extends ConsumerWidget {
                 task: task,
                 onComplete: () async {
                   final db = ref.read(databaseProvider);
-                  await db.tasksDao.completeTask(task.id, XpConstants.mitComplete);
+                  final service = TaskCompletionService(db);
+                  await service.completeTask(task);
                 },
                 onDelete: () async {
                   final db = ref.read(databaseProvider);
                   await db.tasksDao.toggleMIT(task.id, false);
                 },
+                onTap: () => _startDeepWork(context, task),
               )).toList(),
             );
           },
@@ -384,5 +387,12 @@ class HomeScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  void _startDeepWork(BuildContext context, Task task) {
+    context.push('/deep-work', extra: {
+      'taskId': task.id,
+      'taskTitle': task.title,
+    });
   }
 }

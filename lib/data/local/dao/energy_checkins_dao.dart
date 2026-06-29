@@ -35,4 +35,11 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
       (select(energyCheckIns)
             ..where((e) => e.date.isBiggerOrEqualValue(since)))
           .get();
+
+  /// Get the latest energy check-in
+  Future<EnergyCheckIn?> getLatest() =>
+      (select(energyCheckIns)
+            ..orderBy([(e) => OrderingTerm.desc(e.date)])
+            ..limit(1))
+          .getSingleOrNull();
 }

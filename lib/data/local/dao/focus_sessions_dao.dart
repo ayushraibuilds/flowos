@@ -57,6 +57,10 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
           .get();
 
+  /// Get a single session by its ID
+  Future<FocusSession?> getById(String id) =>
+      (select(focusSessions)..where((s) => s.id.equals(id))).getSingleOrNull();
+
   /// Total focus minutes today
   Future<int> totalFocusMinutesToday() async {
     final sessions = await getToday();

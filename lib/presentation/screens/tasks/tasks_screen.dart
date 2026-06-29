@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/tasks_table.dart';
-import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../features/tasks/providers/task_providers.dart';
+import '../../../features/tasks/services/task_completion_service.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/state_widgets.dart';
 
@@ -187,6 +187,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                   task: task,
                   onComplete: () => _completeTask(task),
                   onDelete: () => _deleteTask(task),
+                  onTap: () => _startDeepWork(task),
                 )),
 
             // Completed section
@@ -216,24 +217,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   Future<void> _completeTask(Task task) async {
     HapticFeedback.mediumImpact();
     final db = ref.read(databaseProvider);
+    final service = TaskCompletionService(db);
 
-    // Calculate XP: MIT gets mitComplete, normal gets taskComplete
-    final xp = task.isMIT ? XpConstants.mitComplete : XpConstants.taskComplete;
-
-    // Mark task complete in DB
-    await db.tasksDao.completeTask(task.id, xp);
-
-    // Append XP ledger entry
-    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: Value(task.isMIT
-          ? XpActionTypeColumn.mitComplete
-          : XpActionTypeColumn.taskComplete),
-      pointsDelta: Value(xp),
-      sourceEntityId: Value(task.id),
-      explanation: Value(
-          'Completed ${task.isMIT ? "MIT" : "task"}: ${task.title}'),
-    ));
+    final xp = await service.completeTask(task);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -244,6 +230,13 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         ),
       );
     }
+  }
+
+  void _startDeepWork(Task task) {
+    context.push('/deep-work', extra: {
+      'taskId': task.id,
+      'taskTitle': task.title,
+    });
   }
 
   Future<void> _deleteTask(Task task) async {

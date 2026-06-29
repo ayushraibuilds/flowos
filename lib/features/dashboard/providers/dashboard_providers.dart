@@ -52,6 +52,8 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   final scrollMinutes = await db.scrollLogsDao.getDailyTotal();
   final plan = await db.dailyPlansDao.getToday();
 
+  final energyCheckIns = await db.energyCheckInsDao.countToday();
+
   final score = DailyScoreCalculator.calculate(
     focusMinutes: focusMinutes,
     mitsCompleted: mitsCompleted,
@@ -59,7 +61,7 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
     scrollBudget: plan?.scrollBudgetMinutes ?? 30,
     intentionCompleted: plan?.intentionCompleted ?? false,
     shutdownCompleted: plan?.shutdownCompleted ?? false,
-    energyCheckIns: 0, // TODO: wire energy DAO
+    energyCheckIns: energyCheckIns,
   );
 
   return DashboardScore(

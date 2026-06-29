@@ -7,6 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../core/constants/xp_constants.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../data/local/tables/focus_sessions_table.dart';
+import '../../../data/local/tables/xp_ledger_table.dart';
+import '../../../features/focus/services/ambient_sound_player.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -35,6 +44,8 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   int _pauseCount = 0;
   final int _backgroundCount = 0;
   Timer? _timer;
+  String _sessionId = '';
+  final _uuid = const Uuid();
 
   // Ambient sound
   String _selectedSound = 'none';
@@ -80,15 +91,32 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     _timer?.cancel();
     _glowController.dispose();
     _breatheController.dispose();
+    AmbientSoundPlayer.stop();
     super.dispose();
   }
 
-  void _startTimer() {
+  void _startTimer() async {
     HapticFeedback.heavyImpact();
+    _sessionId = _uuid.v4();
+
+    final db = ref.read(databaseProvider);
+    await db.focusSessionsDao.insertSession(FocusSessionsCompanion(
+      id: Value(_sessionId),
+      taskId: Value(widget.taskId),
+      sessionType: const Value(SessionTypeColumn.deepWork),
+      durationMinutes: const Value(90),
+      startedAt: Value(DateTime.now()),
+    ));
+
     setState(() {
       _isRunning = true;
       _isPaused = false;
     });
+
+    if (_selectedSound != 'none') {
+      await AmbientSoundPlayer.play(_selectedSound);
+    }
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_remainingSeconds > 0) {
         setState(() => _remainingSeconds--);
@@ -101,6 +129,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   void _pauseTimer() {
     HapticFeedback.mediumImpact();
     _timer?.cancel();
+    AmbientSoundPlayer.stop();
     setState(() {
       _isPaused = true;
       _pauseCount++;
@@ -110,6 +139,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   void _resumeTimer() {
     HapticFeedback.selectionClick();
     setState(() => _isPaused = false);
+    if (_selectedSound != 'none') {
+      AmbientSoundPlayer.play(_selectedSound);
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_remainingSeconds > 0) {
         setState(() => _remainingSeconds--);
@@ -119,18 +151,46 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     });
   }
 
-  void _completeSession() {
+  void _completeSession() async {
     _timer?.cancel();
     HapticFeedback.heavyImpact();
-    final actualMinutes = (_totalSeconds - _remainingSeconds) ~/ 60;
+    await AmbientSoundPlayer.fadeOut();
 
-    // TODO: Award 2× XP via XpCalculator, navigate to break screen
-    Navigator.pop(context, {
-      'actualMinutes': actualMinutes,
-      'pauseCount': _pauseCount,
-      'backgroundCount': _backgroundCount,
-      'sessionType': 'deepWork',
-    });
+    final elapsed = _totalSeconds - _remainingSeconds;
+    final actualMinutes = (elapsed / 60).round();
+    final interrupts = _pauseCount + _backgroundCount;
+    final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
+
+    final baseXP = XpConstants.deepWorkComplete;
+    final xp = quality == 'A' ? baseXP : (baseXP * 0.8).round();
+
+    final db = ref.read(databaseProvider);
+    await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+      id: Value(_sessionId),
+      actualMinutes: Value(actualMinutes),
+      pauseCount: Value(_pauseCount),
+      appBackgroundCount: Value(_backgroundCount),
+      xpEarned: Value(xp),
+      qualityScore: Value(quality),
+      completedAt: Value(DateTime.now()),
+    ));
+
+    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+      id: Value(_uuid.v4()),
+      actionType: const Value(XpActionTypeColumn.focusComplete),
+      pointsDelta: Value(xp),
+      sourceEntityId: Value(_sessionId),
+      explanation: Value(
+        'Completed ${actualMinutes}m Deep Work session: "${widget.taskTitle ?? 'Focus'}" (Quality: $quality)'),
+    ));
+
+    if (mounted) {
+      context.go('/break', extra: {
+        'xpEarned': xp,
+        'qualityGrade': quality,
+        'focusMinutes': actualMinutes,
+      });
+    }
   }
 
   void _abandonSession() {
@@ -313,7 +373,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
             // Pause count
             if (_pauseCount > 0)
               Text(
-                'Paused ${_pauseCount}×',
+                'Paused $_pauseCount×',
                 style: AppTypography.caption.copyWith(
                   color: AppColors.textTertiary,
                 ),
@@ -343,7 +403,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                           onTap: () {
                             HapticFeedback.selectionClick();
                             setState(() => _selectedSound = s.key);
-                            // TODO: Start/stop audio via just_audio
+                            if (_isRunning && !_isPaused) {
+                              AmbientSoundPlayer.play(s.key);
+                            }
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),

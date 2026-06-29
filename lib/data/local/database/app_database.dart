@@ -69,6 +69,23 @@ class AppDatabase extends _$AppDatabase {
       // Future migrations go here
     },
   );
+
+  /// Delete all data from local database tables
+  Future<void> clearAllData() async {
+    await transaction(() async {
+      await batch((batch) {
+        batch.deleteWhere(tasks, (_) => const Constant(true));
+        batch.deleteWhere(focusSessions, (_) => const Constant(true));
+        batch.deleteWhere(xpLedgerEntries, (_) => const Constant(true));
+        batch.deleteWhere(scrollLogs, (_) => const Constant(true));
+        batch.deleteWhere(energyCheckIns, (_) => const Constant(true));
+        batch.deleteWhere(dailyPlans, (_) => const Constant(true));
+        batch.deleteWhere(dailyReports, (_) => const Constant(true));
+        batch.deleteWhere(achievements, (_) => const Constant(true));
+        batch.deleteWhere(attentionCosts, (_) => const Constant(true));
+      });
+    });
+  }
 }
 
 LazyDatabase _openConnection() {

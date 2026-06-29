@@ -199,8 +199,8 @@ class SyncEngine {
       for (final row in (data as List)) {
         final serverId = row['id'] as String;
         // Check if exists locally
-        final locals = await _db.focusSessionsDao.getByTask(serverId);
-        final exists = locals.any((s) => s.id == serverId);
+        final existing = await _db.focusSessionsDao.getById(serverId);
+        final exists = existing != null;
 
         if (!exists) {
           await _db.focusSessionsDao.insertSession(FocusSessionsCompanion(
@@ -293,10 +293,8 @@ class SyncEngine {
   Future<int> _pushTasks() async {
     try {
       final lastSync = await _getLastSyncAt();
-      final tasks = await _db.tasksDao.getAllActive();
       // Include soft-deleted tasks too — they need to sync their deleted_at
-      final allTasks = await _db.tasksDao.getModifiedSince(lastSync);
-      final toPush = allTasks.isNotEmpty ? allTasks : tasks;
+      final toPush = await _db.tasksDao.getModifiedSince(lastSync);
 
       if (toPush.isEmpty) return 0;
 

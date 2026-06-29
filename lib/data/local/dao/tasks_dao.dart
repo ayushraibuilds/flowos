@@ -78,6 +78,13 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
         updatedAt: Value(DateTime.now()),
       ));
 
+  /// Clear all MIT flags on active tasks.
+  /// Called before setting new MITs in Morning Intention to prevent
+  /// stale MITs from previous days accumulating.
+  Future<void> clearAllMITs() =>
+      (update(tasks)..where((t) => t.isMIT.equals(true) & t.deletedAt.isNull()))
+          .write(const TasksCompanion(isMIT: Value(false)));
+
   /// Soft delete
   Future<void> softDelete(String id) =>
       (update(tasks)..where((t) => t.id.equals(id))).write(TasksCompanion(

@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../features/xp/models/xp_calculator.dart';
 
 const _uuid = Uuid();
 
@@ -411,7 +412,7 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
 
 /// Recovery Action Bottom Sheet — shown after scroll logging.
 /// Completing any action earns BOUNCE_BACK_BONUS (+25 XP).
-class RecoveryActionSheet extends StatelessWidget {
+class RecoveryActionSheet extends ConsumerWidget {
   final String appName;
   final int minutes;
 
@@ -422,7 +423,7 @@ class RecoveryActionSheet extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final actions = [
       (emoji: '🧘', label: '60s Breathing', desc: 'Quick reset', type: 'breathing'),
       (emoji: '🚶', label: '5-min Walk', desc: 'Move your body', type: 'walk'),
@@ -465,10 +466,14 @@ class RecoveryActionSheet extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () {
+                onPressed: () async {
                   HapticFeedback.mediumImpact();
-                  // TODO: Award bounce-back XP, start action
-                  Navigator.pop(context, action.type);
+                  final xpCalc = XpCalculator(ref.read(databaseProvider).xpLedgerDao);
+                  await xpCalc.awardBounceBackBonus(action.type);
+                  
+                  if (context.mounted) {
+                    Navigator.pop(context, action.type);
+                  }
                 },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(

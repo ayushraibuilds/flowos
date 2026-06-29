@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import 'package:drift/drift.dart' show Value;
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../features/xp/models/xp_calculator.dart';
 
 /// Shutdown Ritual — end-of-day routine.
 /// Move incomplete tasks, close loops, preview tomorrow.
 /// Completing earns SHUTDOWN_RITUAL_COMPLETE (+25 XP).
-class ShutdownRitualScreen extends StatefulWidget {
+class ShutdownRitualScreen extends ConsumerStatefulWidget {
   const ShutdownRitualScreen({super.key});
 
   @override
-  State<ShutdownRitualScreen> createState() => _ShutdownRitualScreenState();
+  ConsumerState<ShutdownRitualScreen> createState() => _ShutdownRitualScreenState();
 }
 
-class _ShutdownRitualScreenState extends State<ShutdownRitualScreen> {
+class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
   int _currentStep = 0;
 
   final _steps = [
@@ -60,10 +66,28 @@ class _ShutdownRitualScreenState extends State<ShutdownRitualScreen> {
     }
   }
 
-  void _complete() {
+  void _complete() async {
     HapticFeedback.heavyImpact();
-    // TODO: Award shutdown XP, mark daily plan shutdown = true
-    Navigator.pop(context, true);
+    
+    final db = ref.read(databaseProvider);
+    final xpCalc = XpCalculator(db.xpLedgerDao);
+    await xpCalc.awardShutdownRitualXP();
+    
+    final plan = await db.dailyPlansDao.getToday();
+    if (plan != null) {
+      await db.dailyPlansDao.completeShutdown(plan.id);
+    } else {
+      final planId = const Uuid().v4();
+      await db.dailyPlansDao.upsertToday(DailyPlansCompanion(
+        id: Value(planId),
+        date: Value(DateTime.now()),
+        shutdownCompleted: const Value(true),
+      ));
+    }
+    
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override
