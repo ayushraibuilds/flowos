@@ -16,10 +16,11 @@ class AmbientSoundPlayer {
 
   /// Asset paths for bundled ambient sounds
   static const _assets = {
-    'binaural': 'assets/sounds/binaural_40hz.mp3',
-    'rain': 'assets/sounds/rain_loop.mp3',
-    'cafe': 'assets/sounds/cafe_ambiance.mp3',
-    'forest': 'assets/sounds/forest_loop.mp3',
+    'binaural': 'assets/sounds/bodhisounds-gamma-binaural-beats-enhance-brain-power-relaxing-music-for-study-161763.mp3',
+    'rain': 'assets/sounds/boons_freak-rain-sound-188158.mp3',
+    'cafe': 'assets/sounds/km007-cafe-ambience-9263.mp3',
+    'forest': 'assets/sounds/the_mountain-piano-background-487020.mp3',
+    'synth': 'assets/sounds/freemusiclab-dark-cyberpunk-i-free-background-music-i-free-music-lab-release-469493.mp3',
   };
 
   /// Start playing a sound loop

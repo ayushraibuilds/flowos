@@ -1,43 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' hide Column;
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/ai/services/ai_service.dart';
+import '../../../features/xp/models/daily_score_calculator.dart';
+import '../../../data/local/database/app_database.dart';
 
 /// Weekly Review Screen — Sunday guided 5-min flow.
 /// AI-generated reflection questions + week summary infographic.
-class WeeklyReviewScreen extends StatefulWidget {
+class WeeklyReviewScreen extends ConsumerStatefulWidget {
   const WeeklyReviewScreen({super.key});
 
   @override
-  State<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
+  ConsumerState<WeeklyReviewScreen> createState() => _WeeklyReviewScreenState();
 }
 
-class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
+class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   WeeklyReview? _review;
   bool _loading = true;
   int _currentStep = 0;
-
-  // Placeholder week data (will be from DB)
-  final _weekData = {
-    'week_start': '2026-05-26',
-    'week_end': '2026-06-01',
-    'daily_scores': [65, 72, 80, 55, 78, 82, 70],
-    'total_focus_hours': 18.5,
-    'total_tasks_completed': 24,
-    'total_xp': 2450,
-    'scroll_total_minutes': 145,
-    'recovery_actions': 6,
-    'streak_days': 7,
-    'best_day_score': 82,
-    'worst_day_score': 55,
-    'mits_completed': 15,
-    'mits_total': 21,
-    'private_mode': false,
-    'prompt_version': 1,
-  };
+  Map<String, dynamic> _weekData = {};
 
   @override
   void initState() {
@@ -46,23 +32,150 @@ class _WeeklyReviewScreenState extends State<WeeklyReviewScreen> {
   }
 
   Future<void> _loadReview() async {
+    final db = ref.read(databaseProvider);
+
+    // Calculate past 7 days range (up to end of today)
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekStart = todayStart.subtract(const Duration(days: 6));
+    final weekEnd = todayStart.add(const Duration(days: 1));
+
+    // Fetch completed tasks in range
+    final completedTasksLast7Days = await (db.select(db.tasks)
+          ..where((t) =>
+              t.isCompleted.equals(true) &
+              t.completedAt.isBiggerOrEqualValue(weekStart) &
+              t.completedAt.isSmallerThanValue(weekEnd)))
+        .get();
+    final totalTasksCompleted = completedTasksLast7Days.length;
+
+    // Fetch focus sessions in range
+    final sessions = await db.focusSessionsDao.getByDateRange(weekStart, weekEnd);
+    final totalFocusMinutes = sessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
+    final totalFocusHours = double.parse((totalFocusMinutes / 60.0).toStringAsFixed(1));
+
+    // Fetch scroll minutes in range
+    final scrollLogs = await (db.select(db.scrollLogs)
+          ..where((l) =>
+              l.timestamp.isBiggerOrEqualValue(weekStart) &
+              l.timestamp.isSmallerThanValue(weekEnd)))
+        .get();
+    final scrollTotalMinutes = scrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+    final recoveryActions = scrollLogs.where((l) => l.recoveryActionTaken).length;
+
+    // Fetch XP earned in range
+    final xpEntries = await (db.select(db.xpLedgerEntries)
+          ..where((x) =>
+              x.timestamp.isBiggerOrEqualValue(weekStart) &
+              x.timestamp.isSmallerThanValue(weekEnd)))
+        .get();
+    final totalXp = xpEntries.fold<int>(0, (sum, x) => sum + x.pointsDelta);
+
+    // Calculate daily scores and MIT metrics per day
+    final dailyScores = <int>[];
+    int mitsCompleted = 0;
+    int mitsTotal = 0;
+    int streakDays = 0;
+
+    for (int i = 6; i >= 0; i--) {
+      final day = todayStart.subtract(Duration(days: i));
+      final dayEnd = day.add(const Duration(days: 1));
+
+      final plan = await db.dailyPlansDao.getByDateRange(day, dayEnd);
+      final hasIntention = plan?.intentionCompleted ?? false;
+      final hasShutdown = plan?.shutdownCompleted ?? false;
+      final scrollBudget = plan?.scrollBudgetMinutes ?? 30;
+
+      final daySessions = sessions.where((s) =>
+          s.startedAt.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          s.startedAt.isBefore(dayEnd));
+      final dayFocusMinutes = daySessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
+
+      final dayCompletedTasks = completedTasksLast7Days.where((t) =>
+          t.completedAt != null &&
+          t.completedAt!.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          t.completedAt!.isBefore(dayEnd));
+
+      final dayMits = dayCompletedTasks.where((t) => t.isMIT).length;
+      mitsCompleted += dayMits;
+      mitsTotal += 3;
+
+      final dayScrollLogs = scrollLogs.where((l) =>
+          l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          l.timestamp.isBefore(dayEnd));
+      final dayScrollMinutes = dayScrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+
+      final score = DailyScoreCalculator.calculate(
+        focusMinutes: dayFocusMinutes,
+        mitsCompleted: dayMits,
+        scrollMinutes: dayScrollMinutes,
+        scrollBudget: scrollBudget,
+        intentionCompleted: hasIntention,
+        shutdownCompleted: hasShutdown,
+        energyCheckIns: 0,
+      );
+      dailyScores.add(score);
+    }
+
+    // Calculate current streak
+    final currentPlan = await db.dailyPlansDao.getToday();
+    if (currentPlan != null && currentPlan.intentionCompleted) streakDays = 1;
+    for (int i = 1; i <= 365; i++) {
+      final d = todayStart.subtract(Duration(days: i));
+      final start = DateTime(d.year, d.month, d.day);
+      final end = start.add(const Duration(days: 1));
+      final p = await db.dailyPlansDao.getByDateRange(start, end);
+      if (p != null && p.intentionCompleted) {
+        streakDays++;
+      } else {
+        break;
+      }
+    }
+
+    final bestDayScore = dailyScores.isEmpty ? 0 : dailyScores.reduce((a, b) => a > b ? a : b);
+    final worstDayScore = dailyScores.isEmpty ? 0 : dailyScores.reduce((a, b) => a < b ? a : b);
+
+    _weekData = {
+      'week_start': weekStart.toIso8601String().split('T')[0],
+      'week_end': todayStart.toIso8601String().split('T')[0],
+      'daily_scores': dailyScores,
+      'total_focus_hours': totalFocusHours,
+      'total_tasks_completed': totalTasksCompleted,
+      'total_xp': totalXp,
+      'scroll_total_minutes': scrollTotalMinutes,
+      'recovery_actions': recoveryActions,
+      'streak_days': streakDays,
+      'best_day_score': bestDayScore,
+      'worst_day_score': worstDayScore,
+      'mits_completed': mitsCompleted,
+      'mits_total': mitsTotal,
+      'private_mode': false,
+      'prompt_version': 1,
+    };
+
     final aiService = AiService();
     final review = await aiService.generateWeeklyReview(weekData: _weekData);
 
-    setState(() {
-      _review = review ?? WeeklyReview(
-        summary: 'A solid week of building habits. Check the numbers below.',
-        wins: ['Maintained a 7-day streak', '24 tasks completed'],
-        growthAreas: ['Try protecting morning hours for deep work'],
-        reflectionQuestions: [
-          'What was your best focus session this week?',
-          'What drained your energy most?',
-          'If you could only do 3 things next week, what would they be?',
-        ],
-        nextWeekFocus: 'Start each day with one deep work session.',
-      );
-      _loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _review = review ?? WeeklyReview(
+          summary: 'A solid week of building habits. Check the numbers below.',
+          wins: [
+            'Maintained a $streakDays-day streak',
+            '$totalTasksCompleted tasks completed',
+            'Earned $totalXp XP this week'
+          ],
+          growthAreas: ['Try protecting morning hours for deep work'],
+          reflectionQuestions: [
+            'What was your focus highlight this week?',
+            'What drained your attention most?',
+            'If you could only do 3 things next week, what would they be?',
+          ],
+          nextWeekFocus: 'Start each day with one deep work session.',
+        );
+        _loading = false;
+      });
+    }
   }
 
   @override

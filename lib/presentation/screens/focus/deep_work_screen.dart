@@ -55,6 +55,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     (key: 'rain', emoji: '🌧️', label: 'Rain'),
     (key: 'cafe', emoji: '☕', label: 'Café'),
     (key: 'forest', emoji: '🌲', label: 'Forest'),
+    (key: 'synth', emoji: '👾', label: 'Cyber'),
   ];
 
   // Flow state animation
