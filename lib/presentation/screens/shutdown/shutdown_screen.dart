@@ -10,6 +10,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/xp/models/xp_calculator.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/xp/models/streak_service.dart';
 
 /// Shutdown Ritual — end-of-day routine.
 /// Move incomplete tasks, close loops, preview tomorrow.
@@ -84,6 +86,10 @@ class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
         shutdownCompleted: const Value(true),
       ));
     }
+
+    // Record streak activity & check achievements
+    await StreakService.recordActivity();
+    await AchievementChecker.runCheck(db);
     
     if (mounted) {
       Navigator.pop(context, true);

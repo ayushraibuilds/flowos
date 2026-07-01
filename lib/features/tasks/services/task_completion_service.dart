@@ -4,6 +4,8 @@ import 'package:uuid/uuid.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
+import '../../achievements/models/achievement_checker.dart';
+import '../../xp/models/streak_service.dart';
 
 const _uuid = Uuid();
 
@@ -43,6 +45,10 @@ class TaskCompletionService {
 
     // 3. Check if all MITs are now complete → award bonus
     await _checkAllMITsBonus();
+
+    // 4. Record activity and run achievement check
+    await StreakService.recordActivity();
+    await AchievementChecker.runCheck(_db);
 
     return xp;
   }

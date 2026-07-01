@@ -14,6 +14,8 @@ import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/xp/models/streak_service.dart';
 
 const _uuid = Uuid();
 
@@ -160,6 +162,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         'Completed ${actualMin}m ${_sessionTypes[_selectedSessionType].label} session (Quality: $quality)'),
     ));
 
+    // Record streak activity & check achievements
+    await StreakService.recordActivity();
+    await AchievementChecker.runCheck(db);
+
     setState(() => _isRunning = false);
 
     if (mounted) {
@@ -206,6 +212,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         explanation: Value(
           'Partial ${actualMin}m session (${(pct * 100).round()}% complete)'),
       ));
+
+      // Record streak activity & check achievements
+      await StreakService.recordActivity();
+      await AchievementChecker.runCheck(db);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

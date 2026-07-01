@@ -12,6 +12,8 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/xp/models/xp_calculator.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/xp/models/streak_service.dart';
 
 const _uuid = Uuid();
 
@@ -468,8 +470,13 @@ class RecoveryActionSheet extends ConsumerWidget {
               child: OutlinedButton(
                 onPressed: () async {
                   HapticFeedback.mediumImpact();
-                  final xpCalc = XpCalculator(ref.read(databaseProvider).xpLedgerDao);
+                  final db = ref.read(databaseProvider);
+                  final xpCalc = XpCalculator(db.xpLedgerDao);
                   await xpCalc.awardBounceBackBonus(action.type);
+                  
+                  // Record streak activity & check achievements
+                  await StreakService.recordActivity();
+                  await AchievementChecker.runCheck(db);
                   
                   if (context.mounted) {
                     Navigator.pop(context, action.type);

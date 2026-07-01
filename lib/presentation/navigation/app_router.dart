@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/xp_constants.dart';
+import '../../features/dashboard/providers/dashboard_providers.dart';
+import '../../features/xp/widgets/level_up_overlay.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/tasks/tasks_screen.dart';
 import '../screens/focus/focus_screen.dart';
@@ -147,7 +151,7 @@ final appRouter = GoRouter(
 );
 
 /// Bottom navigation shell — persistent across tab screens.
-class _AppShell extends StatelessWidget {
+class _AppShell extends ConsumerWidget {
   const _AppShell({required this.child});
 
   final Widget child;
@@ -168,7 +172,18 @@ class _AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Listen for level increases to trigger the level-up celebration overlay
+    ref.listen<int>(currentLevelProvider, (prev, next) {
+      if (prev != null && next > prev) {
+        LevelUpOverlay.show(
+          context,
+          newLevel: next,
+          tierName: XpConstants.tierName(next),
+        );
+      }
+    });
+
     final currentIndex = _currentIndex(context);
     final theme = Theme.of(context);
 

@@ -16,6 +16,8 @@ import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/xp/models/streak_service.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -184,6 +186,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       explanation: Value(
         'Completed ${actualMinutes}m Deep Work session: "${widget.taskTitle ?? 'Focus'}" (Quality: $quality)'),
     ));
+
+    // Record streak activity & check achievements
+    await StreakService.recordActivity();
+    await AchievementChecker.runCheck(db);
 
     if (mounted) {
       context.go('/break', extra: {

@@ -10,6 +10,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/xp/models/xp_calculator.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/xp/models/streak_service.dart';
 
 /// Focus Ritual — pre-focus checklist + optional breathing.
 /// Completing the ritual earns FOCUS_RITUAL_COMPLETE (+10 XP).
@@ -105,6 +107,11 @@ class _FocusRitualScreenState extends ConsumerState<FocusRitualScreen>
     final db = ref.read(databaseProvider);
     final xpCalc = XpCalculator(db.xpLedgerDao);
     await xpCalc.awardFocusRitualXP();
+    
+    // Record streak activity & check achievements
+    await StreakService.recordActivity();
+    await AchievementChecker.runCheck(db);
+
     widget.onComplete();
   }
 

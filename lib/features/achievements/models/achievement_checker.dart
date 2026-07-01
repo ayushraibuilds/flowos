@@ -8,6 +8,7 @@ import '../../../data/local/dao/scroll_logs_dao.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../core/constants/xp_constants.dart';
+import '../../xp/models/streak_service.dart';
 
 const _uuid = Uuid();
 
@@ -156,5 +157,18 @@ class AchievementChecker {
     ));
 
     newlyUnlocked.add(key);
+  }
+
+  /// Convenience helper to run achievement checks directly using the database.
+  static Future<List<AchievementKey>> runCheck(AppDatabase db) async {
+    final streak = await StreakService.getStreak();
+    final lifetimeXP = await db.xpLedgerDao.getLifetimeXP();
+    final checker = AchievementChecker(
+      achievementsDao: db.achievementsDao,
+      xpLedgerDao: db.xpLedgerDao,
+      sessionsDao: db.focusSessionsDao,
+      scrollLogsDao: db.scrollLogsDao,
+    );
+    return checker.checkAll(streakDays: streak, lifetimeXP: lifetimeXP);
   }
 }
