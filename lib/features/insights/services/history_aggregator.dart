@@ -1,0 +1,132 @@
+import 'package:drift/drift.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../xp/models/daily_score_calculator.dart';
+
+class HistoryAggregator {
+  static Future<List<DailyMetric>> getDailyMetrics(AppDatabase db, DateTime start, DateTime end) async {
+    // 1. Fetch completed tasks in range
+    final completedTasks = await (db.select(db.tasks)
+          ..where((t) =>
+              t.isCompleted.equals(true) &
+              t.completedAt.isBiggerOrEqualValue(start) &
+              t.completedAt.isSmallerThanValue(end)))
+        .get();
+
+    // 2. Fetch focus sessions in range
+    final sessions = await db.focusSessionsDao.getByDateRange(start, end);
+
+    // 3. Fetch scroll logs in range
+    final scrollLogs = await (db.select(db.scrollLogs)
+          ..where((l) =>
+              l.timestamp.isBiggerOrEqualValue(start) &
+              l.timestamp.isSmallerThanValue(end)))
+        .get();
+
+    // 4. Fetch energy check-ins in range
+    final energyCheckins = await db.energyCheckInsDao.getCheckInsInRange(start, end);
+
+    // 5. Fetch daily plans in range
+    final dailyPlans = await (db.select(db.dailyPlans)
+          ..where((p) =>
+              p.date.isBiggerOrEqualValue(start) &
+              p.date.isSmallerThanValue(end)))
+        .get();
+
+    final List<DailyMetric> metrics = [];
+
+    // Loop day-by-day from start to end (inclusive of end day)
+    var day = DateTime(start.year, start.month, start.day);
+    final lastDay = DateTime(end.year, end.month, end.day);
+
+    while (day.isBefore(lastDay) || day.isAtSameMomentAs(lastDay)) {
+      final dayEnd = day.add(const Duration(days: 1));
+
+      // Filter plans
+      DailyPlan? plan;
+      for (final p in dailyPlans) {
+        if (p.date.isAfter(day.subtract(const Duration(seconds: 1))) && p.date.isBefore(dayEnd)) {
+          plan = p;
+          break;
+        }
+      }
+
+      final hasIntention = plan?.intentionCompleted ?? false;
+      final hasShutdown = plan?.shutdownCompleted ?? false;
+      final scrollBudget = plan?.scrollBudgetMinutes ?? 30;
+
+      // Filter sessions
+      final daySessions = sessions.where((s) =>
+          s.startedAt.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          s.startedAt.isBefore(dayEnd));
+      final dayFocusMinutes = daySessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
+
+      // Filter completed tasks
+      final dayCompletedTasks = completedTasks.where((t) =>
+          t.completedAt != null &&
+          t.completedAt!.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          t.completedAt!.isBefore(dayEnd));
+      final dayMits = dayCompletedTasks.where((t) => t.isMIT).length;
+
+      // Filter scroll logs
+      final dayScrollLogs = scrollLogs.where((l) =>
+          l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          l.timestamp.isBefore(dayEnd));
+      final dayScrollMinutes = dayScrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+
+      // Filter energy check-ins
+      final dayEnergyCheckins = energyCheckins.where((e) =>
+          e.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          e.date.isBefore(dayEnd));
+      final dayEnergyCount = dayEnergyCheckins.length;
+
+      final score = DailyScoreCalculator.calculate(
+        focusMinutes: dayFocusMinutes,
+        mitsCompleted: dayMits,
+        scrollMinutes: dayScrollMinutes,
+        scrollBudget: scrollBudget,
+        intentionCompleted: hasIntention,
+        shutdownCompleted: hasShutdown,
+        energyCheckIns: dayEnergyCount,
+      );
+
+      // Check if there was any actual activity on this day
+      final hasActivity = dayFocusMinutes > 0 ||
+          dayMits > 0 ||
+          dayScrollMinutes > 0 ||
+          dayEnergyCount > 0 ||
+          hasIntention ||
+          hasShutdown;
+
+      metrics.add(DailyMetric(
+        date: day,
+        score: score,
+        focusMinutes: dayFocusMinutes,
+        scrollMinutes: dayScrollMinutes,
+        energyCheckInCount: dayEnergyCount,
+        hasActivity: hasActivity,
+      ));
+
+      day = day.add(const Duration(days: 1));
+    }
+
+    return metrics;
+  }
+}
+
+class DailyMetric {
+  final DateTime date;
+  final int score;
+  final int focusMinutes;
+  final int scrollMinutes;
+  final int energyCheckInCount;
+  final bool hasActivity;
+
+  DailyMetric({
+    required this.date,
+    required this.score,
+    required this.focusMinutes,
+    required this.scrollMinutes,
+    required this.energyCheckInCount,
+    required this.hasActivity,
+  });
+}
