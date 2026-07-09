@@ -77,39 +77,6 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   );
 });
 
-/// Streak: count consecutive days with a daily plan that has intentionCompleted.
-final streakProvider = FutureProvider<int>((ref) async {
-  final db = ref.watch(databaseProvider);
-  int streak = 0;
-  var checkDate = DateTime.now();
-
-  // Check today first
-  final todayPlan = await db.dailyPlansDao.getToday();
-  if (todayPlan != null && todayPlan.intentionCompleted) {
-    streak = 1;
-  } else {
-    // If today not done, check if yesterday had a plan (grace: might be morning)
-    // Still count from yesterday
-  }
-
-  // Walk backwards from yesterday
-  for (int i = 1; i <= 365; i++) {
-    checkDate = DateTime.now().subtract(Duration(days: i));
-    final start = DateTime(checkDate.year, checkDate.month, checkDate.day);
-    final end = start.add(const Duration(days: 1));
-
-    // Use a simple query — DailyPlansDao.getToday only works for today,
-    // so we do a manual approach via the database
-    final plans = await db.dailyPlansDao.getByDateRange(start, end);
-    if (plans != null && plans.intentionCompleted) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-});
 
 /// Aggregated dashboard data.
 class DashboardScore {

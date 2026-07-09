@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
+import '../../../features/xp/providers/xp_providers.dart';
 import '../../../features/tasks/providers/task_providers.dart';
 import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
@@ -58,6 +59,7 @@ class HomeScreen extends ConsumerWidget {
     final tier = ref.watch(currentTierProvider);
     final streakAsync = ref.watch(streakProvider);
     final streak = streakAsync.valueOrNull ?? 0;
+    final paused = ref.watch(streakPausedProvider).valueOrNull ?? false;
 
     return Row(
       children: [
@@ -112,7 +114,7 @@ class HomeScreen extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('🔥', style: TextStyle(fontSize: 16)),
+              Text(paused ? '⏸️' : '🔥', style: const TextStyle(fontSize: 16)),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 '$streak',
@@ -122,6 +124,16 @@ class HomeScreen extends ConsumerWidget {
                       : AppColors.textTertiary,
                 ),
               ),
+              if (paused) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  '(paused)',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textTertiary,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

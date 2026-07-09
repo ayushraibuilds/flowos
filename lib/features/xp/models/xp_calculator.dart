@@ -7,6 +7,7 @@ import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../data/local/tables/tasks_table.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
+import 'streak_service.dart';
 
 const _uuid = Uuid();
 
@@ -67,7 +68,7 @@ class XpCalculator {
     if (baseXP <= 0) return 0;
 
     // Record to ledger
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.focusComplete),
       pointsDelta: Value(baseXP),
@@ -120,7 +121,7 @@ class XpCalculator {
 
     if (baseXP <= 0) return 0;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.taskComplete),
       pointsDelta: Value(baseXP),
@@ -140,7 +141,7 @@ class XpCalculator {
   Future<int> awardAllMITsBonus() async {
     const xp = XpConstants.allMitsDaily;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.allMitsDaily),
       pointsDelta: const Value(xp),
@@ -156,7 +157,7 @@ class XpCalculator {
   Future<int> awardFocusRitualXP() async {
     const xp = XpConstants.focusRitualComplete;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.focusRitualComplete),
       pointsDelta: const Value(xp),
@@ -170,7 +171,7 @@ class XpCalculator {
   Future<int> awardShutdownRitualXP() async {
     const xp = XpConstants.shutdownRitualComplete;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.shutdownRitualComplete),
       pointsDelta: const Value(xp),
@@ -186,7 +187,7 @@ class XpCalculator {
   Future<int> awardBounceBackBonus(String recoveryType) async {
     const xp = XpConstants.bounceBackBonus;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.bounceBackBonus),
       pointsDelta: const Value(xp),
@@ -202,7 +203,7 @@ class XpCalculator {
   Future<int> awardBreakContentXP() async {
     const xp = XpConstants.breakContentUsed;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.breakContentUsed),
       pointsDelta: const Value(xp),
@@ -218,7 +219,7 @@ class XpCalculator {
   Future<int> awardEnergyCheckin3xBonus() async {
     const xp = XpConstants.energyCheckin3x;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.energyCheckin3x),
       pointsDelta: const Value(xp),
@@ -234,7 +235,7 @@ class XpCalculator {
   Future<int> awardStreakBonus(int streakDays) async {
     const xp = XpConstants.sevenDayStreak;
 
-    await _ledgerDao.appendEntry(XpLedgerEntriesCompanion(
+    await _appendEntry(XpLedgerEntriesCompanion(
       id: Value(_uuid.v4()),
       actionType: const Value(XpActionTypeColumn.sevenDayStreak),
       pointsDelta: const Value(xp),
@@ -243,5 +244,10 @@ class XpCalculator {
     ));
 
     return xp;
+  }
+
+  Future<void> _appendEntry(XpLedgerEntriesCompanion entry) async {
+    await _ledgerDao.appendEntry(entry);
+    await StreakService.recordActivity();
   }
 }
