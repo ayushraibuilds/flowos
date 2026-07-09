@@ -24,9 +24,34 @@ import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
+bool onboardingComplete = false;
+
+Future<void> completeOnboarding() async {
+  onboardingComplete = true;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('flowos_onboarding_complete', true);
+}
+
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
   initialLocation: '/home',
+  redirect: (context, state) {
+    final goingToOnboarding = state.matchedLocation == '/onboarding';
+    final goingToAuth = state.matchedLocation == '/auth';
+
+    if (!onboardingComplete) {
+      if (!goingToOnboarding && !goingToAuth) {
+        return '/onboarding';
+      }
+    } else {
+      if (goingToOnboarding || goingToAuth) {
+        return '/home';
+      }
+    }
+    return null;
+  },
   routes: [
     // ─── Shell route with bottom navigation ───────────────────────
     ShellRoute(

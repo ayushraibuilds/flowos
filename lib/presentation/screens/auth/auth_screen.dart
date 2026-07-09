@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../navigation/app_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -43,6 +44,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     HapticFeedback.mediumImpact();
     final success = await authMethod();
 
+    if (success) {
+      await completeOnboarding();
+    }
+
     if (mounted) {
       setState(() => _loading = false);
       if (success) {
@@ -77,6 +82,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
       }
 
+      await completeOnboarding();
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
@@ -336,7 +342,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               // Skip (offline mode)
               const SizedBox(height: AppSpacing.xxl),
               TextButton(
-                onPressed: () => context.go('/home'),
+                onPressed: () async {
+                  await completeOnboarding();
+                  if (context.mounted) context.go('/home');
+                },
                 child: Text(
                   'Use offline (no sync)',
                   style: AppTypography.bodySmall.copyWith(

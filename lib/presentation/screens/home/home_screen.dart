@@ -1,19 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
-import '../../../features/xp/providers/xp_providers.dart' show streakProvider, streakPausedProvider;
+import '../../../features/xp/providers/xp_providers.dart' show streakProvider, streakPausedProvider, todayPlanProvider;
 import '../../../features/energy/providers/energy_providers.dart';
 import '../../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../../../features/tasks/providers/task_providers.dart';
 import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/tasks/services/task_completion_service.dart';
+
+final intentionBannerDismissedProvider = StateNotifierProvider<IntentionBannerDismissedNotifier, bool>((ref) {
+  return IntentionBannerDismissedNotifier();
+});
+
+class IntentionBannerDismissedNotifier extends StateNotifier<bool> {
+  IntentionBannerDismissedNotifier() : super(false) {
+    _load();
+  }
+
+  String get _dateKey {
+    final now = DateTime.now();
+    return 'flowos_intention_dismissed_${now.year}-${now.month}-${now.day}';
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_dateKey) ?? false;
+  }
+
+  Future<void> dismiss() async {
+    state = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_dateKey, true);
+  }
+}
 
 /// Home Dashboard — the "command center."
 /// Shows Flow Score, XP bar, MITs, quick actions, and attention budget.
@@ -34,6 +61,9 @@ class HomeScreen extends ConsumerWidget {
               // ─── Header: Level + Streak ────────────────────────
               _buildHeader(context, ref),
               const SizedBox(height: AppSpacing.xxl),
+              // ─── Intention Banner (Soft Daily Gate) ─────────────
+              _buildIntentionBanner(context, ref),
+              const SizedBox(height: AppSpacing.lg),
               // ─── Flow Score Card ────────────────────────────────
               _buildFlowScoreCard(context, ref),
               const SizedBox(height: AppSpacing.md),
@@ -443,5 +473,95 @@ class HomeScreen extends ConsumerWidget {
       'taskId': task.id,
       'taskTitle': task.title,
     });
+  }
+
+  Widget _buildIntentionBanner(BuildContext context, WidgetRef ref) {
+    final todayPlanAsync = ref.watch(todayPlanProvider);
+    final isDismissed = ref.watch(intentionBannerDismissedProvider);
+
+    return todayPlanAsync.maybeWhen(
+      data: (plan) {
+        if (plan != null) return const SizedBox.shrink();
+
+        final now = DateTime.now();
+        if (now.hour >= 12 || isDismissed) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+            border: Border.all(
+              color: AppColors.emerald.withAlpha(76),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text('🌅', style: TextStyle(fontSize: 20)),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        "Set Today's Intention",
+                        style: AppTypography.h3.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      ref.read(intentionBannerDismissedProvider.notifier).dismiss();
+                    },
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.textTertiary,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                "Align your attention before starting work. Tap below to set today's 3 MITs.",
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => context.push('/morning-intention'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.emerald,
+                    foregroundColor: AppColors.textInverse,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text('Set Intention'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
   }
 }
