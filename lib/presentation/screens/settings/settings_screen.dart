@@ -9,6 +9,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/auth/services/auth_service.dart';
 import '../../../features/themes/models/flow_theme.dart';
 import '../../../features/settings/providers/settings_providers.dart';
+import '../../../features/export/services/data_export_service.dart';
 import '../../../features/sync/providers/sync_providers.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../data/local/database/app_database.dart';
@@ -138,6 +139,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 }
               }
             },
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+
+          // ─── Data & Privacy ────────────────────────────
+          _sectionHeader('🔒 Data & Privacy'),
+          _actionTile(
+            title: 'Export my data',
+            subtitle: 'Download task, session, and XP history to a JSON file',
+            icon: Icons.download_rounded,
+            onTap: () => _exportData(context),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -610,6 +621,67 @@ Data Storage & Security
 - Local First: All data is stored locally on your device in an SQLite database.
 - Encryption: All data in transit uses HTTPS/TLS encryption.
 - Deletion: You can delete all your data permanently from Settings → Account → Delete All Data.''',
+    );
+  }
+
+  void _exportData(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background2,
+        title: Text(
+          'Export My Data',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This will package all your tasks, focus sessions, XP ledger history, and local settings into a JSON backup file and open the system share sheet.\n\nThe export includes task titles and activity history. It does not include authentication tokens.',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              HapticFeedback.mediumImpact();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Preparing export...'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+              try {
+                await ref.read(dataExportServiceProvider).exportAndShare();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Export failed: $e'),
+                      backgroundColor: AppColors.dangerCoral,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.emerald,
+              foregroundColor: AppColors.textInverse,
+            ),
+            child: Text(
+              'Export & Share',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textInverse,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
