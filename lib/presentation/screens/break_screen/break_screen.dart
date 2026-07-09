@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../features/energy/widgets/energy_checkin_sheet.dart';
 
 /// Break Screen — post-focus XP reveal + break content.
 /// Phase 1: XP reveal animation, static break content (riddle/fact/breathing).
@@ -162,6 +163,57 @@ class _BreakScreenState extends State<BreakScreen>
                     AppColors.gradeColor(widget.qualityGrade)),
                 _miniStat('${widget.focusMinutes} min', AppColors.focusBlue),
               ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Soft energy prompt
+          GestureDetector(
+            onTap: () => EnergyCheckInSheet.show(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.emerald.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                border: Border.all(
+                  color: AppColors.emerald.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Text('⚡', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'How\'s your energy now?',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'Log to keep tracking daily cycles',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.textTertiary,
+                  ),
+                ],
+              ),
             ),
           ),
           const Spacer(flex: 1),

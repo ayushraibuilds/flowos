@@ -8,6 +8,8 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../features/xp/providers/xp_providers.dart' show streakProvider, streakPausedProvider;
+import '../../../features/energy/providers/energy_providers.dart';
+import '../../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../../../features/tasks/providers/task_providers.dart';
 import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
@@ -60,6 +62,9 @@ class HomeScreen extends ConsumerWidget {
     final streakAsync = ref.watch(streakProvider);
     final streak = streakAsync.valueOrNull ?? 0;
     final paused = ref.watch(streakPausedProvider).valueOrNull ?? false;
+
+    final energyCheckIn = ref.watch(latestEnergyCheckInProvider);
+    final energyValue = energyCheckIn?.value;
 
     return Row(
       children: [
@@ -135,6 +140,38 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
             ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        // Energy check-in chip
+        GestureDetector(
+          onTap: () => EnergyCheckInSheet.show(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.background2,
+              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              border: Border.all(
+                color: AppColors.emerald.withAlpha(50),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('⚡', style: TextStyle(fontSize: 14)),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  energyValue != null ? '$energyValue/5' : 'Log',
+                  style: AppTypography.monoSmall.copyWith(
+                    color: energyValue != null ? AppColors.emerald : AppColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

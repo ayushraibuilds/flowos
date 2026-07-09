@@ -22,6 +22,7 @@ import '../screens/auth/auth_screen.dart';
 import '../screens/focus/deep_work_screen.dart';
 import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../../features/energy/widgets/energy_checkin_sheet.dart';
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
@@ -146,6 +147,23 @@ final appRouter = GoRouter(
       path: '/settings',
       name: 'settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/energy-checkin',
+      name: 'energyCheckin',
+      builder: (context, state) => const Scaffold(
+        backgroundColor: Color(0xFF0F172A),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Center(
+              child: SingleChildScrollView(
+                child: EnergyCheckInSheet(),
+              ),
+            ),
+          ),
+        ),
+      ),
     ),
   ],
 );
