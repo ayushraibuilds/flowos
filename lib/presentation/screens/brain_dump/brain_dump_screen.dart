@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/ai/services/ai_service.dart';
+import '../../../features/ai/services/local_brain_dump_parser.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/tasks_table.dart';
 
@@ -25,6 +26,7 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
   final _textController = TextEditingController();
   bool _processing = false;
   List<BrainDumpTask>? _sortedTasks;
+  bool _isOfflineResults = false;
 
   @override
   void dispose() {
@@ -36,29 +38,42 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
     if (_textController.text.trim().length < 3) return;
 
     HapticFeedback.mediumImpact();
-    setState(() => _processing = true);
+    setState(() {
+      _processing = true;
+      _isOfflineResults = false;
+    });
 
     final db = ref.read(databaseProvider);
     final latestCheckin = await db.energyCheckInsDao.getLatest();
     final energy = latestCheckin?.value ?? 3;
 
     final aiService = AiService();
-    final tasks = await aiService.processBrainDump(
+    var tasks = await aiService.processBrainDump(
       rawText: _textController.text.trim(),
       currentEnergy: energy,
     );
 
+    bool wasOffline = false;
+    if (tasks == null) {
+      wasOffline = true;
+      tasks = LocalBrainDumpParser.parse(
+        rawText: _textController.text.trim(),
+        currentEnergy: energy,
+      );
+    }
+
     setState(() {
       _processing = false;
       _sortedTasks = tasks;
+      _isOfflineResults = wasOffline;
     });
 
-    if (tasks == null) {
+    if (wasOffline) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('AI unavailable. Try again or add tasks manually.'),
-            backgroundColor: AppColors.dangerCoral,
+            content: Text('AI unavailable. Used local heuristic sorting.'),
+            backgroundColor: AppColors.warningAmber,
           ),
         );
       }
@@ -163,9 +178,32 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.lg),
-              Text(
-                '${_sortedTasks!.length} tasks extracted',
-                style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+              Row(
+                children: [
+                  Text(
+                    '${_sortedTasks!.length} tasks extracted',
+                    style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+                  ),
+                  if (_isOfflineResults) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.dangerCoral.withAlpha(38),
+                        border: Border.all(color: AppColors.dangerCoral, width: 0.5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Local sort · AI offline',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.dangerCoral,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
