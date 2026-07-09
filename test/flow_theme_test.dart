@@ -5,8 +5,6 @@ import 'package:flowos/features/themes/models/flow_theme.dart';
 void main() {
   group('FlowTheme & AppColors dynamic binding', () {
     test('updateTheme updates AppColors static fields correctly', () {
-      final initialColor = AppColors.background0;
-
       // Update to Space theme
       AppColors.updateTheme(FlowThemes.space);
 
