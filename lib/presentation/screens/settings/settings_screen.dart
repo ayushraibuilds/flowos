@@ -8,7 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/auth/services/auth_service.dart';
 import '../../../features/themes/models/flow_theme.dart';
-import '../../../features/notifications/services/notification_service.dart';
+import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/sync/providers/sync_providers.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../data/local/database/app_database.dart';
@@ -23,23 +23,11 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // Notification prefs
-  bool _energyReminders = true;
-  bool _reportReminder = true;
-  bool _streakWarning = true;
-  bool _weeklyReview = true;
-
-  // Focus prefs
-  int _scrollBudget = 30;
-  bool _soundEnabled = true;
-
-  // Sync
-  bool _autoSync = true;
-
   @override
   Widget build(BuildContext context) {
     final currentTheme = ref.watch(themeProvider);
     final isLoggedIn = ref.watch(isLoggedInProvider);
+    final settings = ref.watch(settingsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background0,
@@ -66,46 +54,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _toggleTile(
             title: 'Energy check-in reminders',
             subtitle: '3× daily (9 AM, 1 PM, 5 PM)',
-            value: _energyReminders,
-            onChanged: (v) {
-              setState(() => _energyReminders = v);
-              if (v) {
-                NotificationService.scheduleEnergyCheckIns();
-              }
-            },
+            value: settings.energyReminders,
+            onChanged: (v) => ref.read(settingsProvider.notifier).setEnergyReminders(v),
           ),
           _toggleTile(
             title: 'Daily report reminder',
             subtitle: '9 PM — "Your day in review"',
-            value: _reportReminder,
-            onChanged: (v) {
-              setState(() => _reportReminder = v);
-              if (v) {
-                NotificationService.scheduleReportReminder();
-              }
-            },
+            value: settings.reportReminder,
+            onChanged: (v) => ref.read(settingsProvider.notifier).setReportReminder(v),
           ),
           _toggleTile(
             title: 'Streak warning',
             subtitle: '8 PM if no activity today',
-            value: _streakWarning,
-            onChanged: (v) {
-              setState(() => _streakWarning = v);
-              if (v) {
-                NotificationService.scheduleStreakWarning();
-              }
-            },
+            value: settings.streakWarning,
+            onChanged: (v) => ref.read(settingsProvider.notifier).setStreakWarning(v),
           ),
           _toggleTile(
             title: 'Weekly review',
             subtitle: 'Sunday 8 PM — 5-min guided flow',
-            value: _weeklyReview,
-            onChanged: (v) {
-              setState(() => _weeklyReview = v);
-              if (v) {
-                NotificationService.scheduleWeeklyReview();
-              }
-            },
+            value: settings.weeklyReview,
+            onChanged: (v) => ref.read(settingsProvider.notifier).setWeeklyReview(v),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -113,17 +81,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _sectionHeader('⏱️ Focus & Attention'),
           _sliderTile(
             title: 'Daily scroll budget',
-            value: _scrollBudget,
+            value: settings.scrollBudget,
             min: 10,
             max: 120,
             suffix: 'min',
-            onChanged: (v) => setState(() => _scrollBudget = v.round()),
+            onChanged: (v) => ref.read(settingsProvider.notifier).setScrollBudget(v.round()),
           ),
           _toggleTile(
             title: 'Ambient sounds',
             subtitle: 'Play background audio during focus',
-            value: _soundEnabled,
-            onChanged: (v) => setState(() => _soundEnabled = v),
+            value: settings.soundEnabled,
+            onChanged: (v) => ref.read(settingsProvider.notifier).setSoundEnabled(v),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -132,8 +100,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _toggleTile(
             title: 'Auto sync',
             subtitle: 'Sync data to cloud after every change',
-            value: _autoSync,
-            onChanged: (v) => setState(() => _autoSync = v),
+            value: settings.autoSync,
+            onChanged: (v) => ref.read(settingsProvider.notifier).setAutoSync(v),
           ),
            _actionTile(
             title: 'Sync now',

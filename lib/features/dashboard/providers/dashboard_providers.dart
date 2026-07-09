@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
+import '../../settings/providers/settings_providers.dart';
 
 /// Riverpod providers for dashboard data — bridges home screen + report to DAOs.
 
@@ -45,6 +46,7 @@ final currentTierProvider = Provider<String>((ref) {
 /// Today's daily score — computed from all DAO sources.
 final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   final db = ref.watch(databaseProvider);
+  final settings = ref.watch(settingsProvider);
 
   final focusMinutes = await db.focusSessionsDao.totalFocusMinutesToday();
   final mits = await db.tasksDao.getMITs();
@@ -53,12 +55,13 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   final plan = await db.dailyPlansDao.getToday();
 
   final energyCheckIns = await db.energyCheckInsDao.countToday();
+  final budget = plan?.scrollBudgetMinutes ?? settings.scrollBudget;
 
   final score = DailyScoreCalculator.calculate(
     focusMinutes: focusMinutes,
     mitsCompleted: mitsCompleted,
     scrollMinutes: scrollMinutes,
-    scrollBudget: plan?.scrollBudgetMinutes ?? 30,
+    scrollBudget: budget,
     intentionCompleted: plan?.intentionCompleted ?? false,
     shutdownCompleted: plan?.shutdownCompleted ?? false,
     energyCheckIns: energyCheckIns,
@@ -72,7 +75,7 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
     focusMinutes: focusMinutes,
     mitsCompleted: mitsCompleted,
     scrollMinutes: scrollMinutes,
-    scrollBudget: plan?.scrollBudgetMinutes ?? 30,
+    scrollBudget: budget,
     intentionCompleted: plan?.intentionCompleted ?? false,
   );
 });

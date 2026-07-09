@@ -16,6 +16,7 @@ import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
+import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/xp/models/streak_service.dart';
 
@@ -116,7 +117,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       _isPaused = false;
     });
 
-    if (_selectedSound != 'none') {
+    if (_selectedSound != 'none' && ref.read(settingsProvider).soundEnabled) {
       await AmbientSoundPlayer.play(_selectedSound);
     }
 
@@ -142,7 +143,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   void _resumeTimer() {
     HapticFeedback.selectionClick();
     setState(() => _isPaused = false);
-    if (_selectedSound != 'none') {
+    if (_selectedSound != 'none' && ref.read(settingsProvider).soundEnabled) {
       AmbientSoundPlayer.play(_selectedSound);
     }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -410,7 +411,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                           onTap: () {
                             HapticFeedback.selectionClick();
                             setState(() => _selectedSound = s.key);
-                            if (_isRunning && !_isPaused) {
+                            if (_isRunning && !_isPaused && ref.read(settingsProvider).soundEnabled) {
                               AmbientSoundPlayer.play(s.key);
                             }
                           },

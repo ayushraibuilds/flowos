@@ -268,6 +268,24 @@ class NotificationService {
     await _plugin.cancelAll();
   }
 
+  static Future<void> cancelEnergyCheckIns() async {
+    await _plugin.cancel(100);
+    await _plugin.cancel(101);
+    await _plugin.cancel(102);
+  }
+
+  static Future<void> cancelReportReminder() async {
+    await _plugin.cancel(200);
+  }
+
+  static Future<void> cancelWeeklyReview() async {
+    await _plugin.cancel(201);
+  }
+
+  static Future<void> cancelStreakWarning() async {
+    await _plugin.cancel(300);
+  }
+
   /// Convert our const channel to the mutable type the plugin expects
   static AndroidNotificationChannel _toAndroidChannel(
       AndroidNotificationChannel c) => c;

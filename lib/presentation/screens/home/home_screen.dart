@@ -7,7 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
-import '../../../features/xp/providers/xp_providers.dart';
+import '../../../features/xp/providers/xp_providers.dart' show streakProvider, streakPausedProvider;
 import '../../../features/tasks/providers/task_providers.dart';
 import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
