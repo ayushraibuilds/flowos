@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
+import '../../../../presentation/navigation/app_router.dart';
 
 /// FlowOS Notification Service — smart, platform-aware notifications.
 ///
@@ -61,6 +62,12 @@ class NotificationService {
         android: androidSettings,
         iOS: iosSettings,
       ),
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) {
+          appRouter.push(payload);
+        }
+      },
     );
 
     // Create Android notification channels
@@ -136,6 +143,7 @@ class NotificationService {
         body: 'How\'s your energy right now? (1-5)',
         channelId: _checkinChannel.id,
         channelName: _checkinChannel.name,
+        payload: '/energy-checkin',
       );
     }
   }
@@ -151,6 +159,7 @@ class NotificationService {
       body: 'Your day in review. Tap to see your score.',
       channelId: _reportChannel.id,
       channelName: _reportChannel.name,
+      payload: '/daily-report',
     );
   }
 
@@ -164,6 +173,7 @@ class NotificationService {
       body: '5 minutes to reflect on your week.',
       channelId: _reportChannel.id,
       channelName: _reportChannel.name,
+      payload: '/weekly-review',
     );
   }
 
@@ -207,6 +217,7 @@ class NotificationService {
     required String body,
     required String channelId,
     required String channelName,
+    String? payload,
   }) async {
     final now = tz.TZDateTime.now(tz.local);
     var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour);
@@ -223,6 +234,7 @@ class NotificationService {
         android: AndroidNotificationDetails(channelId, channelName),
         iOS: const DarwinNotificationDetails(),
       ),
+      payload: payload,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
@@ -238,6 +250,7 @@ class NotificationService {
     required String body,
     required String channelId,
     required String channelName,
+    String? payload,
   }) async {
     final now = tz.TZDateTime.now(tz.local);
     var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour);
@@ -256,6 +269,7 @@ class NotificationService {
         android: AndroidNotificationDetails(channelId, channelName),
         iOS: const DarwinNotificationDetails(),
       ),
+      payload: payload,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,

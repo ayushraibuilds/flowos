@@ -9,9 +9,13 @@ import 'data/local/database/app_database.dart';
 import 'core/config/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/navigation/app_router.dart';
+import 'features/notifications/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications
+  await NotificationService.initialize();
 
   // Initialize Supabase (skip if not configured — local-first mode)
   if (SupabaseConfig.isConfigured) {
