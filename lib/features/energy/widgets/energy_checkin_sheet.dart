@@ -66,8 +66,8 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
         if (awardedBonus) {
           _confettiController.play();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🎉 3/3 daily check-ins done! +20 XP awarded!'),
+            SnackBar(
+              content: const Text('🎉 3/3 daily check-ins done! +20 XP awarded!'),
               backgroundColor: AppColors.emerald,
             ),
           );
@@ -115,9 +115,9 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
           gravity: 0.2,
         ),
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.background1,
-            borderRadius: BorderRadius.only(
+            borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(AppSpacing.radiusSheet),
               topRight: Radius.circular(AppSpacing.radiusSheet),
             ),

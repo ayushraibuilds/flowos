@@ -154,7 +154,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.emerald))
+          ? Center(child: CircularProgressIndicator(color: AppColors.emerald))
           : FadeTransition(
               opacity: _fadeIn,
               child: SingleChildScrollView(

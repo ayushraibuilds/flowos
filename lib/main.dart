@@ -8,6 +8,8 @@ import 'data/local/database/app_database.dart';
 
 import 'core/config/supabase_config.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_colors.dart';
+import 'features/themes/models/flow_theme.dart';
 import 'presentation/navigation/app_router.dart';
 import 'features/notifications/services/notification_service.dart';
 
@@ -65,11 +67,16 @@ Future<void> main() async {
   );
 }
 
-class FlowOSApp extends StatelessWidget {
+class FlowOSApp extends ConsumerWidget {
   const FlowOSApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentTheme = ref.watch(themeProvider);
+
+    // Dynamically update AppColors
+    AppColors.updateTheme(currentTheme);
+
     return MaterialApp.router(
       title: 'FlowOS',
       debugShowCheckedModeBanner: false,

@@ -163,7 +163,7 @@ class InsightsDashboardScreen extends ConsumerWidget {
                               minHeight: 6,
                               backgroundColor: AppColors.background0,
                               valueColor:
-                                  const AlwaysStoppedAnimation(AppColors.emerald),
+                                  AlwaysStoppedAnimation(AppColors.emerald),
                             ),
                           ),
                         ],
@@ -625,7 +625,7 @@ class _EmptyInsightCard extends StatelessWidget {
                 value: progressValue,
                 minHeight: 4,
                 backgroundColor: AppColors.background0,
-                valueColor: const AlwaysStoppedAnimation(AppColors.emerald),
+                valueColor: AlwaysStoppedAnimation(AppColors.emerald),
               ),
             ),
           ],

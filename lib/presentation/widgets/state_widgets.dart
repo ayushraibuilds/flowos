@@ -116,7 +116,7 @@ class FlowLoadingState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 32,
             height: 32,
             child: CircularProgressIndicator(

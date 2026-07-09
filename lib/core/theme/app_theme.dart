@@ -20,7 +20,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background0,
 
       // Color scheme
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         primary: AppColors.emerald,
         onPrimary: AppColors.textInverse,
         secondary: AppColors.focusBlue,
@@ -83,14 +83,14 @@ class AppTheme {
       ),
 
       // Bottom navigation
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.background1,
         selectedItemColor: AppColors.emerald,
         unselectedItemColor: AppColors.textTertiary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-        unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
       ),
 
       // Cards
@@ -125,7 +125,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.emerald,
           elevation: 0,
-          side: const BorderSide(color: AppColors.emerald, width: 1.5),
+          side: BorderSide(color: AppColors.emerald, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
           ),
@@ -159,7 +159,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
-          borderSide: const BorderSide(color: AppColors.emerald, width: 1.5),
+          borderSide: BorderSide(color: AppColors.emerald, width: 1.5),
         ),
         hintStyle: const TextStyle(color: AppColors.textTertiary),
         contentPadding: const EdgeInsets.symmetric(
@@ -169,9 +169,9 @@ class AppTheme {
       ),
 
       // Bottom sheet
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: AppColors.background2,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppSpacing.radiusSheet),
           ),

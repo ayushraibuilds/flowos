@@ -101,7 +101,7 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.md),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: const LinearProgressIndicator(
+            child: LinearProgressIndicator(
               value: 0,
               minHeight: 6,
               backgroundColor: AppColors.background0,

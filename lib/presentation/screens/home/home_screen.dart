@@ -286,7 +286,7 @@ class HomeScreen extends ConsumerWidget {
             value: progress.clamp(0.0, 1.0),
             minHeight: 8,
             backgroundColor: AppColors.background2,
-            valueColor: const AlwaysStoppedAnimation(AppColors.emerald),
+            valueColor: AlwaysStoppedAnimation(AppColors.emerald),
           ),
         ),
         const SizedBox(height: AppSpacing.xs),

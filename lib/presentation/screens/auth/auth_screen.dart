@@ -112,8 +112,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [AppColors.emerald, Color(0xFF26C6DA)],
+                  gradient: LinearGradient(
+                    colors: [AppColors.emerald, const Color(0xFF26C6DA)],
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -323,8 +323,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     await authService.resetPassword(_emailController.text.trim());
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Password reset email sent'),
+                        SnackBar(
+                          content: const Text('Password reset email sent'),
                           backgroundColor: AppColors.emerald,
                         ),
                       );

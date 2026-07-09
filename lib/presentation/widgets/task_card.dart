@@ -87,7 +87,7 @@ class TaskCard extends StatelessWidget {
                         : Colors.transparent,
                   ),
                   child: task.isCompleted
-                      ? const Icon(Icons.check_rounded,
+                      ? Icon(Icons.check_rounded,
                           size: 16, color: AppColors.emerald)
                       : null,
                 ),

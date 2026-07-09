@@ -191,7 +191,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     if (_loading) {
       return Scaffold(
         backgroundColor: AppColors.background0,
-        body: const Center(
+        body: Center(
           child: CircularProgressIndicator(color: AppColors.emerald),
         ),
       );
@@ -220,7 +220,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                   value: (_currentStep + 1) / steps.length,
                   minHeight: 4,
                   backgroundColor: AppColors.background2,
-                  valueColor: const AlwaysStoppedAnimation(AppColors.emerald),
+                  valueColor: AlwaysStoppedAnimation(AppColors.emerald),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -387,7 +387,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
             ),
             child: Row(
               children: [
-                const Text('✓ ', style: TextStyle(color: AppColors.emerald)),
+                Text('✓ ', style: TextStyle(color: AppColors.emerald)),
                 Expanded(
                   child: Text(
                     win,

@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
+import '../../features/themes/models/flow_theme.dart';
 
 /// FlowOS Color Palette — Dark-first, calm aesthetic.
 /// "Think Spotify meets a luxury watch."
 abstract final class AppColors {
   // ─── Background Layers ─────────────────────────────────────────
   /// Near-black with blue undertone — deepest background
-  static const background0 = Color(0xFF0A0E14);
+  static Color background0 = const Color(0xFF0A0E14);
 
   /// Dark slate — main content areas
-  static const background1 = Color(0xFF121820);
+  static Color background1 = const Color(0xFF121820);
 
   /// Elevated cards, bottom sheets
-  static const background2 = Color(0xFF1A2230);
+  static Color background2 = const Color(0xFF1A2230);
 
   /// Modals, tooltips, hover states
-  static const background3 = Color(0xFF222E3E);
+  static Color background3 = const Color(0xFF222E3E);
 
   // ─── Glass Surfaces ───────────────────────────────────────────
   /// Standard glassmorphism card
@@ -34,13 +35,26 @@ abstract final class AppColors {
 
   // ─── Accent Colors ─────────────────────────────────────────────
   /// Primary — XP gains, positive actions, CTAs, streak indicators
-  static const emerald = Color(0xFF00D68F);
+  static Color emerald = const Color(0xFF00D68F);
 
   /// Secondary — less emphasis
-  static const emeraldMuted = Color(0xFF00B878);
+  static Color emeraldMuted = const Color(0xFF00B878);
 
   /// Ambient glow behind emerald elements
   static Color emeraldGlow = const Color(0xFF00D68F).withValues(alpha: 0.15);
+
+  static void updateTheme(FlowTheme theme) {
+    background0 = theme.background0;
+    background1 = theme.background1;
+    background2 = theme.background2;
+    background3 = theme.background3;
+    emerald = theme.accent;
+    emeraldMuted = theme.accentMuted;
+    emeraldGlow = theme.accentGlow;
+    glassSurface = theme.background2.withValues(alpha: 0.72);
+    glassElevated = theme.background3.withValues(alpha: 0.80);
+    glassFloating = theme.background3.withValues(alpha: 0.85);
+  }
 
   /// Active focus sessions, timer ring, "in flow" state
   static const focusBlue = Color(0xFF4A9EFF);
