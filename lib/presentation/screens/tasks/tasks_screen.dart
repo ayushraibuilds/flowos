@@ -11,6 +11,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/tasks_table.dart';
 import '../../../features/tasks/providers/task_providers.dart';
+import '../../../features/energy/providers/energy_providers.dart';
 import '../../../features/tasks/services/task_completion_service.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/state_widgets.dart';
@@ -29,6 +30,7 @@ class TasksScreen extends ConsumerStatefulWidget {
 class _TasksScreenState extends ConsumerState<TasksScreen> {
   int _selectedSegment = 0;
   final _segments = ['All', '🔥 Deep', '⚡ Med', '🌿 Light'];
+  bool _matchEnergy = false;
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +55,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                   Row(
                     children: [
                       _buildSmallButton('🧠 Brain Dump', () {}),
-                      const SizedBox(width: AppSpacing.sm),
-                      _buildSmallButton('🎲 Roulette', () {}),
+                      const SizedBox(width: AppSpacing.xs),
+                      _buildSmallButton('⚡ Match Energy', () {
+                        setState(() => _matchEnergy = !_matchEnergy);
+                      }, isSelected: _matchEnergy),
                     ],
                   ),
                 ],
@@ -83,7 +87,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  Widget _buildSmallButton(String label, VoidCallback onTap) {
+  Widget _buildSmallButton(String label, VoidCallback onTap, {bool isSelected = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -92,13 +96,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.background2,
+          color: isSelected ? AppColors.emerald.withAlpha(38) : AppColors.background2,
           borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+          border: Border.all(
+            color: isSelected ? AppColors.emerald : Colors.transparent,
+            width: 1,
+          ),
         ),
         child: Text(
           label,
           style: AppTypography.caption.copyWith(
-            color: AppColors.textSecondary,
+            color: isSelected ? AppColors.emerald : AppColors.textSecondary,
           ),
         ),
       ),
@@ -178,6 +186,40 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         // Group: incomplete first, then completed
         final incomplete = filtered.where((t) => !t.isCompleted).toList();
         final completed = filtered.where((t) => t.isCompleted).toList();
+
+        if (_matchEnergy) {
+          final energyCheckIn = ref.watch(latestEnergyCheckInProvider);
+          final energyValue = energyCheckIn?.value ?? 3;
+
+          incomplete.sort((a, b) {
+            final aEnergy = a.energyLevel;
+            final bEnergy = b.energyLevel;
+
+            int getPriority(EnergyLevelColumn energy) {
+              if (energyValue >= 4) {
+                return switch (energy) {
+                  EnergyLevelColumn.deep => 0,
+                  EnergyLevelColumn.medium => 1,
+                  EnergyLevelColumn.light => 2,
+                };
+              } else if (energyValue == 3) {
+                return switch (energy) {
+                  EnergyLevelColumn.medium => 0,
+                  EnergyLevelColumn.deep => 1,
+                  EnergyLevelColumn.light => 2,
+                };
+              } else {
+                return switch (energy) {
+                  EnergyLevelColumn.light => 0,
+                  EnergyLevelColumn.medium => 1,
+                  EnergyLevelColumn.deep => 2,
+                };
+              }
+            }
+
+            return getPriority(aEnergy).compareTo(getPriority(bEnergy));
+          });
+        }
 
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),

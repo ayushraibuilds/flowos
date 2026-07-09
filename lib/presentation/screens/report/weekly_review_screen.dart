@@ -71,6 +71,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         .get();
     final totalXp = xpEntries.fold<int>(0, (sum, x) => sum + x.pointsDelta);
 
+    // Fetch energy check-ins in range
+    final energyCheckins = await db.energyCheckInsDao.getCheckInsInRange(weekStart, weekEnd);
+
     // Calculate daily scores and MIT metrics per day
     final dailyScores = <int>[];
     int mitsCompleted = 0;
@@ -105,6 +108,11 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           l.timestamp.isBefore(dayEnd));
       final dayScrollMinutes = dayScrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
 
+      final dayEnergyCheckins = energyCheckins.where((e) =>
+          e.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          e.date.isBefore(dayEnd));
+      final dayEnergyCount = dayEnergyCheckins.length;
+
       final score = DailyScoreCalculator.calculate(
         focusMinutes: dayFocusMinutes,
         mitsCompleted: dayMits,
@@ -112,7 +120,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         scrollBudget: scrollBudget,
         intentionCompleted: hasIntention,
         shutdownCompleted: hasShutdown,
-        energyCheckIns: 0,
+        energyCheckIns: dayEnergyCount,
       );
       dailyScores.add(score);
     }
