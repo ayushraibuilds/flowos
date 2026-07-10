@@ -202,10 +202,4 @@ class AppTheme {
       highlightColor: AppColors.emerald.withValues(alpha: 0.04),
     );
   }
-
-  /// Light theme — secondary option in settings.
-  static ThemeData get light {
-    // TODO: Implement light theme in Phase 5
-    return dark; // Placeholder — dark is primary for v1
-  }
 }

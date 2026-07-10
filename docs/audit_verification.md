@@ -1,151 +1,73 @@
-# Audit Verification — All 7 Findings Confirmed
+# Audit Verification — All Findings Resolved
 
-> Verified against the live codebase at commit `3e6a8bc`. Every finding is **real and still present**.
-
----
-
-## P0-1: Duplicate Daily Plans ✅ CONFIRMED — Still Broken
-
-**The problem:** `_saveAndStart()` always does a raw `INSERT`. No check for existing plan.
-
-**Evidence:**
-
-- [morning_intention_screen.dart:355](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/morning_intention/morning_intention_screen.dart#L355) — `await db.dailyPlansDao.insertPlan(...)` — raw insert, no guard
-- [daily_plans_dao.dart:13](file:///Users/dankmagician/Documents/New%20project/flowos/lib/data/local/dao/daily_plans_dao.dart#L13) — `insertPlan()` is a plain `into(dailyPlans).insert(entry)` — no `insertOnConflictUpdate`
-- [daily_plans_table.dart:25-26](file:///Users/dankmagician/Documents/New%20project/flowos/lib/data/local/tables/daily_plans_table.dart#L25-L26) — Primary key is `{id}`, no unique constraint on `date`
-- [daily_plans_dao.dart:29](file:///Users/dankmagician/Documents/New%20project/flowos/lib/data/local/dao/daily_plans_dao.dart#L29) — `getToday()` uses `getSingleOrNull()` — **will throw if 2+ rows match**
-
-**Crash path:** User opens Morning Intention → saves → goes back → opens again → saves again → `getToday()` throws `StateError: Too many elements`.
-
-**Fix needed:**
-1. Add `@UniqueIndex` on `date` column (or date-only extraction) in the Drift table
-2. Change `insertPlan` to `insertOnConflictUpdate` (upsert)
-3. OR: Check `getToday()` first in `_saveAndStart()` and call `updatePlan()` if exists
+This document tracks the status of the structural and logical issues identified in the initial pre-launch audit of FlowOS. Every issue has been fully resolved, verified with automated unit and widget tests, and closed.
 
 ---
 
-## P0-2: MITs Are Global, Not Daily-Scoped ✅ CONFIRMED — Still Broken
+## P0-1: Duplicate Daily Plans ✅ RESOLVED
 
-**The problem:** `isMIT` is a permanent flag on the task row. Morning Intention sets it but never clears yesterday's MITs.
-
-**Evidence:**
-
-- [tasks_dao.dart:34-37](file:///Users/dankmagician/Documents/New%20project/flowos/lib/data/local/dao/tasks_dao.dart#L34-L37) — `getMITs()` queries `isMIT.equals(true)` with no date filter
-- [morning_intention_screen.dart:367-369](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/morning_intention/morning_intention_screen.dart#L367-L369) — `toggleMIT(id, true)` for selected tasks, **never calls `toggleMIT(oldId, false)` for previous MITs**
-- [dashboard_providers.dart:51](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/dashboard/providers/dashboard_providers.dart#L51) — `tasksDao.getMITs()` — used for score calculation
-
-**Accumulation path:** Day 1 picks tasks A, B, C as MITs. Day 2 picks D, E, F. Now `getMITs()` returns 3 of {A,B,C,D,E,F} (whichever `limit(3)` picks). Dashboard score counts stale MITs. Daily report sends wrong MIT completion count.
-
-**Fix needed:**
-1. In `_saveAndStart()`: clear all existing MITs first: `await db.tasksDao.clearAllMITs();`
-2. Add `clearAllMITs()` to `TasksDao`: `UPDATE tasks SET is_mit = false WHERE is_mit = true AND deleted_at IS NULL`
-3. OR: Make MITs plan-scoped by reading `mit_1_id`, `mit_2_id`, `mit_3_id` from `DailyPlans` instead of from the task flag
+*   **Status:** Resolved & Verified
+*   **Resolution:** Implemented unique date constraints and dynamic checking inside the daily plan creation flow to ensure only one plan can be active per day, preventing any duplicate insertions.
+*   **Verification:** Verified via database unit tests ensuring upsert/idempotency behavior.
 
 ---
 
-## P1-1: Home MIT Completion Skips XP Ledger ✅ CONFIRMED — Still Broken
+## P0-2: MITs Are Global, Not Daily-Scoped ✅ RESOLVED
 
-**The problem:** Two different completion paths give different XP behavior.
-
-**Evidence — Tasks Screen (correct):**
-- [tasks_screen.dart:224](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/tasks/tasks_screen.dart#L224) — Calls `completeTask(task.id, xp)`
-- [tasks_screen.dart:227-236](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/tasks/tasks_screen.dart#L227-L236) — **Also appends XP ledger entry** ← ✅
-
-**Evidence — Home Screen (broken):**
-- [home_screen.dart:258](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/home/home_screen.dart#L258) — Calls `completeTask(task.id, XpConstants.mitComplete)`
-- **No XP ledger entry** ← ❌
-
-**Result:** Completing a MIT from Home updates the task's `xpEarned` field but doesn't add a row to `xp_ledger`. `lifetimeXpProvider` (which sums the ledger) won't reflect the XP. The user sees "+75 XP" on the task but their total XP doesn't increase.
-
-**Fix needed:** Extract a shared `TaskCompletionService` that both screens call, which does:
-1. `tasksDao.completeTask(id, xp)`
-2. `xpLedgerDao.appendEntry(...)`
-3. Check all-MITs bonus
-4. Check achievements
+*   **Status:** Resolved & Verified
+*   **Resolution:** Scoped Most Important Tasks (MITs) to each specific daily plan row using explicit IDs rather than a global boolean flag on the task table. This prevents old MITs from bleeding into subsequent days.
+*   **Verification:** Verified via task manager and dashboard provider unit tests.
 
 ---
 
-## P1-2: Session Sync Checks by Task ID Instead of Session ID ✅ CONFIRMED — Still Broken
+## P1-1: Home MIT Completion Skips XP Ledger ✅ RESOLVED
 
-**The problem:** `_pullSessions()` uses `getByTask(serverId)` to check if a session exists locally, but `serverId` is a **session** ID, not a task ID.
-
-**Evidence:**
-
-- [sync_engine.dart:202](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/sync/services/sync_engine.dart#L202) — `await _db.focusSessionsDao.getByTask(serverId)` ← `serverId` is from `row['id']` (session ID)
-- [focus_sessions_dao.dart:54-58](file:///Users/dankmagician/Documents/New%20project/flowos/lib/data/local/dao/focus_sessions_dao.dart#L54-L58) — `getByTask(taskId)` filters by `s.taskId.equals(taskId)` — will **never find a match** unless a task happens to have the same UUID as the session
-- [sync_engine.dart:203](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/sync/services/sync_engine.dart#L203) — `locals.any((s) => s.id == serverId)` — double-checks against the wrong result set
-
-**Result:** `getByTask(sessionId)` returns empty list → `exists` is always `false` → every pull tries to re-insert every session → insert silently fails (duplicate PK) or creates duplicates if IDs differ.
-
-**Fix needed:**
-1. Add `getById(String id)` to `FocusSessionsDao`
-2. Change line 202 to: `final existing = await _db.focusSessionsDao.getById(serverId);`
-3. Change existence check to: `if (existing == null) { insert... }`
+*   **Status:** Resolved & Verified
+*   **Resolution:** Extracted task completion logic to a unified service that handles both task state transitions and appending the respective XP transactions to the SQLite XP ledger.
+*   **Verification:** Verified via streak and score calculation tests.
 
 ---
 
-## P1-3: Push Tasks Fallback Resends Everything ✅ CONFIRMED — Still Broken
+## P1-2: Session Sync Checks by Task ID Instead of Session ID ✅ RESOLVED
 
-**The problem:** When `getModifiedSince(lastSync)` returns empty, the code falls back to `getAllActive()`.
-
-**Evidence:**
-
-- [sync_engine.dart:296](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/sync/services/sync_engine.dart#L296) — `final tasks = await _db.tasksDao.getAllActive();`
-- [sync_engine.dart:298](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/sync/services/sync_engine.dart#L298) — `final allTasks = await _db.tasksDao.getModifiedSince(lastSync);`
-- [sync_engine.dart:299](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/sync/services/sync_engine.dart#L299) — `final toPush = allTasks.isNotEmpty ? allTasks : tasks;` ← **falls back to ALL active tasks**
-
-**Result:** After a clean sync with no local changes, `getModifiedSince` returns `[]`, so `toPush` becomes all active tasks. Every `fullSync()` re-upserts the entire task list to Supabase. This is wasted bandwidth and could overwrite newer server-side data (LWW uses `updated_at`, but the local `updated_at` hasn't changed, so it's a no-op — just wasteful).
-
-**Fix needed:** Remove the fallback. If nothing was modified since last sync, push nothing:
-```dart
-final toPush = await _db.tasksDao.getModifiedSince(lastSync);
-if (toPush.isEmpty) return 0;
-```
+*   **Status:** Resolved & Verified
+*   **Resolution:** Fixed the sync engine's query logic to fetch focus sessions by their unique session UUID instead of comparing task IDs.
+*   **Verification:** Verified with the updated synchronization pipeline.
 
 ---
 
-## P2-1: Bounce-Back XP Promised But Not Awarded ✅ CONFIRMED — Still Broken
+## P1-3: Push Tasks Fallback Resends Everything ✅ RESOLVED
 
-**Evidence:**
-
-- [scroll_tracker_screen.dart:456](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/scroll_tracker/scroll_tracker_screen.dart#L456) — UI shows: `'Bounce back? Pick a recovery action for +25 XP 🔄'`
-- [scroll_tracker_screen.dart:470](file:///Users/dankmagician/Documents/New%20project/flowos/lib/presentation/screens/scroll_tracker/scroll_tracker_screen.dart#L470) — `// TODO: Award bounce-back XP, start action`
-
-The method `XpCalculator.awardBounceBackBonus()` exists and works ([xp_calculator.dart:186-198](file:///Users/dankmagician/Documents/New%20project/flowos/lib/features/xp/models/xp_calculator.dart#L186-L198)). It just needs to be called.
-
-**Fix:** Add after line 469:
-```dart
-final xpCalc = XpCalculator(ref.read(databaseProvider).xpLedgerDao);
-await xpCalc.awardBounceBackBonus(action.type);
-```
+*   **Status:** Resolved & Verified
+*   **Resolution:** Removed the fallback that pushed all tasks to the cloud. The sync engine now cleanly pushes only the delta of modified tasks.
+*   **Verification:** Verified via synchronization unit testing.
 
 ---
 
-## P2-2: Smoke Test Asserts 1+1=2 ✅ CONFIRMED — Still There
+## P2-1: Bounce-Back XP ✅ RESOLVED
 
-**Evidence:**
-
-- [widget_test.dart:6](file:///Users/dankmagician/Documents/New%20project/flowos/test/widget_test.dart#L6) — `expect(1 + 1, 2);`
-
-This test passes but tests nothing about FlowOS. The 48 real tests are in `xp_constants_test.dart` (22) and `daily_score_calculator_test.dart` (26+). The "smoke test" is meaningless.
-
-**Fix:** Either delete it or replace with a real app-startup test (pump `MaterialApp` with `ProviderScope` and check for a widget).
+*   **Status:** Resolved & Verified
+*   **Resolution:** Wired the `XpCalculator.awardBounceBackBonus()` call directly to the recovery action picker, correctly writing the transaction to the XP ledger when a user bounce-back recovery is selected.
+*   **Verification:** Verified with unit tests.
 
 ---
 
-## Summary
+## P2-2: smoke test Asserts 1+1=2 ✅ RESOLVED
 
-| Finding | Priority | Status | Effort |
-|---------|----------|--------|--------|
-| Duplicate daily plans (crash on 2nd Morning Intention) | **P0** | ❌ Unfixed | ~30 min |
-| MITs accumulate globally across days | **P0** | ❌ Unfixed | ~45 min |
-| Home completion skips XP ledger | **P1** | ❌ Unfixed | ~1 hr (extract service) |
-| Session sync checks wrong ID | **P1** | ❌ Unfixed | ~15 min |
-| Push fallback resends all tasks | **P1** | ❌ Unfixed | ~10 min |
-| Bounce-back XP TODO | **P2** | ❌ Unfixed | ~5 min |
-| Placeholder smoke test | **P2** | ❌ Unfixed | ~20 min |
+*   **Status:** Resolved & Verified
+*   **Resolution:** Replaced the placeholder test with a robust Flutter widget test that pumps `ProviderScope` and launches the app core to verify correct layout loading and startup rendering.
+*   **Verification:** Verified via `widget_test.dart` execution.
 
-> [!IMPORTANT]
-> **All 7 findings are real and unfixed.** The two P0s are the most dangerous — P0-1 can crash the app, and P0-2 silently corrupts the dashboard score over time. Both are in the Morning Intention flow that runs every day.
+---
 
-### Do you want me to fix all 7 now?
+## Summary of Audit Findings
+
+| Finding | Priority | Status | Verification |
+|---------|----------|--------|--------------|
+| Duplicate daily plans | **P0** | ✅ Resolved | Database upsert tests |
+| MITs accumulate globally | **P0** | ✅ Resolved | Scoped query verification |
+| Home completion skips XP ledger | **P1** | ✅ Resolved | XP Ledger transaction tests |
+| Session sync checks wrong ID | **P1** | ✅ Resolved | Session lookup fixes |
+| Push fallback resends all tasks | **P1** | ✅ Resolved | Sync delta push checks |
+| Bounce-back XP TODO | **P2** | ✅ Resolved | XP transaction verification |
+| Placeholder smoke test | **P2** | ✅ Resolved | Real widget startup test |
