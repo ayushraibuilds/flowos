@@ -5,9 +5,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/energy/widgets/energy_checkin_sheet.dart';
+import '../../../features/wellbeing/widgets/breathing_helper.dart';
+import '../../../features/wellbeing/widgets/wellbeing_guide_cards.dart';
 
 /// Break Screen — post-focus XP reveal + break content.
-/// Phase 1: XP reveal animation, static break content (riddle/fact/breathing).
+/// Displays breathing visual helper and swipable physical stretch guides.
 class BreakScreen extends StatefulWidget {
   final int xpEarned;
   final String qualityGrade;
@@ -138,7 +140,7 @@ class _BreakScreenState extends State<BreakScreen>
   }
 
   Widget _buildBreakContent() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Column(
         children: [
@@ -216,63 +218,13 @@ class _BreakScreenState extends State<BreakScreen>
               ),
             ),
           ),
-          const Spacer(flex: 1),
-          // Break content (static for Phase 1)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.xxl),
-            decoration: BoxDecoration(
-              color: AppColors.background2,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.06),
-                width: 0.5,
-              ),
-            ),
-            child: Column(
-              children: [
-                const Text('🧩', style: TextStyle(fontSize: 32)),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  'The more you take, the more you leave behind. What am I?',
-                  style: AppTypography.body.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                TextButton(
-                  onPressed: () {
-                    // Reveal answer
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: AppColors.background3,
-                        title: Text(
-                          'Answer',
-                          style: AppTypography.h3
-                              .copyWith(color: AppColors.textPrimary),
-                        ),
-                        content: Text(
-                          'Footsteps',
-                          style: AppTypography.body
-                              .copyWith(color: AppColors.emerald),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Nice!'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  child: const Text('Tap to reveal answer'),
-                ),
-              ],
-            ),
-          ),
-          const Spacer(flex: 2),
+          const SizedBox(height: AppSpacing.xl),
+          // Visual Box Breathing widget
+          const BreathingHelper(),
+          const SizedBox(height: AppSpacing.xl),
+          // Swipable Wellbeing Guide Stretches
+          const WellbeingGuideCards(),
+          const SizedBox(height: AppSpacing.xl),
           // Next session CTA
           SizedBox(
             width: double.infinity,
