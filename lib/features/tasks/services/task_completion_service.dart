@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
+import '../../../data/local/tables/tasks_table.dart';
 import '../../achievements/models/achievement_checker.dart';
 import '../../xp/models/streak_service.dart';
 
@@ -43,6 +44,25 @@ class TaskCompletionService {
           'Completed ${task.isMIT ? "MIT" : "task"}: ${task.title}'),
     ));
 
+    // 2.5. Clone task if recurrence is configured
+    if (task.recurrenceRule != null) {
+      final baseDate = task.dueDate ?? DateTime.now();
+      final nextDueDate = _calculateNextDueDate(baseDate, task.recurrenceRule!);
+
+      await _db.tasksDao.insertTask(TasksCompanion(
+        id: Value(_uuid.v4()),
+        title: Value(task.title),
+        description: Value(task.description),
+        energyLevel: Value(task.energyLevel),
+        estimatedMinutes: Value(task.estimatedMinutes),
+        frictionScore: Value(task.frictionScore),
+        category: Value(task.category),
+        dueDate: Value(nextDueDate),
+        recurrenceRule: Value(task.recurrenceRule),
+        sortOrder: Value(task.sortOrder),
+      ));
+    }
+
     // 3. Check if all MITs are now complete → award bonus
     await _checkAllMITsBonus();
 
@@ -51,6 +71,43 @@ class TaskCompletionService {
     await AchievementChecker.runCheck(_db);
 
     return xp;
+  }
+
+  /// Calculates the next due date based on the base date and recurrence rule.
+  DateTime _calculateNextDueDate(DateTime baseDate, RecurrenceRuleColumn rule) {
+    switch (rule) {
+      case RecurrenceRuleColumn.daily:
+        return baseDate.add(const Duration(days: 1));
+      case RecurrenceRuleColumn.weekdays:
+        var next = baseDate.add(const Duration(days: 1));
+        while (next.weekday == DateTime.saturday || next.weekday == DateTime.sunday) {
+          next = next.add(const Duration(days: 1));
+        }
+        return next;
+      case RecurrenceRuleColumn.weekly:
+        return baseDate.add(const Duration(days: 7));
+      case RecurrenceRuleColumn.monthly:
+        int newMonth = baseDate.month + 1;
+        int newYear = baseDate.year;
+        if (newMonth > 12) {
+          newMonth = 1;
+          newYear += 1;
+        }
+        int newDay = baseDate.day;
+        // Check days count of the target month to clamp if day overflows (e.g. 31 -> 28/29)
+        final lastDayOfNextMonth = DateTime(newYear, newMonth + 1, 0).day;
+        if (newDay > lastDayOfNextMonth) {
+          newDay = lastDayOfNextMonth;
+        }
+        return DateTime(
+          newYear,
+          newMonth,
+          newDay,
+          baseDate.hour,
+          baseDate.minute,
+          baseDate.second,
+        );
+    }
   }
 
   /// Check if all 3 MITs are completed and award the bonus if so.
