@@ -27,11 +27,30 @@ import '../screens/flow_garden/garden_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/config/supabase_config.dart';
 
 bool onboardingComplete = false;
 
+class RouterRefreshListenable extends ChangeNotifier {
+  RouterRefreshListenable() {
+    if (SupabaseConfig.isConfigured) {
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        notifyListeners();
+      });
+    }
+  }
+
+  void notify() {
+    notifyListeners();
+  }
+}
+
+final routerRefreshListenable = RouterRefreshListenable();
+
 Future<void> completeOnboarding() async {
   onboardingComplete = true;
+  routerRefreshListenable.notify();
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('flowos_onboarding_complete', true);
 }
@@ -39,20 +58,42 @@ Future<void> completeOnboarding() async {
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
   initialLocation: '/home',
+  refreshListenable: routerRefreshListenable,
   redirect: (context, state) {
     final goingToOnboarding = state.matchedLocation == '/onboarding';
     final goingToAuth = state.matchedLocation == '/auth';
 
+    // 1. If onboarding is not complete, force onboarding (allow auth page if they need it)
     if (!onboardingComplete) {
       if (!goingToOnboarding && !goingToAuth) {
         return '/onboarding';
       }
+      return null;
+    }
+
+    // Onboarding complete:
+    if (SupabaseConfig.isConfigured) {
+      final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
+      if (!isLoggedIn) {
+        // Not logged in -> must be on auth screen
+        if (!goingToAuth) {
+          return '/auth';
+        }
+        return null;
+      } else {
+        // Logged in -> if trying to go to auth or onboarding, redirect to home
+        if (goingToAuth || goingToOnboarding) {
+          return '/home';
+        }
+        return null;
+      }
     } else {
-      if (goingToOnboarding || goingToAuth) {
+      // Supabase not configured -> skip auth, redirect to home if on auth/onboarding
+      if (goingToAuth || goingToOnboarding) {
         return '/home';
       }
+      return null;
     }
-    return null;
   },
   routes: [
     // ─── Shell route with bottom navigation ───────────────────────

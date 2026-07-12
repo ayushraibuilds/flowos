@@ -421,7 +421,7 @@ class SyncEngine {
       final rows = checkins.map((c) => {
         'id': c.id,
         'energy_level': c.value,
-        'note': c.timeOfDay.name,
+        'time_of_day': c.timeOfDay.name,
         'checked_in_at': c.date.toIso8601String(),
       }).toList();
 

@@ -20,18 +20,23 @@ Future<void> main() async {
   await NotificationService.initialize();
 
   // Initialize Supabase (skip if not configured — local-first mode)
+  // Load SharedPreferences earlier
+  final prefs = await SharedPreferences.getInstance();
+
+  // Initialize unique device ID
+  await SupabaseConfig.initializeDeviceId(prefs);
+
+  // Initialize Supabase (skip if not configured — local-first mode)
   if (SupabaseConfig.isConfigured) {
     await Supabase.initialize(
       url: SupabaseConfig.supabaseUrl,
-      anonKey: SupabaseConfig.supabaseAnonKey,
+      publishableKey: SupabaseConfig.supabaseAnonKey,
     );
   } else {
     debugPrint('⚠️ Supabase not configured — running in local-only mode.');
     debugPrint('   Run with: flutter run --dart-define-from-file=.env');
   }
 
-  // Load onboarding flag and auto-migrate existing dogfood users
-  final prefs = await SharedPreferences.getInstance();
   bool onboardingDone = prefs.getBool('flowos_onboarding_complete') ?? false;
 
   if (!onboardingDone) {

@@ -1,4 +1,6 @@
 import 'dart:io' show Platform;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 /// Supabase configuration — reads from environment at compile time.
 ///
@@ -33,16 +35,23 @@ class SupabaseConfig {
   static const authCallbackUrlScheme = 'io.supabase.flowos';
   static const authRedirectUrl = '$authCallbackUrlScheme://login-callback/';
 
+  static String _deviceId = 'flutter-device';
+
   // Device ID for sync conflict resolution
-  static String get deviceId {
-    // In production, use device_info_plus package for unique device ID.
-    // For now, differentiate by platform.
-    try {
-      if (Platform.isIOS) return 'ios-device';
-      if (Platform.isAndroid) return 'android-device';
-      return 'flutter-device';
-    } catch (_) {
-      return 'flutter-device';
+  static String get deviceId => _deviceId;
+
+  /// Initialize persistent unique device ID.
+  static Future<void> initializeDeviceId(SharedPreferences prefs) async {
+    String? devId = prefs.getString('flowos_device_id');
+    if (devId == null) {
+      try {
+        final platform = Platform.isIOS ? 'ios' : Platform.isAndroid ? 'android' : 'device';
+        devId = '$platform-${const Uuid().v4()}';
+      } catch (_) {
+        devId = 'device-${const Uuid().v4()}';
+      }
+      await prefs.setString('flowos_device_id', devId);
     }
+    _deviceId = devId;
   }
 }

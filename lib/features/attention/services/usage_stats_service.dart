@@ -111,7 +111,7 @@ class UsageStatsService {
         appName: Value(m.name),
         durationMinutes: Value(m.min),
         dailyScoreImpact: Value(m.impact),
-        timestamp: Value(DateTime.now().subtract(const Duration(minutes: 5))),
+        timestamp: Value(DateTime.now()),
       ));
     }
   }

@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS public.energy_checkins (
   id UUID PRIMARY KEY,
   user_id UUID REFERENCES auth.users NOT NULL,
   energy_level INT NOT NULL CHECK (energy_level BETWEEN 1 AND 5),
-  note TEXT,
+  time_of_day TEXT NOT NULL,
   checked_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   device_id TEXT
