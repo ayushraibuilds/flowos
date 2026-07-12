@@ -1,24 +1,18 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../features/focus/services/focus_session_service.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/constants/xp_constants.dart';
-import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
-import '../../../data/local/tables/xp_ledger_table.dart';
+import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
-import '../../../features/xp/models/streak_service.dart';
-
-const _uuid = Uuid();
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
@@ -78,7 +72,6 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   }
 
   void _startTimer() async {
-    _sessionId = _uuid.v4();
     final isFlowtime = _selectedSessionType == 3;
     final minutes = _sessionTypes[_selectedSessionType].minutes;
 
@@ -100,14 +93,11 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       dbType = SessionTypeColumn.custom;
     }
 
-    // Persist session start to DB
-    final db = ref.read(databaseProvider);
-    await db.focusSessionsDao.insertSession(FocusSessionsCompanion(
-      id: Value(_sessionId),
-      sessionType: Value(dbType),
-      durationMinutes: Value(minutes),
-      startedAt: Value(DateTime.now()),
-    ));
+    final service = ref.read(focusSessionServiceProvider);
+    _sessionId = await service.startSession(
+      type: dbType,
+      durationMinutes: minutes,
+    );
 
     _runTimer();
   }
@@ -147,46 +137,35 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final elapsed = _totalSeconds - _remainingSeconds;
     final actualMin = (elapsed / 60).round();
 
-    // Quality: A (0 pauses, 0 bg), B (1-2), C (3+)
-    final interrupts = _pauseCount + _backgroundCount;
-    final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
+    final SessionTypeColumn dbType;
+    if (_selectedSessionType == 0) {
+      dbType = SessionTypeColumn.pomodoro;
+    } else if (_selectedSessionType == 2) {
+      dbType = SessionTypeColumn.deepWork;
+    } else {
+      dbType = SessionTypeColumn.custom;
+    }
 
-    // XP from XpConstants
-    final isDeepWork = _selectedSessionType == 2;
-    final baseXP = isDeepWork ? XpConstants.deepWorkComplete : XpConstants.pomodoroComplete;
-    final xp = quality == 'A' ? baseXP : (baseXP * 0.8).round();
+    final service = ref.read(focusSessionServiceProvider);
+    final result = await service.completeSession(
+      sessionId: _sessionId,
+      elapsedSeconds: elapsed,
+      pauseCount: _pauseCount,
+      backgroundCount: _backgroundCount,
+      type: dbType,
+    );
 
-    // Update session in DB
-    final db = ref.read(databaseProvider);
-    await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-      id: Value(_sessionId),
-      actualMinutes: Value(actualMin),
-      pauseCount: Value(_pauseCount),
-      appBackgroundCount: Value(_backgroundCount),
-      xpEarned: Value(xp),
-      qualityScore: Value(quality),
-      completedAt: Value(DateTime.now()),
-    ));
-
-    // Append XP ledger entry
-    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.focusComplete),
-      pointsDelta: Value(xp),
-      sourceEntityId: Value(_sessionId),
-      explanation: Value(
-        'Completed ${actualMin}m ${_sessionTypes[_selectedSessionType].label} session (Quality: $quality)'),
-    ));
-
-    // Record streak activity & check achievements
-    await StreakService.recordActivity();
-    await AchievementChecker.runCheck(db);
+    final quality = (_pauseCount + _backgroundCount) == 0 ? 'A' : (_pauseCount + _backgroundCount) <= 2 ? 'B' : 'C';
 
     setState(() => _isRunning = false);
 
     if (mounted) {
+      for (final key in result.newlyUnlockedAchievements) {
+        final ach = allAchievements.firstWhere((a) => a.key == key);
+        CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+      }
       context.push('/break', extra: {
-        'xpEarned': xp,
+        'xpEarned': result.xpEarned,
         'qualityGrade': quality,
         'focusMinutes': actualMin,
       });
@@ -199,37 +178,29 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final elapsed = isFlowtime ? _remainingSeconds : (_totalSeconds - _remainingSeconds);
     final actualMin = (elapsed / 60).round();
 
-    final db = ref.read(databaseProvider);
+    final SessionTypeColumn dbType;
+    if (_selectedSessionType == 0) {
+      dbType = SessionTypeColumn.pomodoro;
+    } else if (_selectedSessionType == 2) {
+      dbType = SessionTypeColumn.deepWork;
+    } else {
+      dbType = SessionTypeColumn.custom;
+    }
+
+    final service = ref.read(focusSessionServiceProvider);
 
     if (isFlowtime) {
       // Flowtime completes on stop, if it has run for at least 1 minute
       if (actualMin >= 1) {
-        final interrupts = _pauseCount + _backgroundCount;
-        final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
-        final double multiplier = quality == 'A' ? 1.0 : quality == 'B' ? 0.8 : 0.6;
-        final xp = (actualMin * 1.6 * multiplier).round().clamp(1, 150);
-
-        await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-          id: Value(_sessionId),
-          actualMinutes: Value(actualMin),
-          pauseCount: Value(_pauseCount),
-          appBackgroundCount: Value(_backgroundCount),
-          xpEarned: Value(xp),
-          qualityScore: Value(quality),
-          completedAt: Value(DateTime.now()),
-        ));
-
-        await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-          id: Value(_uuid.v4()),
-          actionType: const Value(XpActionTypeColumn.focusComplete),
-          pointsDelta: Value(xp),
-          sourceEntityId: Value(_sessionId),
-          explanation: Value(
-              'Completed ${actualMin}m Flowtime session (Quality: $quality)'),
-        ));
-
-        await StreakService.recordActivity();
-        await AchievementChecker.runCheck(db);
+        final result = await service.completeSession(
+          sessionId: _sessionId,
+          elapsedSeconds: elapsed,
+          pauseCount: _pauseCount,
+          backgroundCount: _backgroundCount,
+          type: dbType,
+          isFlowtime: true,
+        );
+        final quality = (_pauseCount + _backgroundCount) == 0 ? 'A' : (_pauseCount + _backgroundCount) <= 2 ? 'B' : 'C';
 
         setState(() {
           _isRunning = false;
@@ -237,24 +208,26 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         });
 
         if (mounted) {
+          for (final key in result.newlyUnlockedAchievements) {
+            final ach = allAchievements.firstWhere((a) => a.key == key);
+            CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+          }
           context.push('/break', extra: {
-            'xpEarned': xp,
+            'xpEarned': result.xpEarned,
             'qualityGrade': quality,
             'focusMinutes': actualMin,
           });
         }
       } else {
         // Run too short, discard or record as F
-        if (_sessionId.isNotEmpty) {
-          await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-            id: Value(_sessionId),
-            actualMinutes: Value(actualMin),
-            pauseCount: Value(_pauseCount),
-            appBackgroundCount: Value(_backgroundCount),
-            qualityScore: const Value('F'),
-            completedAt: Value(DateTime.now()),
-          ));
-        }
+        await service.stopSession(
+          sessionId: _sessionId,
+          elapsedSeconds: elapsed,
+          totalSeconds: 0,
+          pauseCount: _pauseCount,
+          backgroundCount: _backgroundCount,
+          type: dbType,
+        );
         setState(() {
           _isRunning = false;
           _isPaused = false;
@@ -270,64 +243,33 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       }
     } else {
       // Countdown session stop logic
+      final result = await service.stopSession(
+        sessionId: _sessionId,
+        elapsedSeconds: elapsed,
+        totalSeconds: _totalSeconds,
+        pauseCount: _pauseCount,
+        backgroundCount: _backgroundCount,
+        type: dbType,
+      );
+
       final pct = elapsed / _totalSeconds;
+      setState(() {
+        _isRunning = false;
+        _isPaused = false;
+      });
+
       if (pct >= 0.6 && actualMin >= 10) {
-        // Partial credit: 50% XP if > 60% complete
-        final isDeepWork = _selectedSessionType == 2;
-        final baseXP = isDeepWork
-            ? XpConstants.deepWorkComplete
-            : XpConstants.pomodoroComplete;
-        final partialXP = (baseXP * pct * 0.5).round();
-
-        await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-          id: Value(_sessionId),
-          actualMinutes: Value(actualMin),
-          pauseCount: Value(_pauseCount),
-          appBackgroundCount: Value(_backgroundCount),
-          xpEarned: Value(partialXP),
-          qualityScore: const Value('D'),
-          completedAt: Value(DateTime.now()),
-        ));
-
-        await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-          id: Value(_uuid.v4()),
-          actionType: const Value(XpActionTypeColumn.focusComplete),
-          pointsDelta: Value(partialXP),
-          sourceEntityId: Value(_sessionId),
-          explanation: Value(
-            'Partial ${actualMin}m session (${(pct * 100).round()}% complete)'),
-        ));
-
-        // Record streak activity & check achievements
-        await StreakService.recordActivity();
-        await AchievementChecker.runCheck(db);
-
-        setState(() {
-          _isRunning = false;
-          _isPaused = false;
-        });
-
         if (mounted) {
+          for (final key in result.newlyUnlockedAchievements) {
+            final ach = allAchievements.firstWhere((a) => a.key == key);
+            CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+          }
           context.push('/break', extra: {
-            'xpEarned': partialXP,
+            'xpEarned': result.xpEarned,
             'qualityGrade': 'D',
             'focusMinutes': actualMin,
           });
         }
-      } else if (_sessionId.isNotEmpty) {
-        // No credit for < 60% — still record the attempt
-        await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-          id: Value(_sessionId),
-          actualMinutes: Value(actualMin),
-          pauseCount: Value(_pauseCount),
-          appBackgroundCount: Value(_backgroundCount),
-          qualityScore: const Value('F'),
-          completedAt: Value(DateTime.now()),
-        ));
-        setState(() {
-          _isRunning = false;
-          _isPaused = false;
-        });
       }
     }
   }

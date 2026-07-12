@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:confetti/confetti.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -27,10 +28,11 @@ class BreakScreen extends StatefulWidget {
 }
 
 class _BreakScreenState extends State<BreakScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  late ConfettiController _confettiController;
   bool _showBreakContent = false;
 
   @override
@@ -50,6 +52,11 @@ class _BreakScreenState extends State<BreakScreen>
       ),
     );
 
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
+    if (widget.qualityGrade == 'A' || widget.qualityGrade == 'B' || widget.qualityGrade == 'D') {
+      _confettiController.play();
+    }
+
     _controller.forward();
     HapticFeedback.heavyImpact();
 
@@ -62,6 +69,7 @@ class _BreakScreenState extends State<BreakScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _confettiController.dispose();
     super.dispose();
   }
 
@@ -70,9 +78,24 @@ class _BreakScreenState extends State<BreakScreen>
     return Scaffold(
       backgroundColor: AppColors.background0,
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 500),
-          child: _showBreakContent ? _buildBreakContent() : _buildXPReveal(),
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: _showBreakContent ? _buildBreakContent() : _buildXPReveal(),
+            ),
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: [
+                AppColors.emerald,
+                AppColors.recoveryTeal,
+                AppColors.focusBlue,
+              ],
+            ),
+          ],
         ),
       ),
     );

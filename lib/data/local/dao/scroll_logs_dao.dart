@@ -47,4 +47,20 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
       (select(scrollLogs)
             ..where((l) => l.timestamp.isBiggerOrEqualValue(since)))
           .get();
+
+  /// Delete auto scroll logs for a specific app today
+  Future<void> deleteAutoLogsForToday(String appName, DateTime start) {
+    return (delete(scrollLogs)
+          ..where((l) => l.appName.equals(appName) & l.timestamp.isBiggerOrEqualValue(start)))
+        .go();
+  }
+
+  /// Get all scroll logs logged today
+  Future<List<ScrollLog>> getTodayLogs() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    return (select(scrollLogs)
+          ..where((l) => l.timestamp.isBiggerOrEqualValue(start)))
+        .get();
+  }
 }

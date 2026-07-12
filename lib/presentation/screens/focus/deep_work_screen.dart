@@ -7,18 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import 'package:drift/drift.dart' show Value;
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
 
-import '../../../core/constants/xp_constants.dart';
-import '../../../data/local/database/app_database.dart';
+import '../../../features/focus/services/focus_session_service.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
-import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
 import '../../../features/settings/providers/settings_providers.dart';
+import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
-import '../../../features/xp/models/streak_service.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -48,7 +44,6 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   final int _backgroundCount = 0;
   Timer? _timer;
   String _sessionId = '';
-  final _uuid = const Uuid();
 
   // Ambient sound
   String _selectedSound = 'none';
@@ -101,16 +96,13 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
   void _startTimer() async {
     HapticFeedback.heavyImpact();
-    _sessionId = _uuid.v4();
 
-    final db = ref.read(databaseProvider);
-    await db.focusSessionsDao.insertSession(FocusSessionsCompanion(
-      id: Value(_sessionId),
-      taskId: Value(widget.taskId),
-      sessionType: const Value(SessionTypeColumn.deepWork),
-      durationMinutes: const Value(90),
-      startedAt: Value(DateTime.now()),
-    ));
+    final service = ref.read(focusSessionServiceProvider);
+    _sessionId = await service.startSession(
+      type: SessionTypeColumn.deepWork,
+      durationMinutes: 90,
+      taskId: widget.taskId,
+    );
 
     setState(() {
       _isRunning = true;
@@ -162,39 +154,25 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
     final elapsed = _totalSeconds - _remainingSeconds;
     final actualMinutes = (elapsed / 60).round();
-    final interrupts = _pauseCount + _backgroundCount;
-    final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
 
-    final baseXP = XpConstants.deepWorkComplete;
-    final xp = quality == 'A' ? baseXP : (baseXP * 0.8).round();
+    final service = ref.read(focusSessionServiceProvider);
+    final result = await service.completeSession(
+      sessionId: _sessionId,
+      elapsedSeconds: elapsed,
+      pauseCount: _pauseCount,
+      backgroundCount: _backgroundCount,
+      type: SessionTypeColumn.deepWork,
+    );
 
-    final db = ref.read(databaseProvider);
-    await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-      id: Value(_sessionId),
-      actualMinutes: Value(actualMinutes),
-      pauseCount: Value(_pauseCount),
-      appBackgroundCount: Value(_backgroundCount),
-      xpEarned: Value(xp),
-      qualityScore: Value(quality),
-      completedAt: Value(DateTime.now()),
-    ));
-
-    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.focusComplete),
-      pointsDelta: Value(xp),
-      sourceEntityId: Value(_sessionId),
-      explanation: Value(
-        'Completed ${actualMinutes}m Deep Work session: "${widget.taskTitle ?? 'Focus'}" (Quality: $quality)'),
-    ));
-
-    // Record streak activity & check achievements
-    await StreakService.recordActivity();
-    await AchievementChecker.runCheck(db);
+    final quality = (_pauseCount + _backgroundCount) == 0 ? 'A' : (_pauseCount + _backgroundCount) <= 2 ? 'B' : 'C';
 
     if (mounted) {
+      for (final key in result.newlyUnlockedAchievements) {
+        final ach = allAchievements.firstWhere((a) => a.key == key);
+        CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+      }
       context.go('/break', extra: {
-        'xpEarned': xp,
+        'xpEarned': result.xpEarned,
         'qualityGrade': quality,
         'focusMinutes': actualMinutes,
       });

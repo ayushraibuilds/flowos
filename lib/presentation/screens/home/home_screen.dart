@@ -15,6 +15,7 @@ import '../../../features/tasks/providers/task_providers.dart';
 import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/tasks/services/task_completion_service.dart';
+import '../../../features/attention/widgets/attention_radar_card.dart';
 
 final intentionBannerDismissedProvider = StateNotifierProvider<IntentionBannerDismissedNotifier, bool>((ref) {
   return IntentionBannerDismissedNotifier();
@@ -61,8 +62,8 @@ class HomeScreen extends ConsumerWidget {
               // ─── Header: Level + Streak ────────────────────────
               _buildHeader(context, ref),
               const SizedBox(height: AppSpacing.xxl),
-              // ─── Intention Banner (Soft Daily Gate) ─────────────
-              _buildIntentionBanner(context, ref),
+              // ─── Hero CTA Card (Dynamic Alignment) ──────────────
+              _buildHeroCTA(context, ref),
               const SizedBox(height: AppSpacing.lg),
               // ─── Flow Score Card ────────────────────────────────
               _buildFlowScoreCard(context, ref),
@@ -128,7 +129,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                level == 0 ? 'Getting started' : 'Keep building momentum',
+                _getTimeOfDayGreeting(),
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -424,48 +425,9 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildAttentionBudget(BuildContext context, WidgetRef ref) {
-    final scrollAsync = ref.watch(dailyScrollProvider);
-    final scrollUsed = scrollAsync.valueOrNull ?? 0;
     final scoreAsync = ref.watch(dailyScoreProvider);
     final budget = scoreAsync.valueOrNull?.scrollBudget ?? 30;
-    final progress = budget > 0 ? scrollUsed / budget : 0.0;
-    final isOver = scrollUsed > budget;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Attention Budget',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            Text(
-              '$scrollUsed / $budget min',
-              style: AppTypography.monoSmall.copyWith(
-                color: isOver ? AppColors.dangerCoral : AppColors.emerald,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
-            minHeight: 4,
-            backgroundColor: AppColors.background2,
-            valueColor: AlwaysStoppedAnimation(
-              isOver ? AppColors.dangerCoral : AppColors.emerald,
-            ),
-          ),
-        ),
-      ],
-    );
+    return AttentionRadarCard(budgetMinutes: budget);
   }
 
   void _startDeepWork(BuildContext context, Task task) {
@@ -475,93 +437,175 @@ class HomeScreen extends ConsumerWidget {
     });
   }
 
-  Widget _buildIntentionBanner(BuildContext context, WidgetRef ref) {
-    final todayPlanAsync = ref.watch(todayPlanProvider);
-    final isDismissed = ref.watch(intentionBannerDismissedProvider);
+  String _getTimeOfDayGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Morning focus window 🌅';
+    if (hour < 17) return 'Protect the afternoon dip ⚡';
+    return 'Evening recovery & ritual 🧘';
+  }
 
-    return todayPlanAsync.maybeWhen(
+  Widget _buildHeroCTA(BuildContext context, WidgetRef ref) {
+    final planAsync = ref.watch(todayPlanProvider);
+    final scoreAsync = ref.watch(dailyScoreProvider);
+
+    return planAsync.maybeWhen(
       data: (plan) {
-        if (plan != null) return const SizedBox.shrink();
-
         final now = DateTime.now();
-        if (now.hour >= 12 || isDismissed) return const SizedBox.shrink();
+        final hour = now.hour;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.background1, AppColors.background2],
+        // 1. Morning / No Plan state
+        if (plan == null || !plan.intentionCompleted) {
+          return _heroCard(
+            title: "Morning Alignment",
+            subtitle: "Define your focus and pick your 3 Most Important Tasks.",
+            buttonText: "Set Intention 🌅",
+            onTap: () => context.push('/morning-intention'),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F3A20), Color(0xFF072111)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            border: Border.all(
-              color: AppColors.emerald.withAlpha(76),
-              width: 1,
+            borderColor: AppColors.emerald.withValues(alpha: 0.3),
+            glowColor: AppColors.emerald.withValues(alpha: 0.15),
+          );
+        }
+
+        // 2. Evening / Shutdown state
+        if (hour >= 17 && !plan.shutdownCompleted) {
+          return _heroCard(
+            title: "Close the Loop",
+            subtitle: "End the day clean. Run the shutdown ritual to offload pending items.",
+            buttonText: "Start Shutdown Ritual 🧘",
+            onTap: () => context.push('/shutdown'),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF261835), Color(0xFF140C1C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderColor: Colors.purple.withValues(alpha: 0.3),
+            glowColor: Colors.purple.withValues(alpha: 0.15),
+          );
+        }
+
+        // 3. Mid-day Energy Check-in state
+        final score = scoreAsync.valueOrNull;
+        final checkIns = score?.score != null ? ref.watch(latestEnergyCheckInProvider) : null;
+        final needsEnergyCheck = hour >= 12 && hour < 17 && checkIns == null;
+
+        if (needsEnergyCheck) {
+          return _heroCard(
+            title: "Energy Check-in",
+            subtitle: "Track your current focus capacity to align work with your energy curve.",
+            buttonText: "Log Energy ⚡",
+            onTap: () => EnergyCheckInSheet.show(context),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF332B13), Color(0xFF1C1709)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderColor: AppColors.warningAmber.withValues(alpha: 0.3),
+            glowColor: AppColors.warningAmber.withValues(alpha: 0.15),
+          );
+        }
+
+        // 4. Default: Start Focus Session
+        if (!plan.shutdownCompleted) {
+          return _heroCard(
+            title: "Enter the Flow Cave",
+            subtitle: "Ready to make progress? Start an immersive focus session now.",
+            buttonText: "Start Focus Session 🎯",
+            onTap: () => context.go('/focus'),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF142834), Color(0xFF0B171E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderColor: AppColors.focusBlue.withValues(alpha: 0.3),
+            glowColor: AppColors.focusBlue.withValues(alpha: 0.15),
+          );
+        }
+
+        // 5. Day Complete
+        return _heroCard(
+          title: "Day Complete",
+          subtitle: "You've successfully shut down for today. Protect your rest and recover.",
+          buttonText: "View Insights 📊",
+          onTap: () => context.push('/reports'),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF1D221F), Color(0xFF0F1210)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Text('🌅', style: TextStyle(fontSize: 20)),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        "Set Today's Intention",
-                        style: AppTypography.h3.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      ref.read(intentionBannerDismissedProvider.notifier).dismiss();
-                    },
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      size: 18,
-                      color: AppColors.textTertiary,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                "Align your attention before starting work. Tap below to set today's 3 MITs.",
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => context.push('/morning-intention'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.emerald,
-                    foregroundColor: AppColors.textInverse,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text('Set Intention'),
-                ),
-              ),
-            ],
-          ),
+          borderColor: AppColors.textTertiary.withValues(alpha: 0.2),
+          glowColor: Colors.transparent,
         );
       },
       orElse: () => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _heroCard({
+    required String title,
+    required String subtitle,
+    required String buttonText,
+    required VoidCallback onTap,
+    required Gradient gradient,
+    required Color borderColor,
+    required Color glowColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        border: Border.all(
+          color: borderColor,
+          width: 1,
+        ),
+        boxShadow: [
+          if (glowColor != Colors.transparent)
+            BoxShadow(
+              color: glowColor,
+              blurRadius: 30,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: AppTypography.h3.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            subtitle,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.background0.withValues(alpha: 0.5),
+                foregroundColor: AppColors.textPrimary,
+                side: BorderSide(color: borderColor, width: 1),
+                elevation: 0,
+              ),
+              child: Text(buttonText),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

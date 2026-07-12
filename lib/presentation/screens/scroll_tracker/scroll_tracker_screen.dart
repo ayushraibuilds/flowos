@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../features/attention/widgets/attention_radar_card.dart';
 import '../../../features/xp/models/xp_calculator.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/xp/models/streak_service.dart';
@@ -141,7 +142,7 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
           children: [
             const SizedBox(height: AppSpacing.lg),
             // ─── Attention Budget ────────────────────────────────
-            _buildBudgetCard(),
+            AttentionRadarCard(budgetMinutes: _budget),
             const SizedBox(height: AppSpacing.xxl),
             // ─── App Buttons ─────────────────────────────────────
             Text(
@@ -170,66 +171,6 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     );
   }
 
-  Widget _buildBudgetCard() {
-    final ratio = _budget > 0 ? (_dailyTotal / _budget).clamp(0.0, 1.0) : 0.0;
-    final isOver = _dailyTotal > _budget;
-    final budgetColor = isOver ? AppColors.dangerCoral : AppColors.emerald;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.background2,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-        border: Border.all(
-          color: isOver
-              ? AppColors.dangerCoral.withValues(alpha: 0.3)
-              : Colors.white.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Attention Budget',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              Text(
-                '$_dailyTotal / $_budget min',
-                style: AppTypography.monoSmall.copyWith(
-                  color: budgetColor,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 6,
-              backgroundColor: AppColors.background0,
-              valueColor: AlwaysStoppedAnimation(budgetColor),
-            ),
-          ),
-          if (isOver) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '⚠️ Over budget by ${_dailyTotal - _budget} minutes',
-              style: AppTypography.caption.copyWith(
-                color: AppColors.dangerCoral,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
   Widget _buildAppGrid() {
     return GridView.builder(
