@@ -67,6 +67,12 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
     return sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes);
   }
 
+  /// Watch total lifetime focus minutes
+  Stream<int> watchLifetimeFocusMinutes() {
+    return select(focusSessions).watch().map((sessions) =>
+        sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes));
+  }
+
   /// Get sessions started since a given timestamp (for sync push).
   Future<List<FocusSession>> getModifiedSince(DateTime since) =>
       (select(focusSessions)

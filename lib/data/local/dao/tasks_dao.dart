@@ -124,4 +124,11 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
             ..where((t) => t.updatedAt.isBiggerOrEqualValue(since))
             ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
           .get();
+
+  /// Watch total lifetime completed tasks count
+  Stream<int> watchCompletedCount() {
+    return (select(tasks)..where((t) => t.isCompleted.equals(true) & t.deletedAt.isNull()))
+        .watch()
+        .map((list) => list.length);
+  }
 }

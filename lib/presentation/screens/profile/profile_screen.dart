@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../features/dashboard/providers/dashboard_providers.dart';
+import '../../../features/flow_garden/providers/garden_providers.dart';
+import '../../../features/xp/providers/xp_providers.dart';
+
+/// Live Provider for the last 28 days of focus sessions
+final last28DaysSessionsProvider = FutureProvider<List<FocusSession>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final now = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 27));
+  final end = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+  return db.focusSessionsDao.getByDateRange(start, end);
+});
 
 /// Profile screen — your productivity identity.
 /// Level badge, stats grid, heatmap calendar, achievements.
@@ -27,16 +41,16 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Level Card ─────────────────────────────────────
-              _buildLevelCard(),
+              _buildLevelCard(context, ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Stats Grid ─────────────────────────────────────
-              _buildStatsGrid(),
+              _buildStatsGrid(ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Heatmap Calendar ───────────────────────────────
-              _buildHeatmapCalendar(),
+              _buildHeatmapCalendar(ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Achievements ───────────────────────────────────
-              _buildAchievements(),
+              _buildAchievements(ref),
               const SizedBox(height: AppSpacing.xxxl),
             ],
           ),
@@ -45,7 +59,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildLevelCard() {
+  Widget _buildLevelCard(BuildContext context, WidgetRef ref) {
+    final level = ref.watch(currentLevelProvider);
+    final tierName = ref.watch(currentTierProvider);
+    final lifetimeXp = ref.watch(lifetimeXpProvider).valueOrNull ?? 0;
+
+    final levelBaseXp = XpConstants.xpForLevel(level);
+    final nextLevelXp = XpConstants.xpForLevel(level + 1);
+    final xpInLevel = lifetimeXp - levelBaseXp;
+    final xpNeededInLevel = nextLevelXp - levelBaseXp;
+    final progress = xpNeededInLevel > 0 ? (xpInLevel / xpNeededInLevel).clamp(0.0, 1.0) : 1.0;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -76,7 +100,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             child: Center(
               child: Text(
-                '1',
+                '$level',
                 style: AppTypography.display.copyWith(
                   color: AppColors.emerald,
                   fontSize: 36,
@@ -86,13 +110,13 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            XpConstants.tierName(1),
+            tierName,
             style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.sm),
           // XP progress
           Text(
-            '0 / ${XpConstants.xpForLevel(2)} XP to next level',
+            '$xpInLevel / $xpNeededInLevel XP to next level',
             style: AppTypography.monoSmall.copyWith(
               color: AppColors.textSecondary,
               fontSize: 12,
@@ -102,7 +126,7 @@ class ProfileScreen extends ConsumerWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: 0,
+              value: progress,
               minHeight: 6,
               backgroundColor: AppColors.background0,
               valueColor: AlwaysStoppedAnimation(AppColors.emerald),
@@ -110,9 +134,28 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            '0 lifetime XP',
+            '$lifetimeXp lifetime XP',
             style: AppTypography.bodySmall.copyWith(
               color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Visually distinct CTA button to enter garden
+          ElevatedButton.icon(
+            onPressed: () => context.push('/garden'),
+            icon: const Text('🌸', style: TextStyle(fontSize: 16)),
+            label: const Text('Visit Flow Garden'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.emerald.withValues(alpha: 0.1),
+              foregroundColor: AppColors.emerald,
+              side: BorderSide(
+                color: AppColors.emerald.withValues(alpha: 0.3),
+                width: 0.5,
+              ),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+              ),
             ),
           ),
         ],
@@ -120,14 +163,25 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(WidgetRef ref) {
+    final focusMinutes = ref.watch(lifetimeFocusMinutesProvider).valueOrNull ?? 0;
+    final tasksDone = ref.watch(totalCompletedTasksCountProvider).valueOrNull ?? 0;
+    final bestStreak = ref.watch(bestStreakProvider).valueOrNull ?? 0;
+    final currentStreak = ref.watch(streakProvider).valueOrNull ?? 0;
+    final recoveries = ref.watch(lifetimeRecoveriesCountProvider).valueOrNull ?? 0;
+    final achievements = ref.watch(achievementsProvider).valueOrNull ?? [];
+    final unlockedAchievementsCount = achievements.where((a) => a.isUnlocked).length;
+
+    final focusHours = focusMinutes ~/ 60;
+    final focusHoursStr = focusHours > 0 ? '${focusHours}h' : '${focusMinutes}m';
+
     final stats = [
-      (icon: '⏱️', value: '0h', label: 'Focus Time'),
-      (icon: '✅', value: '0', label: 'Tasks Done'),
-      (icon: '🔥', value: '0', label: 'Best Streak'),
-      (icon: '📅', value: '0', label: 'Current Streak'),
-      (icon: '🔄', value: '0', label: 'Recoveries'),
-      (icon: '🏆', value: '0', label: 'Badges'),
+      (icon: '⏱️', value: focusHoursStr, label: 'Focus Time'),
+      (icon: '✅', value: '$tasksDone', label: 'Tasks Done'),
+      (icon: '🔥', value: '$bestStreak', label: 'Best Streak'),
+      (icon: '📅', value: '$currentStreak', label: 'Current Streak'),
+      (icon: '🔄', value: '$recoveries', label: 'Recoveries'),
+      (icon: '🏆', value: '$unlockedAchievementsCount', label: 'Badges'),
     ];
 
     return GridView.builder(
@@ -147,6 +201,10 @@ class ProfileScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.background2,
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.04),
+              width: 0.5,
+            ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -157,6 +215,7 @@ class ProfileScreen extends ConsumerWidget {
                 stat.value,
                 style: AppTypography.monoSmall.copyWith(
                   color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 2),
@@ -174,36 +233,72 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeatmapCalendar() {
+  Widget _buildHeatmapCalendar(WidgetRef ref) {
+    final last28DaysSessions = ref.watch(last28DaysSessionsProvider).valueOrNull ?? [];
+
+    final dailyMinutes = List<int>.filled(28, 0);
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+
+    for (final s in last28DaysSessions) {
+      if (s.startedAt == null) continue;
+      final sessionDay = DateTime(s.startedAt.year, s.startedAt.month, s.startedAt.day);
+      final difference = todayStart.difference(sessionDay).inDays;
+      if (difference >= 0 && difference < 28) {
+        final gridIndex = 27 - difference;
+        dailyMinutes[gridIndex] += s.actualMinutes;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Activity',
+          'Activity (Last 4 Weeks)',
           style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.md),
-        // Simplified heatmap — 7 columns (days) × 4 rows (weeks)
         Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: AppColors.background2,
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.04),
+              width: 0.5,
+            ),
           ),
           child: GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
             ),
             itemCount: 28,
             itemBuilder: (context, i) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: AppColors.background0,
-                  borderRadius: BorderRadius.circular(3),
+              final mins = dailyMinutes[i];
+              final Color cellColor;
+              if (mins == 0) {
+                cellColor = AppColors.background0;
+              } else if (mins < 25) {
+                cellColor = AppColors.emerald.withValues(alpha: 0.2);
+              } else if (mins < 60) {
+                cellColor = AppColors.emerald.withValues(alpha: 0.45);
+              } else if (mins < 120) {
+                cellColor = AppColors.emerald.withValues(alpha: 0.7);
+              } else {
+                cellColor = AppColors.emerald;
+              }
+
+              return Tooltip(
+                message: mins > 0 ? '$mins mins focused' : 'No focus sessions',
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cellColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
               );
             },
@@ -213,15 +308,8 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAchievements() {
-    final badges = [
-      (emoji: '🌅', name: 'Early Bird', locked: true),
-      (emoji: '🔥', name: 'Flow Master', locked: true),
-      (emoji: '📵', name: 'Digital Detox', locked: true),
-      (emoji: '🎯', name: 'Triple Threat', locked: true),
-      (emoji: '⚡', name: '1000 XP Day', locked: true),
-      (emoji: '👑', name: 'Consistency', locked: true),
-    ];
+  Widget _buildAchievements(WidgetRef ref) {
+    final achievementsAsync = ref.watch(achievementsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,51 +319,64 @@ class ProfileScreen extends ConsumerWidget {
           style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: badges.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(width: AppSpacing.md),
-            itemBuilder: (context, i) {
-              final badge = badges[i];
-              return Container(
-                width: 80,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.background2,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      badge.locked ? '🔒' : badge.emoji,
-                      style: TextStyle(
-                        fontSize: 28,
-                        color: badge.locked
-                            ? AppColors.textTertiary
-                            : null,
+        achievementsAsync.when(
+          data: (list) {
+            if (list.isEmpty) {
+              return const Center(child: Text('No achievements unlocked yet.'));
+            }
+            return SizedBox(
+              height: 100,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                itemBuilder: (context, i) {
+                  final badge = list[i];
+                  return Container(
+                    width: 90,
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.background2,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      border: Border.all(
+                        color: badge.isUnlocked
+                            ? AppColors.emerald.withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.04),
+                        width: 0.5,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      badge.name,
-                      style: AppTypography.caption.copyWith(
-                        color: badge.locked
-                            ? AppColors.textTertiary
-                            : AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          badge.isUnlocked ? badge.emoji : '🔒',
+                          style: TextStyle(
+                            fontSize: 28,
+                            color: !badge.isUnlocked ? AppColors.textTertiary : null,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          badge.name,
+                          style: AppTypography.caption.copyWith(
+                            color: badge.isUnlocked
+                                ? AppColors.textSecondary
+                                : AppColors.textTertiary,
+                            fontSize: 10,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) => Text('Error loading achievements: $e'),
         ),
       ],
     );

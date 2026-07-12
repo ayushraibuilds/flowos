@@ -22,6 +22,7 @@ import '../screens/auth/auth_screen.dart';
 import '../screens/focus/deep_work_screen.dart';
 import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/flow_garden/garden_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -89,6 +90,11 @@ final appRouter = GoRouter(
     ),
 
     // ─── Full-screen routes (no bottom nav) ──────────────────────
+    GoRoute(
+      path: '/garden',
+      name: 'garden',
+      builder: (context, state) => const GardenScreen(),
+    ),
     GoRoute(
       path: '/morning-intention',
       name: 'morningIntention',

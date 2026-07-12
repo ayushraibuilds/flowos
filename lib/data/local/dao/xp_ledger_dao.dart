@@ -86,4 +86,11 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
         .get();
     return entries.fold<int>(0, (sum, e) => sum + e.pointsDelta);
   }
+
+  /// Watch lifetime recoveries count
+  Stream<int> watchLifetimeRecoveriesCount() {
+    return (select(xpLedgerEntries)..where((e) => e.actionType.equalsValue(XpActionTypeColumn.bounceBackBonus)))
+        .watch()
+        .map((entries) => entries.length);
+  }
 }
