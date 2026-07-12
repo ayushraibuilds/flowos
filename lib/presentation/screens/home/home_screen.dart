@@ -490,8 +490,8 @@ class HomeScreen extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: AppSpacing.lg),
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+            gradient: LinearGradient(
+              colors: [AppColors.background1, AppColors.background2],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

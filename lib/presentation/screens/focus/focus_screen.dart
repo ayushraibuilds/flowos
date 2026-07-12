@@ -485,7 +485,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final ringSize = size.width * 0.65;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF060B14), // Darker for focus
+      backgroundColor: AppColors.background0, // Dynamic for focus theme
       body: SafeArea(
         child: Column(
           children: [

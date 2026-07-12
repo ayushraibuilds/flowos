@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/xp_constants.dart';
+import '../../core/theme/app_colors.dart';
 import '../../features/dashboard/providers/dashboard_providers.dart';
 import '../../features/xp/widgets/level_up_overlay.dart';
 import '../screens/home/home_screen.dart';
@@ -182,9 +183,9 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/energy-checkin',
       name: 'energyCheckin',
-      builder: (context, state) => const Scaffold(
-        backgroundColor: Color(0xFF0F172A),
-        body: SafeArea(
+      builder: (context, state) => Scaffold(
+        backgroundColor: AppColors.background0,
+        body: const SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(
