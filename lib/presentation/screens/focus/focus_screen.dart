@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -41,11 +42,12 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   String _sessionId = '';
 
   // Session config
-  int _selectedSessionType = 0; // 0=pomodoro, 1=deep, 2=custom
+  int _selectedSessionType = 0; // 0=Classic, 1=DeskTime, 2=Deep Work, 3=Flowtime
   final _sessionTypes = [
-    (label: 'Pomodoro', minutes: 25, breakMin: 5),
-    (label: 'Deep Work', minutes: 90, breakMin: 20),
-    (label: 'Custom', minutes: 45, breakMin: 10),
+    (label: 'Classic', minutes: 25, breakMin: 5),
+    (label: 'DeskTime', minutes: 52, breakMin: 17),
+    (label: 'Deep Work', minutes: 90, breakMin: 15),
+    (label: 'Flowtime', minutes: 0, breakMin: 0),
   ];
 
   // Ambient sound
@@ -77,23 +79,32 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   void _startTimer() async {
     _sessionId = _uuid.v4();
-    final sessionType = SessionTypeColumn.values[_selectedSessionType];
+    final isFlowtime = _selectedSessionType == 3;
     final minutes = _sessionTypes[_selectedSessionType].minutes;
 
     setState(() {
       _isRunning = true;
       _isPaused = false;
-      _totalSeconds = minutes * 60;
-      _remainingSeconds = _totalSeconds;
+      _totalSeconds = isFlowtime ? 0 : minutes * 60;
+      _remainingSeconds = isFlowtime ? 0 : _totalSeconds;
       _pauseCount = 0;
       _backgroundCount = 0;
     });
+
+    final SessionTypeColumn dbType;
+    if (_selectedSessionType == 0) {
+      dbType = SessionTypeColumn.pomodoro;
+    } else if (_selectedSessionType == 2) {
+      dbType = SessionTypeColumn.deepWork;
+    } else {
+      dbType = SessionTypeColumn.custom;
+    }
 
     // Persist session start to DB
     final db = ref.read(databaseProvider);
     await db.focusSessionsDao.insertSession(FocusSessionsCompanion(
       id: Value(_sessionId),
-      sessionType: Value(sessionType),
+      sessionType: Value(dbType),
       durationMinutes: Value(minutes),
       startedAt: Value(DateTime.now()),
     ));
@@ -102,13 +113,18 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   }
 
   void _runTimer() {
+    final isFlowtime = _selectedSessionType == 3;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_remainingSeconds <= 0) {
-        timer.cancel();
-        _onComplete();
-        return;
+      if (isFlowtime) {
+        setState(() => _remainingSeconds++);
+      } else {
+        if (_remainingSeconds <= 0) {
+          timer.cancel();
+          _onComplete();
+          return;
+        }
+        setState(() => _remainingSeconds--);
       }
-      setState(() => _remainingSeconds--);
     });
   }
 
@@ -136,7 +152,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
 
     // XP from XpConstants
-    final isDeepWork = _selectedSessionType == 1;
+    final isDeepWork = _selectedSessionType == 2;
     final baseXP = isDeepWork ? XpConstants.deepWorkComplete : XpConstants.pomodoroComplete;
     final xp = quality == 'A' ? baseXP : (baseXP * 0.8).round();
 
@@ -169,93 +185,169 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     setState(() => _isRunning = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('+$xp XP! ${quality == "A" ? "Perfect focus! 🔥" : "Session complete! ⚡"}'),
-          backgroundColor: AppColors.emerald,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      context.push('/break', extra: {
+        'xpEarned': xp,
+        'qualityGrade': quality,
+        'focusMinutes': actualMin,
+      });
     }
   }
 
   void _stopSession() async {
     _timer?.cancel();
-    final elapsed = _totalSeconds - _remainingSeconds;
-    final pct = elapsed / _totalSeconds;
+    final isFlowtime = _selectedSessionType == 3;
+    final elapsed = isFlowtime ? _remainingSeconds : (_totalSeconds - _remainingSeconds);
     final actualMin = (elapsed / 60).round();
 
     final db = ref.read(databaseProvider);
 
-    if (pct >= 0.6 && actualMin >= 10) {
-      // Partial credit: 50% XP if > 60% complete
-      final baseXP = _selectedSessionType == 1
-          ? XpConstants.deepWorkComplete
-          : XpConstants.pomodoroComplete;
-      final partialXP = (baseXP * pct * 0.5).round();
+    if (isFlowtime) {
+      // Flowtime completes on stop, if it has run for at least 1 minute
+      if (actualMin >= 1) {
+        final interrupts = _pauseCount + _backgroundCount;
+        final quality = interrupts == 0 ? 'A' : interrupts <= 2 ? 'B' : 'C';
+        final double multiplier = quality == 'A' ? 1.0 : quality == 'B' ? 0.8 : 0.6;
+        final xp = (actualMin * 1.6 * multiplier).round().clamp(1, 150);
 
-      await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-        id: Value(_sessionId),
-        actualMinutes: Value(actualMin),
-        pauseCount: Value(_pauseCount),
-        appBackgroundCount: Value(_backgroundCount),
-        xpEarned: Value(partialXP),
-        qualityScore: const Value('D'),
-        completedAt: Value(DateTime.now()),
-      ));
+        await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+          id: Value(_sessionId),
+          actualMinutes: Value(actualMin),
+          pauseCount: Value(_pauseCount),
+          appBackgroundCount: Value(_backgroundCount),
+          xpEarned: Value(xp),
+          qualityScore: Value(quality),
+          completedAt: Value(DateTime.now()),
+        ));
 
-      await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-        id: Value(_uuid.v4()),
-        actionType: const Value(XpActionTypeColumn.focusComplete),
-        pointsDelta: Value(partialXP),
-        sourceEntityId: Value(_sessionId),
-        explanation: Value(
-          'Partial ${actualMin}m session (${(pct * 100).round()}% complete)'),
-      ));
+        await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+          id: Value(_uuid.v4()),
+          actionType: const Value(XpActionTypeColumn.focusComplete),
+          pointsDelta: Value(xp),
+          sourceEntityId: Value(_sessionId),
+          explanation: Value(
+              'Completed ${actualMin}m Flowtime session (Quality: $quality)'),
+        ));
 
-      // Record streak activity & check achievements
-      await StreakService.recordActivity();
-      await AchievementChecker.runCheck(db);
+        await StreakService.recordActivity();
+        await AchievementChecker.runCheck(db);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('+$partialXP XP (partial credit)'),
-            backgroundColor: AppColors.warningAmber,
-          ),
-        );
+        setState(() {
+          _isRunning = false;
+          _isPaused = false;
+        });
+
+        if (mounted) {
+          context.push('/break', extra: {
+            'xpEarned': xp,
+            'qualityGrade': quality,
+            'focusMinutes': actualMin,
+          });
+        }
+      } else {
+        // Run too short, discard or record as F
+        if (_sessionId.isNotEmpty) {
+          await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+            id: Value(_sessionId),
+            actualMinutes: Value(actualMin),
+            pauseCount: Value(_pauseCount),
+            appBackgroundCount: Value(_backgroundCount),
+            qualityScore: const Value('F'),
+            completedAt: Value(DateTime.now()),
+          ));
+        }
+        setState(() {
+          _isRunning = false;
+          _isPaused = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session too short (< 1 min) for XP.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
-    } else if (_sessionId.isNotEmpty) {
-      // No credit for < 60% — still record the attempt
-      await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
-        id: Value(_sessionId),
-        actualMinutes: Value(actualMin),
-        pauseCount: Value(_pauseCount),
-        appBackgroundCount: Value(_backgroundCount),
-        qualityScore: const Value('F'),
-        completedAt: Value(DateTime.now()),
-      ));
-    }
+    } else {
+      // Countdown session stop logic
+      final pct = elapsed / _totalSeconds;
+      if (pct >= 0.6 && actualMin >= 10) {
+        // Partial credit: 50% XP if > 60% complete
+        final isDeepWork = _selectedSessionType == 2;
+        final baseXP = isDeepWork
+            ? XpConstants.deepWorkComplete
+            : XpConstants.pomodoroComplete;
+        final partialXP = (baseXP * pct * 0.5).round();
 
-    setState(() {
-      _isRunning = false;
-      _isPaused = false;
-    });
+        await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+          id: Value(_sessionId),
+          actualMinutes: Value(actualMin),
+          pauseCount: Value(_pauseCount),
+          appBackgroundCount: Value(_backgroundCount),
+          xpEarned: Value(partialXP),
+          qualityScore: const Value('D'),
+          completedAt: Value(DateTime.now()),
+        ));
+
+        await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
+          id: Value(_uuid.v4()),
+          actionType: const Value(XpActionTypeColumn.focusComplete),
+          pointsDelta: Value(partialXP),
+          sourceEntityId: Value(_sessionId),
+          explanation: Value(
+            'Partial ${actualMin}m session (${(pct * 100).round()}% complete)'),
+        ));
+
+        // Record streak activity & check achievements
+        await StreakService.recordActivity();
+        await AchievementChecker.runCheck(db);
+
+        setState(() {
+          _isRunning = false;
+          _isPaused = false;
+        });
+
+        if (mounted) {
+          context.push('/break', extra: {
+            'xpEarned': partialXP,
+            'qualityGrade': 'D',
+            'focusMinutes': actualMin,
+          });
+        }
+      } else if (_sessionId.isNotEmpty) {
+        // No credit for < 60% — still record the attempt
+        await db.focusSessionsDao.updateSession(FocusSessionsCompanion(
+          id: Value(_sessionId),
+          actualMinutes: Value(actualMin),
+          pauseCount: Value(_pauseCount),
+          appBackgroundCount: Value(_backgroundCount),
+          qualityScore: const Value('F'),
+          completedAt: Value(DateTime.now()),
+        ));
+        setState(() {
+          _isRunning = false;
+          _isPaused = false;
+        });
+      }
+    }
   }
 
   String get _timeString {
-    final m = _remainingSeconds ~/ 60;
-    final s = _remainingSeconds % 60;
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    final mins = _remainingSeconds ~/ 60;
+    final secs = _remainingSeconds % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   double get _progress {
+    if (_selectedSessionType == 3) {
+      return (_remainingSeconds % 60) / 60.0;
+    }
     if (_totalSeconds == 0) return 0;
     return 1.0 - (_remainingSeconds / _totalSeconds);
   }
 
   int get _liveXP {
-    final elapsed = _totalSeconds - _remainingSeconds;
+    final elapsed = _selectedSessionType == 3 ? _remainingSeconds : (_totalSeconds - _remainingSeconds);
     return (elapsed / 60 * 1.6).round(); // ~40 XP per 25 min
   }
 
@@ -284,60 +376,70 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                 style: AppTypography.h1.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.xxxl),
-              // Session type selector
-              Row(
-                children: List.generate(3, (i) {
+              // Session type selector (2x2 grid to support 4 presets without squeezing screen width)
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: AppSpacing.md,
+                  mainAxisSpacing: AppSpacing.md,
+                  childAspectRatio: 2.2,
+                ),
+                itemCount: 4,
+                itemBuilder: (context, i) {
                   final isActive = i == _selectedSessionType;
                   final session = _sessionTypes[i];
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedSessionType = i),
-                      child: Container(
-                        margin: EdgeInsets.only(
-                          right: i < 2 ? AppSpacing.sm : 0,
-                        ),
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        decoration: BoxDecoration(
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedSessionType = i),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppColors.focusBlue.withValues(alpha: 0.12)
+                            : AppColors.background2,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusCard),
+                        border: Border.all(
                           color: isActive
-                              ? AppColors.focusBlue.withValues(alpha: 0.12)
-                              : AppColors.background2,
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusCard),
-                          border: Border.all(
-                            color: isActive
-                                ? AppColors.focusBlue
-                                : Colors.transparent,
-                            width: 1.5,
+                              ? AppColors.focusBlue
+                              : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            session.label,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: isActive
+                                  ? AppColors.focusBlue
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              session.label,
-                              style: AppTypography.bodySmall.copyWith(
-                                color: isActive
-                                    ? AppColors.focusBlue
-                                    : AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          const SizedBox(height: 2),
+                          Text(
+                            session.minutes > 0
+                                ? '${session.minutes} min'
+                                : 'Flowtime',
+                            style: AppTypography.monoSmall.copyWith(
+                              color: isActive
+                                  ? AppColors.focusBlue
+                                  : AppColors.textTertiary,
                             ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(
-                              '${session.minutes}m',
-                              style: AppTypography.monoSmall.copyWith(
-                                color: isActive
-                                    ? AppColors.focusBlue
-                                    : AppColors.textTertiary,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   );
-                }),
+                },
               ),
-              const SizedBox(height: AppSpacing.xxxl * 2),
+              const SizedBox(height: AppSpacing.xxl),
               // Start button
               GestureDetector(
                 onTap: _startTimer,

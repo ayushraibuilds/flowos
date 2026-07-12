@@ -10,6 +10,7 @@ import '../../../data/local/database/app_database.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../features/flow_garden/providers/garden_providers.dart';
 import '../../../features/xp/providers/xp_providers.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
 
 /// Live Provider for the last 28 days of focus sessions
 final last28DaysSessionsProvider = FutureProvider<List<FocusSession>>((ref) async {
@@ -170,7 +171,7 @@ class ProfileScreen extends ConsumerWidget {
     final currentStreak = ref.watch(streakProvider).valueOrNull ?? 0;
     final recoveries = ref.watch(lifetimeRecoveriesCountProvider).valueOrNull ?? 0;
     final achievements = ref.watch(achievementsProvider).valueOrNull ?? [];
-    final unlockedAchievementsCount = achievements.where((a) => a.isUnlocked).length;
+    final unlockedAchievementsCount = achievements.length;
 
     final focusHours = focusMinutes ~/ 60;
     final focusHoursStr = focusHours > 0 ? '${focusHours}h' : '${focusMinutes}m';
@@ -241,7 +242,6 @@ class ProfileScreen extends ConsumerWidget {
     final todayStart = DateTime(now.year, now.month, now.day);
 
     for (final s in last28DaysSessions) {
-      if (s.startedAt == null) continue;
       final sessionDay = DateTime(s.startedAt.year, s.startedAt.month, s.startedAt.day);
       final difference = todayStart.difference(sessionDay).inDays;
       if (difference >= 0 && difference < 28) {
@@ -320,10 +320,13 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         achievementsAsync.when(
-          data: (list) {
-            if (list.isEmpty) {
-              return const Center(child: Text('No achievements unlocked yet.'));
-            }
+          data: (dbList) {
+            // Map static metadata configurations with database unlock statuses
+            final list = allAchievements.map((info) {
+              final isUnlocked = dbList.any((a) => a.achievementKey == info.key.name);
+              return (info: info, isUnlocked: isUnlocked);
+            }).toList();
+
             return SizedBox(
               height: 100,
               child: ListView.separated(
@@ -349,7 +352,7 @@ class ProfileScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          badge.isUnlocked ? badge.emoji : '🔒',
+                          badge.isUnlocked ? badge.info.emoji : '🔒',
                           style: TextStyle(
                             fontSize: 28,
                             color: !badge.isUnlocked ? AppColors.textTertiary : null,
@@ -357,7 +360,7 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          badge.name,
+                          badge.info.name,
                           style: AppTypography.caption.copyWith(
                             color: badge.isUnlocked
                                 ? AppColors.textSecondary
