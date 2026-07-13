@@ -62,6 +62,7 @@ void main() {
 
       final ledgerXP = await db.xpLedgerDao.getLifetimeXP();
       expect(ledgerXP, result.xpEarned);
+      expect(result.gardenGrowth?.kind, isNotNull);
     });
 
     test('completeSession countdown scales down XP for quality B', () async {
@@ -109,30 +110,33 @@ void main() {
       expect(session.xpEarned, 48);
     });
 
-    test('stopSession countdown awards partial XP if >= 60% and >= 10m', () async {
-      final sessionId = await service.startSession(
-        type: SessionTypeColumn.pomodoro,
-        durationMinutes: 25,
-      );
+    test(
+      'stopSession countdown awards partial XP if >= 60% and >= 10m',
+      () async {
+        final sessionId = await service.startSession(
+          type: SessionTypeColumn.pomodoro,
+          durationMinutes: 25,
+        );
 
-      // 15 mins is 60% of 25 mins
-      final result = await service.stopSession(
-        sessionId: sessionId,
-        elapsedSeconds: 15 * 60,
-        totalSeconds: 25 * 60,
-        pauseCount: 0,
-        backgroundCount: 0,
-        type: SessionTypeColumn.pomodoro,
-      );
+        // 15 mins is 60% of 25 mins
+        final result = await service.stopSession(
+          sessionId: sessionId,
+          elapsedSeconds: 15 * 60,
+          totalSeconds: 25 * 60,
+          pauseCount: 0,
+          backgroundCount: 0,
+          type: SessionTypeColumn.pomodoro,
+        );
 
-      // 0.6 * baseXP * 0.5 = 0.3 * baseXP. 0.3 * 40 = 12 XP
-      final expectedXP = (XpConstants.pomodoroComplete * 0.6 * 0.5).round();
-      expect(result.xpEarned, expectedXP);
+        // 0.6 * baseXP * 0.5 = 0.3 * baseXP. 0.3 * 40 = 12 XP
+        final expectedXP = (XpConstants.pomodoroComplete * 0.6 * 0.5).round();
+        expect(result.xpEarned, expectedXP);
 
-      final session = await db.focusSessionsDao.getById(sessionId);
-      expect(session!.qualityScore, 'D');
-      expect(session.xpEarned, expectedXP);
-    });
+        final session = await db.focusSessionsDao.getById(sessionId);
+        expect(session!.qualityScore, 'D');
+        expect(session.xpEarned, expectedXP);
+      },
+    );
 
     test('stopSession countdown awards 0 XP if < 60%', () async {
       final sessionId = await service.startSession(

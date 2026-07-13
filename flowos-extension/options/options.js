@@ -1,4 +1,17 @@
-// FlowOS Options — Supabase auth, site categorization, data management.
+// FlowOS Options — account auth, site categorization, data management.
+
+function getAccountConfig() {
+  const config = globalThis.FLOWOS_CONFIG || {};
+  return {
+    supabaseUrl: config.supabaseUrl || '',
+    supabasePublishableKey: config.supabasePublishableKey || '',
+  };
+}
+
+function isAccountSyncConfigured() {
+  const { supabaseUrl, supabasePublishableKey } = getAccountConfig();
+  return Boolean(supabaseUrl && supabasePublishableKey);
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
@@ -6,19 +19,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadSettings() {
-  const { supabaseUrl, supabaseKey, email, accessToken, customCategories = {} } =
-    await chrome.storage.local.get([
-      'supabaseUrl', 'supabaseKey', 'email', 'accessToken', 'customCategories',
-    ]);
+  const { email, accessToken, customCategories = {} } = await chrome.storage.local.get([
+    'email', 'accessToken', 'customCategories',
+  ]);
 
-  document.getElementById('supabaseUrl').value = supabaseUrl || '';
-  document.getElementById('supabaseKey').value = supabaseKey || '';
+  // Remove legacy, user-entered infrastructure settings from earlier builds.
+  await chrome.storage.local.remove(['supabaseUrl', 'supabaseKey']);
+
   document.getElementById('email').value = email || '';
+  const loginButton = document.getElementById('loginBtn');
+  const statusEl = document.getElementById('authStatus');
 
-  if (accessToken) {
-    document.getElementById('authStatus').textContent = '✅ Signed in';
-    document.getElementById('authStatus').className = 'status success';
-    document.getElementById('loginBtn').textContent = 'Update';
+  if (!isAccountSyncConfigured()) {
+    loginButton.disabled = true;
+    loginButton.title = 'Account sync is not configured in this build.';
+    statusEl.textContent = 'Account sync is unavailable in this build. Browsing insights remain local.';
+    statusEl.className = 'status';
+  } else if (accessToken) {
+    statusEl.textContent = '✅ Signed in';
+    statusEl.className = 'status success';
+    loginButton.textContent = 'Update';
   }
 
   renderCategories(customCategories);
@@ -27,59 +47,72 @@ async function loadSettings() {
 function renderCategories(categories) {
   const container = document.getElementById('categoryList');
   const entries = Object.entries(categories);
+  container.replaceChildren();
 
   if (entries.length === 0) {
-    container.innerHTML = '<div style="color: #4A5568; font-size: 12px;">No custom categories yet</div>';
+    const emptyState = document.createElement('div');
+    emptyState.style.cssText = 'color: #4A5568; font-size: 12px;';
+    emptyState.textContent = 'No custom categories yet';
+    container.append(emptyState);
     return;
   }
 
-  container.innerHTML = entries.map(([domain, category]) => `
-    <div class="category-item" data-domain="${domain}">
-      <span class="category-domain">${domain}</span>
-      <select class="category-select" data-domain="${domain}">
-        <option value="productive" ${category === 'productive' ? 'selected' : ''}>Productive</option>
-        <option value="neutral" ${category === 'neutral' ? 'selected' : ''}>Neutral</option>
-        <option value="distracting" ${category === 'distracting' ? 'selected' : ''}>Distracting</option>
-      </select>
-      <button class="remove-btn" data-domain="${domain}">✕</button>
-    </div>
-  `).join('');
+  entries.forEach(([domain, category]) => {
+    const row = document.createElement('div');
+    row.className = 'category-item';
 
-  // Change listeners
-  container.querySelectorAll('.category-select').forEach(select => {
+    const domainLabel = document.createElement('span');
+    domainLabel.className = 'category-domain';
+    domainLabel.textContent = domain;
+
+    const select = document.createElement('select');
+    ['productive', 'neutral', 'distracting'].forEach((value) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value[0].toUpperCase() + value.slice(1);
+      option.selected = category === value;
+      select.append(option);
+    });
     select.addEventListener('change', async (e) => {
-      const domain = e.target.dataset.domain;
       await chrome.runtime.sendMessage({
         type: 'CATEGORIZE_SITE',
         domain,
         category: e.target.value,
       });
     });
-  });
 
-  // Remove listeners
-  container.querySelectorAll('.remove-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const domain = e.target.dataset.domain;
+    const removeButton = document.createElement('button');
+    removeButton.className = 'remove-btn';
+    removeButton.type = 'button';
+    removeButton.textContent = '✕';
+    removeButton.addEventListener('click', async () => {
       const { customCategories = {} } = await chrome.storage.local.get('customCategories');
       delete customCategories[domain];
       await chrome.storage.local.set({ customCategories });
       renderCategories(customCategories);
     });
+
+    row.append(domainLabel, select, removeButton);
+    container.append(row);
   });
 }
 
 function setupListeners() {
   // Login
   document.getElementById('loginBtn').addEventListener('click', async () => {
-    const supabaseUrl = document.getElementById('supabaseUrl').value.trim();
-    const supabaseKey = document.getElementById('supabaseKey').value.trim();
+    const { supabaseUrl, supabasePublishableKey } = getAccountConfig();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     const statusEl = document.getElementById('authStatus');
 
-    if (!supabaseUrl || !supabaseKey || !email || !password) {
-      statusEl.textContent = '❌ All fields required';
+    if (!isAccountSyncConfigured()) {
+      statusEl.textContent = '❌ Account sync is not configured in this build.';
+      statusEl.className = 'status error';
+      return;
+    }
+
+    if (!email || !password) {
+      statusEl.textContent = '❌ Email and password are required';
       statusEl.className = 'status error';
       return;
     }
@@ -92,19 +125,23 @@ function setupListeners() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': supabaseKey,
+          'apikey': supabasePublishableKey,
         },
         body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
         const data = await res.json();
+        if (!data.user?.id) {
+          throw new Error('The account response did not include a user identity.');
+        }
+
         await chrome.storage.local.set({
-          supabaseUrl,
-          supabaseKey,
           email,
           accessToken: data.access_token,
           refreshToken: data.refresh_token,
+          tokenExpiresAt: Date.now() + ((data.expires_in || 0) * 1000),
+          userId: data.user.id,
         });
         statusEl.textContent = '✅ Signed in successfully!';
         statusEl.className = 'status success';

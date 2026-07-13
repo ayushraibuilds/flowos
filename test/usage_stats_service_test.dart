@@ -21,32 +21,41 @@ void main() {
   });
 
   group('UsageStatsService Tests', () {
-    test('syncUsageStats in simulator injects mock data only once', () async {
-      // First sync -> should inject mock data
-      await service.syncUsageStats();
+    test('syncUsageStats never fabricates device usage off Android', () async {
+      final result = await service.syncUsageStats();
 
-      var logs = await db.scrollLogsDao.getTodayLogs();
-      expect(logs.length, 3);
-      expect(logs.any((l) => l.appName == 'Instagram [Auto]'), true);
-      expect(logs.any((l) => l.appName == 'YouTube [Auto]'), true);
-      expect(logs.any((l) => l.appName == 'TikTok [Auto]'), true);
-
-      // Second sync -> should NOT inject duplicate logs because auto exists
-      await service.syncUsageStats();
-      logs = await db.scrollLogsDao.getTodayLogs();
-      expect(logs.length, 3); // still 3
+      expect(result.status, UsageSyncStatus.unsupported);
+      expect(await db.scrollLogsDao.getTodayLogs(), isEmpty);
     });
 
-    test('deleteAutoLogsForToday removes only logs for specified app today', () async {
-      await service.syncUsageStats();
-      
-      final start = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-      await db.scrollLogsDao.deleteAutoLogsForToday('Instagram [Auto]', start);
+    test('deleteAllAutoLogsForToday preserves manual logs', () async {
+      await db.scrollLogsDao.insertLog(
+        ScrollLogsCompanion.insert(
+          id: 'manual',
+          appName: 'Quick Log',
+          durationMinutes: 10,
+          dailyScoreImpact: -10,
+        ),
+      );
+      await db.scrollLogsDao.insertLog(
+        ScrollLogsCompanion.insert(
+          id: 'auto',
+          appName: 'Instagram [Auto]',
+          durationMinutes: 15,
+          dailyScoreImpact: -10,
+        ),
+      );
+
+      final start = DateTime(
+        DateTime.now().year,
+        DateTime.now().month,
+        DateTime.now().day,
+      );
+      await db.scrollLogsDao.deleteAllAutoLogsForToday(start);
 
       final logs = await db.scrollLogsDao.getTodayLogs();
-      expect(logs.length, 2);
-      expect(logs.any((l) => l.appName == 'Instagram [Auto]'), false);
-      expect(logs.any((l) => l.appName == 'YouTube [Auto]'), true);
+      expect(logs, hasLength(1));
+      expect(logs.single.appName, 'Quick Log');
     });
   });
 }

@@ -8,7 +8,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
-import '../../../features/xp/providers/xp_providers.dart' show streakProvider, streakPausedProvider, todayPlanProvider;
+import '../../../features/xp/providers/xp_providers.dart'
+    show streakProvider, streakPausedProvider, todayPlanProvider;
 import '../../../features/energy/providers/energy_providers.dart';
 import '../../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../../../features/tasks/providers/task_providers.dart';
@@ -16,10 +17,12 @@ import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/tasks/services/task_completion_service.dart';
 import '../../../features/attention/widgets/attention_radar_card.dart';
+import '../../../features/flow_garden/widgets/home_garden_glance.dart';
 
-final intentionBannerDismissedProvider = StateNotifierProvider<IntentionBannerDismissedNotifier, bool>((ref) {
-  return IntentionBannerDismissedNotifier();
-});
+final intentionBannerDismissedProvider =
+    StateNotifierProvider<IntentionBannerDismissedNotifier, bool>((ref) {
+      return IntentionBannerDismissedNotifier();
+    });
 
 class IntentionBannerDismissedNotifier extends StateNotifier<bool> {
   IntentionBannerDismissedNotifier() : super(false) {
@@ -64,6 +67,9 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xxl),
               // ─── Hero CTA Card (Dynamic Alignment) ──────────────
               _buildHeroCTA(context, ref),
+              const SizedBox(height: AppSpacing.lg),
+              // ─── Today's Garden — a living reason to return ──────
+              const HomeGardenGlance(),
               const SizedBox(height: AppSpacing.lg),
               // ─── Flow Score Card ────────────────────────────────
               _buildFlowScoreCard(context, ref),
@@ -110,9 +116,7 @@ class HomeScreen extends ConsumerWidget {
           child: Center(
             child: Text(
               '$level',
-              style: AppTypography.monoSmall.copyWith(
-                color: AppColors.emerald,
-              ),
+              style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
             ),
           ),
         ),
@@ -123,9 +127,7 @@ class HomeScreen extends ConsumerWidget {
             children: [
               Text(
                 'Level $level · $tier',
-                style: AppTypography.h3.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 2),
               Text(
@@ -198,7 +200,9 @@ class HomeScreen extends ConsumerWidget {
                 Text(
                   energyValue != null ? '$energyValue/5' : 'Log',
                   style: AppTypography.monoSmall.copyWith(
-                    color: energyValue != null ? AppColors.emerald : AppColors.textTertiary,
+                    color: energyValue != null
+                        ? AppColors.emerald
+                        : AppColors.textTertiary,
                   ),
                 ),
               ],
@@ -332,19 +336,23 @@ class HomeScreen extends ConsumerWidget {
               return _buildEmptyMITs(context);
             }
             return Column(
-              children: mits.map((task) => TaskCard(
-                task: task,
-                onComplete: () async {
-                  final db = ref.read(databaseProvider);
-                  final service = TaskCompletionService(db);
-                  await service.completeTask(task);
-                },
-                onDelete: () async {
-                  final db = ref.read(databaseProvider);
-                  await db.tasksDao.toggleMIT(task.id, false);
-                },
-                onTap: () => _startDeepWork(context, task),
-              )).toList(),
+              children: mits
+                  .map(
+                    (task) => TaskCard(
+                      task: task,
+                      onComplete: () async {
+                        final db = ref.read(databaseProvider);
+                        final service = TaskCompletionService(db);
+                        await service.completeTask(task);
+                      },
+                      onDelete: () async {
+                        final db = ref.read(databaseProvider);
+                        await db.tasksDao.toggleMIT(task.id, false);
+                      },
+                      onTap: () => _startDeepWork(context, task),
+                    ),
+                  )
+                  .toList(),
             );
           },
         ),
@@ -370,9 +378,7 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.md),
           Text(
             'No MITs set yet',
-            style: AppTypography.body.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
@@ -398,7 +404,11 @@ class HomeScreen extends ConsumerWidget {
     final actions = [
       (icon: '🎯', label: 'Focus', onTap: () => context.go('/focus')),
       (icon: '📝', label: 'Add Task', onTap: () => context.go('/tasks')),
-      (icon: '📱', label: 'Log Scroll', onTap: () => context.push('/scroll-tracker')),
+      (
+        icon: '📱',
+        label: 'Log Scroll',
+        onTap: () => context.push('/scroll-tracker'),
+      ),
     ];
 
     return SingleChildScrollView(
@@ -431,10 +441,10 @@ class HomeScreen extends ConsumerWidget {
   }
 
   void _startDeepWork(BuildContext context, Task task) {
-    context.push('/deep-work', extra: {
-      'taskId': task.id,
-      'taskTitle': task.title,
-    });
+    context.push(
+      '/deep-work',
+      extra: {'taskId': task.id, 'taskTitle': task.title},
+    );
   }
 
   String _getTimeOfDayGreeting() {
@@ -474,7 +484,8 @@ class HomeScreen extends ConsumerWidget {
         if (hour >= 17 && !plan.shutdownCompleted) {
           return _heroCard(
             title: "Close the Loop",
-            subtitle: "End the day clean. Run the shutdown ritual to offload pending items.",
+            subtitle:
+                "End the day clean. Run the shutdown ritual to offload pending items.",
             buttonText: "Start Shutdown Ritual 🧘",
             onTap: () => context.push('/shutdown'),
             gradient: const LinearGradient(
@@ -489,13 +500,16 @@ class HomeScreen extends ConsumerWidget {
 
         // 3. Mid-day Energy Check-in state
         final score = scoreAsync.valueOrNull;
-        final checkIns = score?.score != null ? ref.watch(latestEnergyCheckInProvider) : null;
+        final checkIns = score?.score != null
+            ? ref.watch(latestEnergyCheckInProvider)
+            : null;
         final needsEnergyCheck = hour >= 12 && hour < 17 && checkIns == null;
 
         if (needsEnergyCheck) {
           return _heroCard(
             title: "Energy Check-in",
-            subtitle: "Track your current focus capacity to align work with your energy curve.",
+            subtitle:
+                "Track your current focus capacity to align work with your energy curve.",
             buttonText: "Log Energy ⚡",
             onTap: () => EnergyCheckInSheet.show(context),
             gradient: const LinearGradient(
@@ -512,7 +526,8 @@ class HomeScreen extends ConsumerWidget {
         if (!plan.shutdownCompleted) {
           return _heroCard(
             title: "Enter the Flow Cave",
-            subtitle: "Ready to make progress? Start an immersive focus session now.",
+            subtitle:
+                "Ready to make progress? Start an immersive focus session now.",
             buttonText: "Start Focus Session 🎯",
             onTap: () => context.go('/focus'),
             gradient: const LinearGradient(
@@ -528,9 +543,10 @@ class HomeScreen extends ConsumerWidget {
         // 5. Day Complete
         return _heroCard(
           title: "Day Complete",
-          subtitle: "You've successfully shut down for today. Protect your rest and recover.",
+          subtitle:
+              "You've successfully shut down for today. Protect your rest and recover.",
           buttonText: "View Insights 📊",
-          onTap: () => context.push('/reports'),
+          onTap: () => context.pushNamed('insights'),
           gradient: const LinearGradient(
             colors: [Color(0xFF1D221F), Color(0xFF0F1210)],
             begin: Alignment.topLeft,
@@ -559,10 +575,7 @@ class HomeScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-        border: Border.all(
-          color: borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           if (glowColor != Colors.transparent)
             BoxShadow(

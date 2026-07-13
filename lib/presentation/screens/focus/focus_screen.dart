@@ -13,6 +13,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
@@ -36,7 +37,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   String _sessionId = '';
 
   // Session config
-  int _selectedSessionType = 0; // 0=Classic, 1=DeskTime, 2=Deep Work, 3=Flowtime
+  int _selectedSessionType =
+      0; // 0=Classic, 1=DeskTime, 2=Deep Work, 3=Flowtime
   final _sessionTypes = [
     (label: 'Classic', minutes: 25, breakMin: 5),
     (label: 'DeskTime', minutes: 52, breakMin: 17),
@@ -155,27 +157,44 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       type: dbType,
     );
 
-    final quality = (_pauseCount + _backgroundCount) == 0 ? 'A' : (_pauseCount + _backgroundCount) <= 2 ? 'B' : 'C';
+    final quality = (_pauseCount + _backgroundCount) == 0
+        ? 'A'
+        : (_pauseCount + _backgroundCount) <= 2
+        ? 'B'
+        : 'C';
 
     setState(() => _isRunning = false);
 
     if (mounted) {
+      if (result.gardenGrowth != null) {
+        await GardenGrowthDialog.celebrate(context, result.gardenGrowth!);
+      }
+      if (!mounted) return;
       for (final key in result.newlyUnlockedAchievements) {
         final ach = allAchievements.firstWhere((a) => a.key == key);
-        CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+        CelebrationService.showAchievementToast(
+          context,
+          name: ach.name,
+          emoji: ach.emoji,
+        );
       }
-      context.push('/break', extra: {
-        'xpEarned': result.xpEarned,
-        'qualityGrade': quality,
-        'focusMinutes': actualMin,
-      });
+      context.push(
+        '/break',
+        extra: {
+          'xpEarned': result.xpEarned,
+          'qualityGrade': quality,
+          'focusMinutes': actualMin,
+        },
+      );
     }
   }
 
   void _stopSession() async {
     _timer?.cancel();
     final isFlowtime = _selectedSessionType == 3;
-    final elapsed = isFlowtime ? _remainingSeconds : (_totalSeconds - _remainingSeconds);
+    final elapsed = isFlowtime
+        ? _remainingSeconds
+        : (_totalSeconds - _remainingSeconds);
     final actualMin = (elapsed / 60).round();
 
     final SessionTypeColumn dbType;
@@ -200,7 +219,11 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
           type: dbType,
           isFlowtime: true,
         );
-        final quality = (_pauseCount + _backgroundCount) == 0 ? 'A' : (_pauseCount + _backgroundCount) <= 2 ? 'B' : 'C';
+        final quality = (_pauseCount + _backgroundCount) == 0
+            ? 'A'
+            : (_pauseCount + _backgroundCount) <= 2
+            ? 'B'
+            : 'C';
 
         setState(() {
           _isRunning = false;
@@ -208,15 +231,26 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         });
 
         if (mounted) {
+          if (result.gardenGrowth != null) {
+            await GardenGrowthDialog.celebrate(context, result.gardenGrowth!);
+          }
+          if (!mounted) return;
           for (final key in result.newlyUnlockedAchievements) {
             final ach = allAchievements.firstWhere((a) => a.key == key);
-            CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+            CelebrationService.showAchievementToast(
+              context,
+              name: ach.name,
+              emoji: ach.emoji,
+            );
           }
-          context.push('/break', extra: {
-            'xpEarned': result.xpEarned,
-            'qualityGrade': quality,
-            'focusMinutes': actualMin,
-          });
+          context.push(
+            '/break',
+            extra: {
+              'xpEarned': result.xpEarned,
+              'qualityGrade': quality,
+              'focusMinutes': actualMin,
+            },
+          );
         }
       } else {
         // Run too short, discard or record as F
@@ -262,13 +296,20 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         if (mounted) {
           for (final key in result.newlyUnlockedAchievements) {
             final ach = allAchievements.firstWhere((a) => a.key == key);
-            CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+            CelebrationService.showAchievementToast(
+              context,
+              name: ach.name,
+              emoji: ach.emoji,
+            );
           }
-          context.push('/break', extra: {
-            'xpEarned': result.xpEarned,
-            'qualityGrade': 'D',
-            'focusMinutes': actualMin,
-          });
+          context.push(
+            '/break',
+            extra: {
+              'xpEarned': result.xpEarned,
+              'qualityGrade': 'D',
+              'focusMinutes': actualMin,
+            },
+          );
         }
       }
     }
@@ -289,7 +330,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   }
 
   int get _liveXP {
-    final elapsed = _selectedSessionType == 3 ? _remainingSeconds : (_totalSeconds - _remainingSeconds);
+    final elapsed = _selectedSessionType == 3
+        ? _remainingSeconds
+        : (_totalSeconds - _remainingSeconds);
     return (elapsed / 60 * 1.6).round(); // ~40 XP per 25 min
   }
 
@@ -343,8 +386,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                         color: isActive
                             ? AppColors.focusBlue.withValues(alpha: 0.12)
                             : AppColors.background2,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusCard),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusCard,
+                        ),
                         border: Border.all(
                           color: isActive
                               ? AppColors.focusBlue
@@ -380,6 +424,35 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.emerald.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                  border: Border.all(
+                    color: AppColors.emerald.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Text('🌱', style: TextStyle(fontSize: 24)),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'This session begins as a seed in today’s garden.',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.xxl),
               // Start button
@@ -464,9 +537,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
             // ─── Live XP ──────────────────────────────────────
             Text(
               '+$_liveXP XP so far',
-              style: AppTypography.monoSmall.copyWith(
-                color: AppColors.emerald,
-              ),
+              style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
             ),
             const Spacer(flex: 1),
             // ─── Ambient Sounds ───────────────────────────────
@@ -482,7 +553,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                   child: Container(
                     width: 48,
                     height: 48,
-                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                    ),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isActive

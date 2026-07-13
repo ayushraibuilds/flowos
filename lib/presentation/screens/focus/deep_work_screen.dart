@@ -15,6 +15,7 @@ import '../../../features/focus/services/ambient_sound_player.dart';
 import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -164,18 +165,33 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       type: SessionTypeColumn.deepWork,
     );
 
-    final quality = (_pauseCount + _backgroundCount) == 0 ? 'A' : (_pauseCount + _backgroundCount) <= 2 ? 'B' : 'C';
+    final quality = (_pauseCount + _backgroundCount) == 0
+        ? 'A'
+        : (_pauseCount + _backgroundCount) <= 2
+        ? 'B'
+        : 'C';
 
     if (mounted) {
+      if (result.gardenGrowth != null) {
+        await GardenGrowthDialog.celebrate(context, result.gardenGrowth!);
+      }
+      if (!mounted) return;
       for (final key in result.newlyUnlockedAchievements) {
         final ach = allAchievements.firstWhere((a) => a.key == key);
-        CelebrationService.showAchievementToast(context, name: ach.name, emoji: ach.emoji);
+        CelebrationService.showAchievementToast(
+          context,
+          name: ach.name,
+          emoji: ach.emoji,
+        );
       }
-      context.go('/break', extra: {
-        'xpEarned': result.xpEarned,
-        'qualityGrade': quality,
-        'focusMinutes': actualMinutes,
-      });
+      context.go(
+        '/break',
+        extra: {
+          'xpEarned': result.xpEarned,
+          'qualityGrade': quality,
+          'focusMinutes': actualMinutes,
+        },
+      );
     }
   }
 
@@ -184,8 +200,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.background2,
-        title: Text('End session?',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          'End session?',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         content: Text(
           "You'll earn partial XP for the time completed.",
           style: AppTypography.bodySmall.copyWith(
@@ -202,8 +220,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
               Navigator.pop(ctx);
               _completeSession();
             },
-            child: Text('End',
-                style: TextStyle(color: AppColors.dangerCoral)),
+            child: Text('End', style: TextStyle(color: AppColors.dangerCoral)),
           ),
         ],
       ),
@@ -233,7 +250,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    onPressed: _isRunning ? _abandonSession : () => Navigator.pop(context),
+                    onPressed: _isRunning
+                        ? _abandonSession
+                        : () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
                   Container(
@@ -243,7 +262,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.focusBlue.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusPill,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -267,7 +288,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
             // ─── Flow State Timer Ring ────────────────────────
             AnimatedBuilder(
-              animation: Listenable.merge([_glowController, _breatheController]),
+              animation: Listenable.merge([
+                _glowController,
+                _breatheController,
+              ]),
               builder: (context, child) {
                 return Transform.scale(
                   scale: _isRunning ? _breatheAnimation.value : 1.0,
@@ -286,8 +310,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.focusBlue
-                                      .withValues(alpha: _glowAnimation.value),
+                                  color: AppColors.focusBlue.withValues(
+                                    alpha: _glowAnimation.value,
+                                  ),
                                   blurRadius: 60,
                                   spreadRadius: 20,
                                 ),
@@ -301,10 +326,13 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                           child: CircularProgressIndicator(
                             value: progress,
                             strokeWidth: 4,
-                            backgroundColor:
-                                AppColors.textTertiary.withValues(alpha: 0.1),
+                            backgroundColor: AppColors.textTertiary.withValues(
+                              alpha: 0.1,
+                            ),
                             valueColor: AlwaysStoppedAnimation(
-                              _isPaused ? AppColors.warningAmber : AppColors.focusBlue,
+                              _isPaused
+                                  ? AppColors.warningAmber
+                                  : AppColors.focusBlue,
                             ),
                           ),
                         ),
@@ -356,6 +384,42 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
             const SizedBox(height: AppSpacing.xxl),
 
+            if (!_isRunning)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                    border: Border.all(
+                      color: AppColors.emerald.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🌰', style: TextStyle(fontSize: 24)),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          widget.taskTitle == null
+                              ? 'A deep-focus seed is ready to become a tree.'
+                              : 'Growing a deep-root tree for “${widget.taskTitle}”.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (!_isRunning) const SizedBox(height: AppSpacing.lg),
+
             // Pause count
             if (_pauseCount > 0)
               Text(
@@ -389,7 +453,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                           onTap: () {
                             HapticFeedback.selectionClick();
                             setState(() => _selectedSound = s.key);
-                            if (_isRunning && !_isPaused && ref.read(settingsProvider).soundEnabled) {
+                            if (_isRunning &&
+                                !_isPaused &&
+                                ref.read(settingsProvider).soundEnabled) {
                               AmbientSoundPlayer.play(s.key);
                             }
                           },
@@ -403,8 +469,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                               color: isActive
                                   ? AppColors.focusBlue.withValues(alpha: 0.15)
                                   : AppColors.background2,
-                              borderRadius:
-                                  BorderRadius.circular(AppSpacing.radiusPill),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusPill,
+                              ),
                               border: Border.all(
                                 color: isActive
                                     ? AppColors.focusBlue
@@ -413,8 +480,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                             ),
                             child: Column(
                               children: [
-                                Text(s.emoji,
-                                    style: const TextStyle(fontSize: 20)),
+                                Text(
+                                  s.emoji,
+                                  style: const TextStyle(fontSize: 20),
+                                ),
                                 const SizedBox(height: 2),
                                 Text(
                                   s.label,
@@ -473,8 +542,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
               side: BorderSide(
                 color: _isPaused ? AppColors.emerald : AppColors.warningAmber,
               ),
-              foregroundColor:
-                  _isPaused ? AppColors.emerald : AppColors.warningAmber,
+              foregroundColor: _isPaused
+                  ? AppColors.emerald
+                  : AppColors.warningAmber,
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
             ),
             child: Text(_isPaused ? 'Resume' : 'Pause'),

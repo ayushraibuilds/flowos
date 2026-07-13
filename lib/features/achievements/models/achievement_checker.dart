@@ -73,11 +73,10 @@ class AchievementChecker {
   AchievementChecker({
     required AchievementsDao achievementsDao,
     required XpLedgerDao xpLedgerDao,
-    required FocusSessionsDao sessionsDao,
+    required this.sessionsDao,
     required ScrollLogsDao scrollLogsDao,
   })  : _achievementsDao = achievementsDao,
         _xpLedgerDao = xpLedgerDao,
-        sessionsDao = sessionsDao,
         _scrollLogsDao = scrollLogsDao;
 
   /// Check all achievements and unlock any that are newly earned.

@@ -51,16 +51,13 @@
 <body>
   <h1>⚡ FlowOS Settings</h1>
 
-  <h2>☁️ Supabase Connection</h2>
+  <h2>☁️ FlowOS Account</h2>
   <div class="card">
-    <label>Supabase URL</label>
-    <input type="text" id="supabaseUrl" placeholder="https://xxx.supabase.co">
-    <label>Supabase Anon Key</label>
-    <input type="password" id="supabaseKey" placeholder="eyJ...">
+    <p class="status" style="margin: 0 0 16px;">Sign in to sync your browsing insights to your FlowOS account. Your data stays on this device until you sign in.</p>
     <label>Email</label>
-    <input type="text" id="email" placeholder="you@example.com">
+    <input type="text" id="email" placeholder="you@example.com" autocomplete="email">
     <label>Password</label>
-    <input type="password" id="password">
+    <input type="password" id="password" autocomplete="current-password">
     <button class="btn btn-primary" id="loginBtn">Sign In</button>
     <div class="status" id="authStatus"></div>
   </div>
@@ -85,6 +82,7 @@
     <div class="status" id="clearStatus"></div>
   </div>
 
+  <script src="../config.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,9 +16,9 @@ final todayScrollLogsProvider = StreamProvider<List<ScrollLog>>((ref) {
   final db = ref.watch(databaseProvider);
   final now = DateTime.now();
   final start = DateTime(now.year, now.month, now.day);
-  return (db.select(db.scrollLogs)
-        ..where((l) => l.timestamp.isBiggerOrEqualValue(start)))
-      .watch();
+  return (db.select(
+    db.scrollLogs,
+  )..where((l) => l.timestamp.isBiggerOrEqualValue(start))).watch();
 });
 
 /// Attention Radar Card — displaying auto-tracked scroll metrics,
@@ -24,10 +26,7 @@ final todayScrollLogsProvider = StreamProvider<List<ScrollLog>>((ref) {
 class AttentionRadarCard extends ConsumerWidget {
   final int budgetMinutes;
 
-  const AttentionRadarCard({
-    super.key,
-    required this.budgetMinutes,
-  });
+  const AttentionRadarCard({super.key, required this.budgetMinutes});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,7 +46,9 @@ class AttentionRadarCard extends ConsumerWidget {
           totalMinutes += log.durationMinutes;
         }
 
-        final ratio = budgetMinutes > 0 ? (totalMinutes / budgetMinutes).clamp(0.0, 1.0) : 0.0;
+        final ratio = budgetMinutes > 0
+            ? (totalMinutes / budgetMinutes).clamp(0.0, 1.0)
+            : 0.0;
         final isOver = totalMinutes > budgetMinutes;
         final radarColor = isOver ? AppColors.dangerCoral : AppColors.emerald;
 
@@ -83,10 +84,7 @@ class AttentionRadarCard extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        '👁️',
-                        style: TextStyle(fontSize: 18),
-                      ),
+                      const Text('👁️', style: TextStyle(fontSize: 18)),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
                         'Attention Radar',
@@ -97,26 +95,65 @@ class AttentionRadarCard extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  if (Platform.isAndroid)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () async {
+                        HapticFeedback.lightImpact();
+                        final result = await usageService.syncUsageStats();
+                        if (!context.mounted) return;
+
+                        switch (result.status) {
+                          case UsageSyncStatus.synced:
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Screen time synced.'),
+                              ),
+                            );
+                          case UsageSyncStatus.permissionRequired:
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Allow Usage Access to sync real screen time.',
+                                ),
+                                action: SnackBarAction(
+                                  label: 'Open Settings',
+                                  onPressed: usageService.requestPermission,
+                                ),
+                              ),
+                            );
+                          case UsageSyncStatus.failed:
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  result.message ??
+                                      'Screen time could not be synced.',
+                                ),
+                                backgroundColor: AppColors.dangerCoral,
+                              ),
+                            );
+                          case UsageSyncStatus.unsupported:
+                            break;
+                        }
+                      },
+                      icon: Icon(
+                        Icons.sync_rounded,
+                        size: 14,
+                        color: AppColors.emerald,
+                      ),
+                      label: Text(
+                        'Sync',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.emerald,
+                        ),
+                      ),
                     ),
-                    onPressed: () async {
-                      HapticFeedback.lightImpact();
-                      await usageService.syncUsageStats();
-                    },
-                    icon: Icon(
-                      Icons.sync_rounded,
-                      size: 14,
-                      color: AppColors.emerald,
-                    ),
-                    label: Text(
-                      'Sync',
-                      style: AppTypography.caption.copyWith(color: AppColors.emerald),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
@@ -127,7 +164,9 @@ class AttentionRadarCard extends ConsumerWidget {
                 children: [
                   Text(
                     'Budget Burned',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Text(
                     '$totalMinutes / $budgetMinutes min',
@@ -177,11 +216,15 @@ class AttentionRadarCard extends ConsumerWidget {
                           children: [
                             Text(
                               appName,
-                              style: AppTypography.caption.copyWith(color: AppColors.textPrimary),
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             Text(
                               '$min m',
-                              style: AppTypography.monoSmall.copyWith(color: AppColors.textSecondary),
+                              style: AppTypography.monoSmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -202,10 +245,14 @@ class AttentionRadarCard extends ConsumerWidget {
               ] else ...[
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.md,
+                    ),
                     child: Text(
                       'No screen time logged today. Keep protecting your flow!',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -227,10 +274,7 @@ class AttentionRadarCard extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      const Text(
-                        '🧘',
-                        style: TextStyle(fontSize: 22),
-                      ),
+                      const Text('🧘', style: TextStyle(fontSize: 22)),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(

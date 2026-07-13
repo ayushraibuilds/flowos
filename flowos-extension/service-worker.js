@@ -1,6 +1,8 @@
 // FlowOS Service Worker — background tracking, sync, focus mode.
 // Rule #7: NO global variable state. All state in chrome.storage.
 
+importScripts('config.js');
+
 // ─── Constants ──────────────────────────────────────────────────
 
 const SYNC_INTERVAL_MINUTES = 5;
@@ -262,10 +264,15 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // ─── Supabase Sync ──────────────────────────────────────────────
 
 async function syncToSupabase() {
-  const { supabaseUrl, supabaseKey, accessToken, userId } =
-    await chrome.storage.local.get(['supabaseUrl', 'supabaseKey', 'accessToken', 'userId']);
+  const { supabaseUrl, supabasePublishableKey } = globalThis.FLOWOS_CONFIG || {};
+  if (!supabaseUrl || !supabasePublishableKey) return;
 
-  if (!supabaseUrl || !supabaseKey || !accessToken || !userId) return;
+  const session = await getValidSession(supabaseUrl, supabasePublishableKey);
+  if (!session) return;
+
+  const { accessToken, userId } = session;
+
+  if (!accessToken || !userId) return;
 
   const { visits = [], lastSyncTime = 0 } = await chrome.storage.local.get(['visits', 'lastSyncTime']);
 
@@ -291,7 +298,7 @@ async function syncToSupabase() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseKey,
+        'apikey': supabasePublishableKey,
         'Authorization': `Bearer ${accessToken}`,
         'Prefer': 'return=minimal',
       },
@@ -306,5 +313,48 @@ async function syncToSupabase() {
     }
   } catch (err) {
     console.error('Sync error:', err);
+  }
+}
+
+async function getValidSession(supabaseUrl, supabasePublishableKey) {
+  const { accessToken, refreshToken, tokenExpiresAt, userId } =
+    await chrome.storage.local.get(['accessToken', 'refreshToken', 'tokenExpiresAt', 'userId']);
+
+  // Keep a one-minute margin so a token cannot expire during the sync request.
+  if (accessToken && userId && (!tokenExpiresAt || tokenExpiresAt > Date.now() + 60_000)) {
+    return { accessToken, userId };
+  }
+
+  if (!refreshToken) return null;
+
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabasePublishableKey,
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!res.ok) {
+      await chrome.storage.local.remove(['accessToken', 'refreshToken', 'tokenExpiresAt', 'userId']);
+      return null;
+    }
+
+    const data = await res.json();
+    const refreshedUserId = data.user?.id || userId;
+    if (!data.access_token || !refreshedUserId) return null;
+
+    await chrome.storage.local.set({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || refreshToken,
+      tokenExpiresAt: Date.now() + ((data.expires_in || 0) * 1000),
+      userId: refreshedUserId,
+    });
+    return { accessToken: data.access_token, userId: refreshedUserId };
+  } catch (err) {
+    console.error('Session refresh error:', err);
+    return null;
   }
 }

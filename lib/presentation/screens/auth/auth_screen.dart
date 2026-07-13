@@ -321,7 +321,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     }
                     final authService = ref.read(authServiceProvider);
                     await authService.resetPassword(_emailController.text.trim());
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Password reset email sent'),

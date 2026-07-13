@@ -17,9 +17,9 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   Future<int> getDailyTotal() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    final logs = await (select(scrollLogs)
-          ..where((l) => l.timestamp.isBiggerOrEqualValue(start)))
-        .get();
+    final logs = await (select(
+      scrollLogs,
+    )..where((l) => l.timestamp.isBiggerOrEqualValue(start))).get();
     return logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
   }
 
@@ -43,15 +43,28 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Get logs since a given timestamp (for sync push).
-  Future<List<ScrollLog>> getModifiedSince(DateTime since) =>
-      (select(scrollLogs)
-            ..where((l) => l.timestamp.isBiggerOrEqualValue(since)))
-          .get();
+  Future<List<ScrollLog>> getModifiedSince(DateTime since) => (select(
+    scrollLogs,
+  )..where((l) => l.timestamp.isBiggerOrEqualValue(since))).get();
 
   /// Delete auto scroll logs for a specific app today
   Future<void> deleteAutoLogsForToday(String appName, DateTime start) {
-    return (delete(scrollLogs)
-          ..where((l) => l.appName.equals(appName) & l.timestamp.isBiggerOrEqualValue(start)))
+    return (delete(scrollLogs)..where(
+          (l) =>
+              l.appName.equals(appName) &
+              l.timestamp.isBiggerOrEqualValue(start),
+        ))
+        .go();
+  }
+
+  /// Replace the complete auto-imported snapshot for today without touching
+  /// the user's manual logs.
+  Future<void> deleteAllAutoLogsForToday(DateTime start) {
+    return (delete(scrollLogs)..where(
+          (l) =>
+              l.appName.like('% [Auto]') &
+              l.timestamp.isBiggerOrEqualValue(start),
+        ))
         .go();
   }
 
@@ -59,8 +72,8 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   Future<List<ScrollLog>> getTodayLogs() {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    return (select(scrollLogs)
-          ..where((l) => l.timestamp.isBiggerOrEqualValue(start)))
-        .get();
+    return (select(
+      scrollLogs,
+    )..where((l) => l.timestamp.isBiggerOrEqualValue(start))).get();
   }
 }
