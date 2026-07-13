@@ -13,6 +13,9 @@ import '../../../core/constants/xp_constants.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../features/reports/models/weekly_action.dart';
+import '../../../features/reports/services/daily_action_engine.dart';
+import '../../widgets/action_commit_card.dart';
 
 /// Daily Report Screen — the "honest mirror" for your day.
 /// Shows daily score, AI insight, XP, streak, attention cost, and share button.
@@ -180,6 +183,8 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
                         const SizedBox(height: AppSpacing.lg),
                         // ─── Streak ─────────────────────────────
                         _buildStreakBar(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildTomorrowActionCard(),
                         const SizedBox(height: AppSpacing.xxxl),
                       ],
                     ),
@@ -458,5 +463,38 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
     } catch (e) {
       debugPrint('Share failed: $e');
     }
+  }
+
+  Widget _buildTomorrowActionCard() {
+    final action = DailyActionEngine.generateDailyAction(
+      todayFocusMinutes: _focusMinutes,
+      todayScrollMinutes: _scrollMinutes,
+      todayScrollBudget: _scrollBudget,
+      todayMitsCompleted: _mitsCompleted,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'One thing for tomorrow',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'A lightweight change suggested based on today\'s focus.',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ActionCommitCard(
+          action: action,
+          onAccept: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tomorrow\'s change accepted!')),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

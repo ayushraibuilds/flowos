@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 
 /// A short user-selected pause before ending a protected focus session.
@@ -48,7 +47,10 @@ class _IntentionalExitDialogState extends State<IntentionalExitDialog> {
     final canEnd = _seconds == 0;
     return AlertDialog(
       backgroundColor: AppColors.background2,
-      title: Text('Take one breath', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+      title: Text(
+        'Take one breath',
+        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+      ),
       content: Text(
         'You chose Intentional Exit. You can pause instead, or end this session after a short moment.',
         style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),

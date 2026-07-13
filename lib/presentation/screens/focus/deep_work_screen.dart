@@ -16,6 +16,9 @@ import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
+import '../../../features/focus/models/focus_protection.dart';
+import '../../../features/focus/widgets/focus_protection_selector.dart';
+import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -35,16 +38,18 @@ class DeepWorkScreen extends ConsumerStatefulWidget {
 }
 
 class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   // Timer state
   static const _totalSeconds = 90 * 60; // 90 minutes
   int _remainingSeconds = _totalSeconds;
   bool _isRunning = false;
   bool _isPaused = false;
   int _pauseCount = 0;
-  final int _backgroundCount = 0;
+  int _backgroundCount = 0;
   Timer? _timer;
   String _sessionId = '';
+  FocusProtectionLevel _sessionProtection = FocusProtectionLevel.softReturn;
+  bool _wasBackgrounded = false;
 
   // Ambient sound
   String _selectedSound = 'none';
@@ -66,6 +71,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _glowController = AnimationController(
       vsync: this,
@@ -89,14 +95,35 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   @override
   void dispose() {
     _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _glowController.dispose();
     _breatheController.dispose();
     AmbientSoundPlayer.stop();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_isRunning) return;
+    final leavingApp =
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive;
+    if (leavingApp && !_wasBackgrounded) {
+      _wasBackgrounded = true;
+      _backgroundCount++;
+      if (_sessionProtection.pausesWhenLeaving && !_isPaused) {
+        _timer?.cancel();
+        AmbientSoundPlayer.stop();
+        setState(() => _isPaused = true);
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      _wasBackgrounded = false;
+    }
+  }
+
   void _startTimer() async {
     HapticFeedback.heavyImpact();
+    final protection = ref.read(settingsProvider).focusProtection;
 
     final service = ref.read(focusSessionServiceProvider);
     _sessionId = await service.startSession(
@@ -108,6 +135,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     setState(() {
       _isRunning = true;
       _isPaused = false;
+      _backgroundCount = 0;
+      _sessionProtection = protection;
+      _wasBackgrounded = false;
     });
 
     if (_selectedSound != 'none' && ref.read(settingsProvider).soundEnabled) {
@@ -195,6 +225,33 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     }
   }
 
+  Future<void> _requestCompleteSession() async {
+    if (_sessionProtection.requiresExitReflection &&
+        !await IntentionalExitDialog.confirm(context)) {
+      return;
+    }
+    _completeSession();
+  }
+
+  void _showProtectionSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.background1,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: FocusProtectionSelector(
+            value: ref.read(settingsProvider).focusProtection,
+            onChanged: (level) {
+              ref.read(settingsProvider.notifier).setFocusProtection(level);
+              Navigator.pop(context);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   void _abandonSession() {
     showDialog(
       context: context,
@@ -218,7 +275,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _completeSession();
+              _requestCompleteSession();
             },
             child: Text('End', style: TextStyle(color: AppColors.dangerCoral)),
           ),
@@ -420,6 +477,18 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
             if (!_isRunning) const SizedBox(height: AppSpacing.lg),
 
+            if (!_isRunning)
+              TextButton.icon(
+                onPressed: _showProtectionSheet,
+                icon: const Icon(Icons.shield_outlined, size: 16),
+                label: Text(
+                  'Protection: ${ref.watch(settingsProvider).focusProtection.label}',
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.focusBlue,
+                ),
+              ),
+
             // Pause count
             if (_pauseCount > 0)
               Text(
@@ -553,7 +622,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: ElevatedButton(
-            onPressed: _completeSession,
+            onPressed: _requestCompleteSession,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.emerald,
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),

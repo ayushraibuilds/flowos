@@ -14,11 +14,26 @@ import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
+import '../../../features/focus/models/focus_protection.dart';
+import '../../../features/focus/widgets/focus_protection_selector.dart';
+import '../../../features/focus/widgets/intentional_exit_dialog.dart';
+import '../../../features/settings/providers/settings_providers.dart';
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
 class FocusScreen extends ConsumerStatefulWidget {
-  const FocusScreen({super.key});
+  final int? durationMinutes;
+  final String? sessionLabel;
+  final bool firstSeed;
+  final bool autoStart;
+
+  const FocusScreen({
+    super.key,
+    this.durationMinutes,
+    this.sessionLabel,
+    this.firstSeed = false,
+    this.autoStart = false,
+  });
 
   @override
   ConsumerState<FocusScreen> createState() => _FocusScreenState();
@@ -35,6 +50,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   int _backgroundCount = 0;
   Timer? _timer;
   String _sessionId = '';
+  FocusProtectionLevel _sessionProtection = FocusProtectionLevel.softReturn;
+  bool _wasBackgrounded = false;
+  bool _showReturnCue = false;
 
   // Session config
   int _selectedSessionType =
@@ -54,6 +72,15 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (widget.durationMinutes != null) {
+      _totalSeconds = widget.durationMinutes! * 60;
+      _remainingSeconds = _totalSeconds;
+    }
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startTimer();
+      });
+    }
   }
 
   @override
@@ -65,17 +92,30 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_isRunning && !_isPaused) {
-      if (state == AppLifecycleState.paused ||
-          state == AppLifecycleState.inactive) {
-        setState(() => _backgroundCount++);
+    if (!_isRunning) return;
+    final leavingApp =
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive;
+    if (leavingApp && !_wasBackgrounded) {
+      _wasBackgrounded = true;
+      _backgroundCount++;
+      if (_sessionProtection.pausesWhenLeaving && !_isPaused) {
+        _timer?.cancel();
+        setState(() => _isPaused = true);
+      } else if (mounted) {
+        setState(() => _showReturnCue = true);
       }
+    } else if (state == AppLifecycleState.resumed) {
+      _wasBackgrounded = false;
     }
   }
 
   void _startTimer() async {
     final isFlowtime = _selectedSessionType == 3;
-    final minutes = _sessionTypes[_selectedSessionType].minutes;
+    final int minutes = widget.firstSeed
+        ? 10
+        : (widget.durationMinutes ?? _sessionTypes[_selectedSessionType].minutes);
+    final protection = ref.read(settingsProvider).focusProtection;
 
     setState(() {
       _isRunning = true;
@@ -84,16 +124,18 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       _remainingSeconds = isFlowtime ? 0 : _totalSeconds;
       _pauseCount = 0;
       _backgroundCount = 0;
+      _sessionProtection = protection;
+      _wasBackgrounded = false;
+      _showReturnCue = false;
     });
 
-    final SessionTypeColumn dbType;
-    if (_selectedSessionType == 0) {
-      dbType = SessionTypeColumn.pomodoro;
-    } else if (_selectedSessionType == 2) {
-      dbType = SessionTypeColumn.deepWork;
-    } else {
-      dbType = SessionTypeColumn.custom;
-    }
+    final SessionTypeColumn dbType = widget.firstSeed
+        ? SessionTypeColumn.custom
+        : (_selectedSessionType == 0
+            ? SessionTypeColumn.pomodoro
+            : (_selectedSessionType == 2
+                ? SessionTypeColumn.deepWork
+                : SessionTypeColumn.custom));
 
     final service = ref.read(focusSessionServiceProvider);
     _sessionId = await service.startSession(
@@ -122,7 +164,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   void _togglePause() {
     if (_isPaused) {
-      setState(() => _isPaused = false);
+      setState(() {
+        _isPaused = false;
+        _showReturnCue = false;
+      });
       _runTimer();
     } else {
       _timer?.cancel();
@@ -315,6 +360,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     }
   }
 
+  Future<void> _requestStopSession() async {
+    if (_sessionProtection.requiresExitReflection &&
+        !await IntentionalExitDialog.confirm(context)) {
+      return;
+    }
+    _stopSession();
+  }
+
   String get _timeString {
     final mins = _remainingSeconds ~/ 60;
     final secs = _remainingSeconds % 60;
@@ -351,7 +404,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     return Scaffold(
       backgroundColor: AppColors.background0,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -361,71 +414,109 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                 style: AppTypography.h1.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.xxxl),
-              // Session type selector (2x2 grid to support 4 presets without squeezing screen width)
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: AppSpacing.md,
-                  mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: 2.2,
-                ),
-                itemCount: 4,
-                itemBuilder: (context, i) {
-                  final isActive = i == _selectedSessionType;
-                  final session = _sessionTypes[i];
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedSessionType = i),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isActive
-                            ? AppColors.focusBlue.withValues(alpha: 0.12)
-                            : AppColors.background2,
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusCard,
-                        ),
-                        border: Border.all(
-                          color: isActive
-                              ? AppColors.focusBlue
-                              : Colors.transparent,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            session.label,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: isActive
-                                  ? AppColors.focusBlue
-                                  : AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            session.minutes > 0
-                                ? '${session.minutes} min'
-                                : 'Flowtime',
-                            style: AppTypography.monoSmall.copyWith(
-                              color: isActive
-                                  ? AppColors.focusBlue
-                                  : AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
+              if (widget.firstSeed) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: AppColors.emerald.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                    border: Border.all(
+                      color: AppColors.emerald.withValues(alpha: 0.2),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.xxl),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('🌱', style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Plant your first seed',
+                        style: AppTypography.h3.copyWith(color: AppColors.emerald),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'This is a special 10-minute deep work session to start your garden.',
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ] else ...[
+                // Session type selector (2x2 grid to support 4 presets without squeezing screen width)
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisSpacing: AppSpacing.md,
+                    childAspectRatio: 2.2,
+                  ),
+                  itemCount: 4,
+                  itemBuilder: (context, i) {
+                    final isActive = i == _selectedSessionType;
+                    final session = _sessionTypes[i];
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedSessionType = i),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? AppColors.focusBlue.withValues(alpha: 0.12)
+                              : AppColors.background2,
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusCard,
+                          ),
+                          border: Border.all(
+                            color: isActive
+                                ? AppColors.focusBlue
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              session.label,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: isActive
+                                    ? AppColors.focusBlue
+                                    : AppColors.textSecondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              session.minutes > 0
+                                  ? '${session.minutes} min'
+                                  : 'Flowtime',
+                              style: AppTypography.monoSmall.copyWith(
+                                color: isActive
+                                    ? AppColors.focusBlue
+                                    : AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                FocusProtectionSelector(
+                  value: ref.watch(settingsProvider).focusProtection,
+                  onChanged: (level) => ref
+                      .read(settingsProvider.notifier)
+                      .setFocusProtection(level),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -539,6 +630,30 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
               '+$_liveXP XP so far',
               style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
             ),
+            if (_showReturnCue) ...[
+              const SizedBox(height: AppSpacing.md),
+              GestureDetector(
+                onTap: () => setState(() => _showReturnCue = false),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.focusBlue.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  ),
+                  child: Text(
+                    'Welcome back. Your focus is still here. Tap to continue.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
             const Spacer(flex: 1),
             // ─── Ambient Sounds ───────────────────────────────
             Row(
@@ -608,7 +723,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                 const SizedBox(width: AppSpacing.xxl),
                 // Stop
                 GestureDetector(
-                  onTap: _stopSession,
+                  onTap: _requestStopSession,
                   child: Container(
                     width: 56,
                     height: 56,

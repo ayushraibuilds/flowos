@@ -18,6 +18,8 @@ import '../../../data/local/database/app_database.dart';
 import '../../../features/tasks/services/task_completion_service.dart';
 import '../../../features/attention/widgets/attention_radar_card.dart';
 import '../../../features/flow_garden/widgets/home_garden_glance.dart';
+import '../../../features/rhythm/providers/rhythm_providers.dart';
+import '../../widgets/rhythm_recommendation_card.dart';
 
 final intentionBannerDismissedProvider =
     StateNotifierProvider<IntentionBannerDismissedNotifier, bool>((ref) {
@@ -77,6 +79,18 @@ class HomeScreen extends ConsumerWidget {
               // ─── XP Progress Bar ───────────────────────────────
               _buildXPBar(context, ref),
               const SizedBox(height: AppSpacing.xxl),
+              // ─── Rhythm Recommendation Card ────────────────────
+              ref.watch(rhythmRecommendationProvider).when(
+                    data: (rec) {
+                      if (rec == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                        child: RhythmRecommendationCard(recommendation: rec),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
               // ─── MITs Section ──────────────────────────────────
               _buildMITsSection(context, ref),
               const SizedBox(height: AppSpacing.xxl),

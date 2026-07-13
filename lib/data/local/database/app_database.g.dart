@@ -2896,6 +2896,41 @@ class $ScrollLogsTable extends ScrollLogs
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _intentMeta = const VerificationMeta('intent');
+  @override
+  late final GeneratedColumn<String> intent = GeneratedColumn<String>(
+    'intent',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _wasTimeboxedMeta = const VerificationMeta(
+    'wasTimeboxed',
+  );
+  @override
+  late final GeneratedColumn<bool> wasTimeboxed = GeneratedColumn<bool>(
+    'was_timeboxed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("was_timeboxed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _plannedMinutesMeta = const VerificationMeta(
+    'plannedMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> plannedMinutes = GeneratedColumn<int>(
+    'planned_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _timestampMeta = const VerificationMeta(
     'timestamp',
   );
@@ -2916,6 +2951,9 @@ class $ScrollLogsTable extends ScrollLogs
     dailyScoreImpact,
     recoveryActionTaken,
     recoveryActionType,
+    intent,
+    wasTimeboxed,
+    plannedMinutes,
     timestamp,
   ];
   @override
@@ -2983,6 +3021,30 @@ class $ScrollLogsTable extends ScrollLogs
         ),
       );
     }
+    if (data.containsKey('intent')) {
+      context.handle(
+        _intentMeta,
+        intent.isAcceptableOrUnknown(data['intent']!, _intentMeta),
+      );
+    }
+    if (data.containsKey('was_timeboxed')) {
+      context.handle(
+        _wasTimeboxedMeta,
+        wasTimeboxed.isAcceptableOrUnknown(
+          data['was_timeboxed']!,
+          _wasTimeboxedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('planned_minutes')) {
+      context.handle(
+        _plannedMinutesMeta,
+        plannedMinutes.isAcceptableOrUnknown(
+          data['planned_minutes']!,
+          _plannedMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('timestamp')) {
       context.handle(
         _timestampMeta,
@@ -3022,6 +3084,18 @@ class $ScrollLogsTable extends ScrollLogs
         DriftSqlType.string,
         data['${effectivePrefix}recovery_action_type'],
       ),
+      intent: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}intent'],
+      ),
+      wasTimeboxed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}was_timeboxed'],
+      )!,
+      plannedMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planned_minutes'],
+      ),
       timestamp: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}timestamp'],
@@ -3042,6 +3116,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
   final int dailyScoreImpact;
   final bool recoveryActionTaken;
   final String? recoveryActionType;
+  final String? intent;
+  final bool wasTimeboxed;
+  final int? plannedMinutes;
   final DateTime timestamp;
   const ScrollLog({
     required this.id,
@@ -3050,6 +3127,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
     required this.dailyScoreImpact,
     required this.recoveryActionTaken,
     this.recoveryActionType,
+    this.intent,
+    required this.wasTimeboxed,
+    this.plannedMinutes,
     required this.timestamp,
   });
   @override
@@ -3062,6 +3142,13 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
     map['recovery_action_taken'] = Variable<bool>(recoveryActionTaken);
     if (!nullToAbsent || recoveryActionType != null) {
       map['recovery_action_type'] = Variable<String>(recoveryActionType);
+    }
+    if (!nullToAbsent || intent != null) {
+      map['intent'] = Variable<String>(intent);
+    }
+    map['was_timeboxed'] = Variable<bool>(wasTimeboxed);
+    if (!nullToAbsent || plannedMinutes != null) {
+      map['planned_minutes'] = Variable<int>(plannedMinutes);
     }
     map['timestamp'] = Variable<DateTime>(timestamp);
     return map;
@@ -3077,6 +3164,13 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
       recoveryActionType: recoveryActionType == null && nullToAbsent
           ? const Value.absent()
           : Value(recoveryActionType),
+      intent: intent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(intent),
+      wasTimeboxed: Value(wasTimeboxed),
+      plannedMinutes: plannedMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plannedMinutes),
       timestamp: Value(timestamp),
     );
   }
@@ -3097,6 +3191,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
       recoveryActionType: serializer.fromJson<String?>(
         json['recoveryActionType'],
       ),
+      intent: serializer.fromJson<String?>(json['intent']),
+      wasTimeboxed: serializer.fromJson<bool>(json['wasTimeboxed']),
+      plannedMinutes: serializer.fromJson<int?>(json['plannedMinutes']),
       timestamp: serializer.fromJson<DateTime>(json['timestamp']),
     );
   }
@@ -3110,6 +3207,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
       'dailyScoreImpact': serializer.toJson<int>(dailyScoreImpact),
       'recoveryActionTaken': serializer.toJson<bool>(recoveryActionTaken),
       'recoveryActionType': serializer.toJson<String?>(recoveryActionType),
+      'intent': serializer.toJson<String?>(intent),
+      'wasTimeboxed': serializer.toJson<bool>(wasTimeboxed),
+      'plannedMinutes': serializer.toJson<int?>(plannedMinutes),
       'timestamp': serializer.toJson<DateTime>(timestamp),
     };
   }
@@ -3121,6 +3221,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
     int? dailyScoreImpact,
     bool? recoveryActionTaken,
     Value<String?> recoveryActionType = const Value.absent(),
+    Value<String?> intent = const Value.absent(),
+    bool? wasTimeboxed,
+    Value<int?> plannedMinutes = const Value.absent(),
     DateTime? timestamp,
   }) => ScrollLog(
     id: id ?? this.id,
@@ -3131,6 +3234,11 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
     recoveryActionType: recoveryActionType.present
         ? recoveryActionType.value
         : this.recoveryActionType,
+    intent: intent.present ? intent.value : this.intent,
+    wasTimeboxed: wasTimeboxed ?? this.wasTimeboxed,
+    plannedMinutes: plannedMinutes.present
+        ? plannedMinutes.value
+        : this.plannedMinutes,
     timestamp: timestamp ?? this.timestamp,
   );
   ScrollLog copyWithCompanion(ScrollLogsCompanion data) {
@@ -3149,6 +3257,13 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
       recoveryActionType: data.recoveryActionType.present
           ? data.recoveryActionType.value
           : this.recoveryActionType,
+      intent: data.intent.present ? data.intent.value : this.intent,
+      wasTimeboxed: data.wasTimeboxed.present
+          ? data.wasTimeboxed.value
+          : this.wasTimeboxed,
+      plannedMinutes: data.plannedMinutes.present
+          ? data.plannedMinutes.value
+          : this.plannedMinutes,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
     );
   }
@@ -3162,6 +3277,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
           ..write('dailyScoreImpact: $dailyScoreImpact, ')
           ..write('recoveryActionTaken: $recoveryActionTaken, ')
           ..write('recoveryActionType: $recoveryActionType, ')
+          ..write('intent: $intent, ')
+          ..write('wasTimeboxed: $wasTimeboxed, ')
+          ..write('plannedMinutes: $plannedMinutes, ')
           ..write('timestamp: $timestamp')
           ..write(')'))
         .toString();
@@ -3175,6 +3293,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
     dailyScoreImpact,
     recoveryActionTaken,
     recoveryActionType,
+    intent,
+    wasTimeboxed,
+    plannedMinutes,
     timestamp,
   );
   @override
@@ -3187,6 +3308,9 @@ class ScrollLog extends DataClass implements Insertable<ScrollLog> {
           other.dailyScoreImpact == this.dailyScoreImpact &&
           other.recoveryActionTaken == this.recoveryActionTaken &&
           other.recoveryActionType == this.recoveryActionType &&
+          other.intent == this.intent &&
+          other.wasTimeboxed == this.wasTimeboxed &&
+          other.plannedMinutes == this.plannedMinutes &&
           other.timestamp == this.timestamp);
 }
 
@@ -3197,6 +3321,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
   final Value<int> dailyScoreImpact;
   final Value<bool> recoveryActionTaken;
   final Value<String?> recoveryActionType;
+  final Value<String?> intent;
+  final Value<bool> wasTimeboxed;
+  final Value<int?> plannedMinutes;
   final Value<DateTime> timestamp;
   final Value<int> rowid;
   const ScrollLogsCompanion({
@@ -3206,6 +3333,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
     this.dailyScoreImpact = const Value.absent(),
     this.recoveryActionTaken = const Value.absent(),
     this.recoveryActionType = const Value.absent(),
+    this.intent = const Value.absent(),
+    this.wasTimeboxed = const Value.absent(),
+    this.plannedMinutes = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3216,6 +3346,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
     required int dailyScoreImpact,
     this.recoveryActionTaken = const Value.absent(),
     this.recoveryActionType = const Value.absent(),
+    this.intent = const Value.absent(),
+    this.wasTimeboxed = const Value.absent(),
+    this.plannedMinutes = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -3229,6 +3362,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
     Expression<int>? dailyScoreImpact,
     Expression<bool>? recoveryActionTaken,
     Expression<String>? recoveryActionType,
+    Expression<String>? intent,
+    Expression<bool>? wasTimeboxed,
+    Expression<int>? plannedMinutes,
     Expression<DateTime>? timestamp,
     Expression<int>? rowid,
   }) {
@@ -3241,6 +3377,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
         'recovery_action_taken': recoveryActionTaken,
       if (recoveryActionType != null)
         'recovery_action_type': recoveryActionType,
+      if (intent != null) 'intent': intent,
+      if (wasTimeboxed != null) 'was_timeboxed': wasTimeboxed,
+      if (plannedMinutes != null) 'planned_minutes': plannedMinutes,
       if (timestamp != null) 'timestamp': timestamp,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3253,6 +3392,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
     Value<int>? dailyScoreImpact,
     Value<bool>? recoveryActionTaken,
     Value<String?>? recoveryActionType,
+    Value<String?>? intent,
+    Value<bool>? wasTimeboxed,
+    Value<int?>? plannedMinutes,
     Value<DateTime>? timestamp,
     Value<int>? rowid,
   }) {
@@ -3263,6 +3405,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
       dailyScoreImpact: dailyScoreImpact ?? this.dailyScoreImpact,
       recoveryActionTaken: recoveryActionTaken ?? this.recoveryActionTaken,
       recoveryActionType: recoveryActionType ?? this.recoveryActionType,
+      intent: intent ?? this.intent,
+      wasTimeboxed: wasTimeboxed ?? this.wasTimeboxed,
+      plannedMinutes: plannedMinutes ?? this.plannedMinutes,
       timestamp: timestamp ?? this.timestamp,
       rowid: rowid ?? this.rowid,
     );
@@ -3289,6 +3434,15 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
     if (recoveryActionType.present) {
       map['recovery_action_type'] = Variable<String>(recoveryActionType.value);
     }
+    if (intent.present) {
+      map['intent'] = Variable<String>(intent.value);
+    }
+    if (wasTimeboxed.present) {
+      map['was_timeboxed'] = Variable<bool>(wasTimeboxed.value);
+    }
+    if (plannedMinutes.present) {
+      map['planned_minutes'] = Variable<int>(plannedMinutes.value);
+    }
     if (timestamp.present) {
       map['timestamp'] = Variable<DateTime>(timestamp.value);
     }
@@ -3307,6 +3461,9 @@ class ScrollLogsCompanion extends UpdateCompanion<ScrollLog> {
           ..write('dailyScoreImpact: $dailyScoreImpact, ')
           ..write('recoveryActionTaken: $recoveryActionTaken, ')
           ..write('recoveryActionType: $recoveryActionType, ')
+          ..write('intent: $intent, ')
+          ..write('wasTimeboxed: $wasTimeboxed, ')
+          ..write('plannedMinutes: $plannedMinutes, ')
           ..write('timestamp: $timestamp, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4532,6 +4689,17 @@ class $DailyPlansTable extends DailyPlans
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _intentionNoteMeta = const VerificationMeta(
+    'intentionNote',
+  );
+  @override
+  late final GeneratedColumn<String> intentionNote = GeneratedColumn<String>(
+    'intention_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -4555,6 +4723,7 @@ class $DailyPlansTable extends DailyPlans
     scrollBudgetMinutes,
     intentionCompleted,
     shutdownCompleted,
+    intentionNote,
     createdAt,
   ];
   @override
@@ -4636,6 +4805,15 @@ class $DailyPlansTable extends DailyPlans
         ),
       );
     }
+    if (data.containsKey('intention_note')) {
+      context.handle(
+        _intentionNoteMeta,
+        intentionNote.isAcceptableOrUnknown(
+          data['intention_note']!,
+          _intentionNoteMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -4687,6 +4865,10 @@ class $DailyPlansTable extends DailyPlans
         DriftSqlType.bool,
         data['${effectivePrefix}shutdown_completed'],
       )!,
+      intentionNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}intention_note'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -4710,6 +4892,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
   final int scrollBudgetMinutes;
   final bool intentionCompleted;
   final bool shutdownCompleted;
+  final String? intentionNote;
   final DateTime createdAt;
   const DailyPlan({
     required this.id,
@@ -4721,6 +4904,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
     required this.scrollBudgetMinutes,
     required this.intentionCompleted,
     required this.shutdownCompleted,
+    this.intentionNote,
     required this.createdAt,
   });
   @override
@@ -4741,6 +4925,9 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
     map['scroll_budget_minutes'] = Variable<int>(scrollBudgetMinutes);
     map['intention_completed'] = Variable<bool>(intentionCompleted);
     map['shutdown_completed'] = Variable<bool>(shutdownCompleted);
+    if (!nullToAbsent || intentionNote != null) {
+      map['intention_note'] = Variable<String>(intentionNote);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -4762,6 +4949,9 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
       scrollBudgetMinutes: Value(scrollBudgetMinutes),
       intentionCompleted: Value(intentionCompleted),
       shutdownCompleted: Value(shutdownCompleted),
+      intentionNote: intentionNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(intentionNote),
       createdAt: Value(createdAt),
     );
   }
@@ -4783,6 +4973,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
       ),
       intentionCompleted: serializer.fromJson<bool>(json['intentionCompleted']),
       shutdownCompleted: serializer.fromJson<bool>(json['shutdownCompleted']),
+      intentionNote: serializer.fromJson<String?>(json['intentionNote']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -4799,6 +4990,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
       'scrollBudgetMinutes': serializer.toJson<int>(scrollBudgetMinutes),
       'intentionCompleted': serializer.toJson<bool>(intentionCompleted),
       'shutdownCompleted': serializer.toJson<bool>(shutdownCompleted),
+      'intentionNote': serializer.toJson<String?>(intentionNote),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -4813,6 +5005,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
     int? scrollBudgetMinutes,
     bool? intentionCompleted,
     bool? shutdownCompleted,
+    Value<String?> intentionNote = const Value.absent(),
     DateTime? createdAt,
   }) => DailyPlan(
     id: id ?? this.id,
@@ -4824,6 +5017,9 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
     scrollBudgetMinutes: scrollBudgetMinutes ?? this.scrollBudgetMinutes,
     intentionCompleted: intentionCompleted ?? this.intentionCompleted,
     shutdownCompleted: shutdownCompleted ?? this.shutdownCompleted,
+    intentionNote: intentionNote.present
+        ? intentionNote.value
+        : this.intentionNote,
     createdAt: createdAt ?? this.createdAt,
   );
   DailyPlan copyWithCompanion(DailyPlansCompanion data) {
@@ -4845,6 +5041,9 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
       shutdownCompleted: data.shutdownCompleted.present
           ? data.shutdownCompleted.value
           : this.shutdownCompleted,
+      intentionNote: data.intentionNote.present
+          ? data.intentionNote.value
+          : this.intentionNote,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -4861,6 +5060,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
           ..write('scrollBudgetMinutes: $scrollBudgetMinutes, ')
           ..write('intentionCompleted: $intentionCompleted, ')
           ..write('shutdownCompleted: $shutdownCompleted, ')
+          ..write('intentionNote: $intentionNote, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -4877,6 +5077,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
     scrollBudgetMinutes,
     intentionCompleted,
     shutdownCompleted,
+    intentionNote,
     createdAt,
   );
   @override
@@ -4892,6 +5093,7 @@ class DailyPlan extends DataClass implements Insertable<DailyPlan> {
           other.scrollBudgetMinutes == this.scrollBudgetMinutes &&
           other.intentionCompleted == this.intentionCompleted &&
           other.shutdownCompleted == this.shutdownCompleted &&
+          other.intentionNote == this.intentionNote &&
           other.createdAt == this.createdAt);
 }
 
@@ -4905,6 +5107,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
   final Value<int> scrollBudgetMinutes;
   final Value<bool> intentionCompleted;
   final Value<bool> shutdownCompleted;
+  final Value<String?> intentionNote;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const DailyPlansCompanion({
@@ -4917,6 +5120,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
     this.scrollBudgetMinutes = const Value.absent(),
     this.intentionCompleted = const Value.absent(),
     this.shutdownCompleted = const Value.absent(),
+    this.intentionNote = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4930,6 +5134,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
     this.scrollBudgetMinutes = const Value.absent(),
     this.intentionCompleted = const Value.absent(),
     this.shutdownCompleted = const Value.absent(),
+    this.intentionNote = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -4944,6 +5149,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
     Expression<int>? scrollBudgetMinutes,
     Expression<bool>? intentionCompleted,
     Expression<bool>? shutdownCompleted,
+    Expression<String>? intentionNote,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -4958,6 +5164,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
         'scroll_budget_minutes': scrollBudgetMinutes,
       if (intentionCompleted != null) 'intention_completed': intentionCompleted,
       if (shutdownCompleted != null) 'shutdown_completed': shutdownCompleted,
+      if (intentionNote != null) 'intention_note': intentionNote,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4973,6 +5180,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
     Value<int>? scrollBudgetMinutes,
     Value<bool>? intentionCompleted,
     Value<bool>? shutdownCompleted,
+    Value<String?>? intentionNote,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -4986,6 +5194,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
       scrollBudgetMinutes: scrollBudgetMinutes ?? this.scrollBudgetMinutes,
       intentionCompleted: intentionCompleted ?? this.intentionCompleted,
       shutdownCompleted: shutdownCompleted ?? this.shutdownCompleted,
+      intentionNote: intentionNote ?? this.intentionNote,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -5021,6 +5230,9 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
     if (shutdownCompleted.present) {
       map['shutdown_completed'] = Variable<bool>(shutdownCompleted.value);
     }
+    if (intentionNote.present) {
+      map['intention_note'] = Variable<String>(intentionNote.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -5042,6 +5254,7 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
           ..write('scrollBudgetMinutes: $scrollBudgetMinutes, ')
           ..write('intentionCompleted: $intentionCompleted, ')
           ..write('shutdownCompleted: $shutdownCompleted, ')
+          ..write('intentionNote: $intentionNote, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -6449,6 +6662,9 @@ typedef $$ScrollLogsTableCreateCompanionBuilder =
       required int dailyScoreImpact,
       Value<bool> recoveryActionTaken,
       Value<String?> recoveryActionType,
+      Value<String?> intent,
+      Value<bool> wasTimeboxed,
+      Value<int?> plannedMinutes,
       Value<DateTime> timestamp,
       Value<int> rowid,
     });
@@ -6460,6 +6676,9 @@ typedef $$ScrollLogsTableUpdateCompanionBuilder =
       Value<int> dailyScoreImpact,
       Value<bool> recoveryActionTaken,
       Value<String?> recoveryActionType,
+      Value<String?> intent,
+      Value<bool> wasTimeboxed,
+      Value<int?> plannedMinutes,
       Value<DateTime> timestamp,
       Value<int> rowid,
     });
@@ -6500,6 +6719,21 @@ class $$ScrollLogsTableFilterComposer
 
   ColumnFilters<String> get recoveryActionType => $composableBuilder(
     column: $table.recoveryActionType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get intent => $composableBuilder(
+    column: $table.intent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get wasTimeboxed => $composableBuilder(
+    column: $table.wasTimeboxed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plannedMinutes => $composableBuilder(
+    column: $table.plannedMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6548,6 +6782,21 @@ class $$ScrollLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get intent => $composableBuilder(
+    column: $table.intent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get wasTimeboxed => $composableBuilder(
+    column: $table.wasTimeboxed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plannedMinutes => $composableBuilder(
+    column: $table.plannedMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get timestamp => $composableBuilder(
     column: $table.timestamp,
     builder: (column) => ColumnOrderings(column),
@@ -6586,6 +6835,19 @@ class $$ScrollLogsTableAnnotationComposer
 
   GeneratedColumn<String> get recoveryActionType => $composableBuilder(
     column: $table.recoveryActionType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get intent =>
+      $composableBuilder(column: $table.intent, builder: (column) => column);
+
+  GeneratedColumn<bool> get wasTimeboxed => $composableBuilder(
+    column: $table.wasTimeboxed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get plannedMinutes => $composableBuilder(
+    column: $table.plannedMinutes,
     builder: (column) => column,
   );
 
@@ -6630,6 +6892,9 @@ class $$ScrollLogsTableTableManager
                 Value<int> dailyScoreImpact = const Value.absent(),
                 Value<bool> recoveryActionTaken = const Value.absent(),
                 Value<String?> recoveryActionType = const Value.absent(),
+                Value<String?> intent = const Value.absent(),
+                Value<bool> wasTimeboxed = const Value.absent(),
+                Value<int?> plannedMinutes = const Value.absent(),
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ScrollLogsCompanion(
@@ -6639,6 +6904,9 @@ class $$ScrollLogsTableTableManager
                 dailyScoreImpact: dailyScoreImpact,
                 recoveryActionTaken: recoveryActionTaken,
                 recoveryActionType: recoveryActionType,
+                intent: intent,
+                wasTimeboxed: wasTimeboxed,
+                plannedMinutes: plannedMinutes,
                 timestamp: timestamp,
                 rowid: rowid,
               ),
@@ -6650,6 +6918,9 @@ class $$ScrollLogsTableTableManager
                 required int dailyScoreImpact,
                 Value<bool> recoveryActionTaken = const Value.absent(),
                 Value<String?> recoveryActionType = const Value.absent(),
+                Value<String?> intent = const Value.absent(),
+                Value<bool> wasTimeboxed = const Value.absent(),
+                Value<int?> plannedMinutes = const Value.absent(),
                 Value<DateTime> timestamp = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ScrollLogsCompanion.insert(
@@ -6659,6 +6930,9 @@ class $$ScrollLogsTableTableManager
                 dailyScoreImpact: dailyScoreImpact,
                 recoveryActionTaken: recoveryActionTaken,
                 recoveryActionType: recoveryActionType,
+                intent: intent,
+                wasTimeboxed: wasTimeboxed,
+                plannedMinutes: plannedMinutes,
                 timestamp: timestamp,
                 rowid: rowid,
               ),
@@ -7314,6 +7588,7 @@ typedef $$DailyPlansTableCreateCompanionBuilder =
       Value<int> scrollBudgetMinutes,
       Value<bool> intentionCompleted,
       Value<bool> shutdownCompleted,
+      Value<String?> intentionNote,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -7328,6 +7603,7 @@ typedef $$DailyPlansTableUpdateCompanionBuilder =
       Value<int> scrollBudgetMinutes,
       Value<bool> intentionCompleted,
       Value<bool> shutdownCompleted,
+      Value<String?> intentionNote,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -7383,6 +7659,11 @@ class $$DailyPlansTableFilterComposer
 
   ColumnFilters<bool> get shutdownCompleted => $composableBuilder(
     column: $table.shutdownCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get intentionNote => $composableBuilder(
+    column: $table.intentionNote,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7446,6 +7727,11 @@ class $$DailyPlansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get intentionNote => $composableBuilder(
+    column: $table.intentionNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7496,6 +7782,11 @@ class $$DailyPlansTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get intentionNote => $composableBuilder(
+    column: $table.intentionNote,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -7540,6 +7831,7 @@ class $$DailyPlansTableTableManager
                 Value<int> scrollBudgetMinutes = const Value.absent(),
                 Value<bool> intentionCompleted = const Value.absent(),
                 Value<bool> shutdownCompleted = const Value.absent(),
+                Value<String?> intentionNote = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyPlansCompanion(
@@ -7552,6 +7844,7 @@ class $$DailyPlansTableTableManager
                 scrollBudgetMinutes: scrollBudgetMinutes,
                 intentionCompleted: intentionCompleted,
                 shutdownCompleted: shutdownCompleted,
+                intentionNote: intentionNote,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -7566,6 +7859,7 @@ class $$DailyPlansTableTableManager
                 Value<int> scrollBudgetMinutes = const Value.absent(),
                 Value<bool> intentionCompleted = const Value.absent(),
                 Value<bool> shutdownCompleted = const Value.absent(),
+                Value<String?> intentionNote = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyPlansCompanion.insert(
@@ -7578,6 +7872,7 @@ class $$DailyPlansTableTableManager
                 scrollBudgetMinutes: scrollBudgetMinutes,
                 intentionCompleted: intentionCompleted,
                 shutdownCompleted: shutdownCompleted,
+                intentionNote: intentionNote,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

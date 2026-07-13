@@ -19,6 +19,7 @@ class DailyPlans extends Table {
   // Ritual tracking
   BoolColumn get intentionCompleted => boolean().withDefault(const Constant(false))();
   BoolColumn get shutdownCompleted => boolean().withDefault(const Constant(false))();
+  TextColumn get intentionNote => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 

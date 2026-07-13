@@ -10,6 +10,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
+import '../../../features/onboarding/providers/onboarding_providers.dart';
+import '../../../features/attention/widgets/scroll_intent_sheet.dart';
+import 'package:go_router/go_router.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/attention/widgets/attention_radar_card.dart';
 import '../../../features/xp/models/xp_calculator.dart';
@@ -33,6 +36,7 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   String? _activeApp;
   Timer? _timer;
   int _elapsedSeconds = 0;
+  String? _currentIntent;
 
   // Quick log
   double _quickLogMinutes = 10;
@@ -74,23 +78,55 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     super.dispose();
   }
 
-  void _toggleApp(String appName) {
+  void _toggleApp(String appName) async {
     HapticFeedback.selectionClick();
     if (_activeApp == appName) {
       // Stop timer and log
       _timer?.cancel();
       final minutes = (_elapsedSeconds / 60).ceil().clamp(1, 999);
-      _logScroll(appName, minutes);
+      await _logScroll(appName, minutes, intent: _currentIntent);
       setState(() {
         _activeApp = null;
         _elapsedSeconds = 0;
+        _currentIntent = null;
       });
     } else {
+      // Starting timer: run gate check
+      final profile = ref.read(userProfileProvider);
+      final isDistraction = profile.distractions.any((d) =>
+        d.toLowerCase().contains(appName.toLowerCase()) ||
+        appName.toLowerCase().contains(d.toLowerCase())
+      );
+      final forceIntent = profile.protectionMode == 'firm' || isDistraction;
+
+      String? chosenIntent;
+      if (forceIntent) {
+        chosenIntent = await ScrollIntentSheet.show(context);
+        if (chosenIntent == null) return; // User cancelled
+
+        if (chosenIntent == 'rest') {
+          if (mounted) context.push('/rest');
+          return;
+        }
+
+        if (chosenIntent == 'avoiding') {
+          final divert = await _showDivertDialog();
+          if (divert == true) {
+            if (mounted) context.push('/rest');
+            return;
+          }
+        } else if (chosenIntent == 'scrolling' && profile.protectionMode == 'firm') {
+          final proceed = await _showBreathingPauseDialog();
+          if (!proceed) return;
+        }
+      }
+
       // Start timer for this app
       _timer?.cancel();
       setState(() {
         _activeApp = appName;
         _elapsedSeconds = 0;
+        _currentIntent = chosenIntent;
       });
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         setState(() => _elapsedSeconds++);
@@ -98,7 +134,7 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     }
   }
 
-  Future<void> _logScroll(String appName, int minutes) async {
+  Future<void> _logScroll(String appName, int minutes, {String? intent}) async {
     final db = ref.read(databaseProvider);
     final impact = (minutes ~/ 10) * XpConstants.scrollCostPer10Min;
 
@@ -107,6 +143,9 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
       appName: Value(appName),
       durationMinutes: Value(minutes),
       dailyScoreImpact: Value(impact),
+      intent: Value(intent),
+      wasTimeboxed: Value(false),
+      plannedMinutes: Value(null),
     ));
 
     // Refresh budget display
@@ -116,9 +155,72 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     if (mounted) _showRecoverySheet(context, appName, minutes);
   }
 
-  void _quickLog() {
+  void _quickLog() async {
     HapticFeedback.mediumImpact();
-    _logScroll('Quick Log', _quickLogMinutes.round());
+    final appName = 'Quick Log';
+    
+    final profile = ref.read(userProfileProvider);
+    final isDistraction = profile.distractions.any((d) =>
+      d.toLowerCase().contains(appName.toLowerCase()) ||
+      appName.toLowerCase().contains(d.toLowerCase())
+    );
+    final forceIntent = profile.protectionMode == 'firm' || isDistraction;
+
+    String? chosenIntent;
+    if (forceIntent) {
+      chosenIntent = await ScrollIntentSheet.show(context);
+      if (chosenIntent == null) return; // Cancelled
+
+      if (chosenIntent == 'rest') {
+        if (mounted) context.push('/rest');
+        return;
+      }
+
+      if (chosenIntent == 'avoiding') {
+        final divert = await _showDivertDialog();
+        if (divert == true) {
+          if (mounted) context.push('/rest');
+          return;
+        }
+      } else if (chosenIntent == 'scrolling' && profile.protectionMode == 'firm') {
+        final proceed = await _showBreathingPauseDialog();
+        if (!proceed) return;
+      }
+    }
+
+    await _logScroll(appName, _quickLogMinutes.round(), intent: chosenIntent);
+  }
+
+  Future<bool?> _showDivertDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background2,
+        title: const Text('Avoiding something?'),
+        content: const Text(
+          'Resistance is natural. Would you like a 2-minute breathing space instead of scrolling?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false), // Proceed to scroll
+            child: Text('Scroll anyway', style: TextStyle(color: AppColors.textTertiary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true), // Divert to rest
+            child: Text('Try Breathing Space', style: TextStyle(color: AppColors.emerald)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _showBreathingPauseDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const _BreathingPauseDialog(),
+    );
+    return result ?? false;
   }
 
   @override
@@ -480,6 +582,79 @@ class RecoveryActionSheet extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
         ],
       ),
+    );
+  }
+}
+
+class _BreathingPauseDialog extends StatefulWidget {
+  const _BreathingPauseDialog();
+
+  @override
+  State<_BreathingPauseDialog> createState() => _BreathingPauseDialogState();
+}
+
+class _BreathingPauseDialogState extends State<_BreathingPauseDialog> {
+  int _secondsLeft = 10;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_secondsLeft <= 1) {
+        _timer?.cancel();
+        Navigator.pop(context, true);
+      } else {
+        setState(() => _secondsLeft--);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.background2,
+      title: const Text('Mindful Pause', textAlign: TextAlign.center),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Take a slow breath before continuing. This helps build resistance to scrolling loops.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.emerald.withValues(alpha: 0.1),
+            ),
+            child: Center(
+              child: Text(
+                '$_secondsLeft',
+                style: AppTypography.monoSmall.copyWith(
+                  color: AppColors.emerald,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false), // Cancel scrolling
+          child: Text('Cancel scroll request', style: TextStyle(color: AppColors.dangerCoral)),
+        ),
+      ],
     );
   }
 }

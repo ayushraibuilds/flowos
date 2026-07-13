@@ -25,6 +25,7 @@ import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/flow_garden/garden_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
+import '../screens/rest/intentional_rest_screen.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -117,9 +118,17 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/focus',
           name: 'focus',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: FocusScreen(),
-          ),
+          pageBuilder: (context, state) {
+            final extra = state.extra as Map<String, dynamic>?;
+            return NoTransitionPage(
+              child: FocusScreen(
+                durationMinutes: extra?['durationMinutes'] as int?,
+                sessionLabel: extra?['sessionLabel'] as String?,
+                firstSeed: extra?['firstSeed'] as bool? ?? false,
+                autoStart: extra?['autoStart'] as bool? ?? false,
+              ),
+            );
+          },
         ),
         GoRoute(
           path: '/profile',
@@ -136,6 +145,11 @@ final appRouter = GoRouter(
       path: '/garden',
       name: 'garden',
       builder: (context, state) => const GardenScreen(),
+    ),
+    GoRoute(
+      path: '/rest',
+      name: 'rest',
+      builder: (context, state) => const IntentionalRestScreen(),
     ),
     GoRoute(
       path: '/morning-intention',

@@ -9,6 +9,10 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../features/onboarding/providers/onboarding_providers.dart';
+import '../../../features/reports/models/weekly_action.dart';
+import '../../../features/reports/services/weekly_action_engine.dart';
+import '../../widgets/action_commit_card.dart';
 
 /// Weekly Review Screen — Sunday guided 5-min flow.
 /// AI-generated reflection questions + week summary infographic.
@@ -21,6 +25,7 @@ class WeeklyReviewScreen extends ConsumerStatefulWidget {
 
 class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   WeeklyReview? _review;
+  WeeklyAction? _weeklyAction;
   bool _loading = true;
   int _currentStep = 0;
   Map<String, dynamic> _weekData = {};
@@ -163,6 +168,14 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
 
     final aiService = AiService();
     final review = await aiService.generateWeeklyReview(weekData: _weekData);
+    final incompleteTasks = await db.tasksDao.getIncomplete();
+    final profile = ref.read(userProfileProvider);
+    final weeklyAction = WeeklyActionEngine.generateWeeklyAction(
+      sessions: sessions,
+      scrollLogs: scrollLogs,
+      incompleteTasks: incompleteTasks,
+      profile: profile,
+    );
 
     if (mounted) {
       setState(() {
@@ -181,6 +194,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           ],
           nextWeekFocus: 'Start each day with one deep work session.',
         );
+        _weeklyAction = weeklyAction;
         _loading = false;
       });
     }
@@ -203,6 +217,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       _buildGrowthStep(),
       _buildReflectionStep(),
       _buildNextWeekStep(),
+      _buildActionStep(),
     ];
 
     return Scaffold(
@@ -263,23 +278,16 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                       ),
                     ),
                   if (_currentStep > 0) const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        HapticFeedback.selectionClick();
-                        if (_currentStep < steps.length - 1) {
+                  if (_currentStep < steps.length - 1)
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
                           setState(() => _currentStep++);
-                        } else {
-                          Navigator.pop(context);
-                        }
-                      },
-                      child: Text(
-                        _currentStep < steps.length - 1
-                            ? 'Continue →'
-                            : 'Done ✓',
+                        },
+                        child: const Text('Continue →'),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -512,6 +520,73 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionStep() {
+    if (_weeklyAction == null) {
+      return Column(
+        key: const ValueKey('action_empty'),
+        children: [
+          const Text('🏁', style: TextStyle(fontSize: 48)),
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            'Ready to start!',
+            style: AppTypography.h1.copyWith(color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          Text(
+            'You are all set for next week. Keep up the great work!',
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.xxl),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Complete Review'),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      key: const ValueKey('action_card'),
+      children: [
+        Text(
+          'Commit to Next Week',
+          style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Choose one change to apply to your plan.',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        ActionCommitCard(
+          action: _weeklyAction!,
+          onAccept: () => Navigator.pop(context),
+          onSkip: () => Navigator.pop(context),
+          onChooseDifferent: () {
+            setState(() {
+              if (_weeklyAction!.type != WeeklyActionType.scheduleFocusWindow) {
+                _weeklyAction = const WeeklyAction(
+                  id: 'alternate_focus_window',
+                  type: WeeklyActionType.scheduleFocusWindow,
+                  description: 'Schedule one 25-minute focus window tomorrow at 9:00 AM.',
+                  startHour: 9,
+                  endHour: 10,
+                );
+              } else {
+                _weeklyAction = const WeeklyAction(
+                  id: 'alternate_firm_protection',
+                  type: WeeklyActionType.reduceOneTrigger,
+                  description: 'Enable Firm protection mode for all distracting apps.',
+                );
+              }
+            });
+          },
         ),
       ],
     );

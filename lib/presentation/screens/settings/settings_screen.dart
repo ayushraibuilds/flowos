@@ -13,6 +13,8 @@ import '../../../features/export/services/data_export_service.dart';
 import '../../../features/sync/providers/sync_providers.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../features/focus/widgets/focus_protection_selector.dart';
+import '../../../features/focus/models/focus_protection.dart';
 
 /// Full Settings Screen — notification prefs, themes, scroll budget,
 /// sync controls, account management.
@@ -33,8 +35,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background0,
       appBar: AppBar(
-        title: Text('Settings',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          'Settings',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_rounded),
@@ -56,25 +60,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: 'Energy check-in reminders',
             subtitle: '3× daily (9 AM, 1 PM, 5 PM)',
             value: settings.energyReminders,
-            onChanged: (v) => ref.read(settingsProvider.notifier).setEnergyReminders(v),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setEnergyReminders(v),
           ),
           _toggleTile(
             title: 'Daily report reminder',
             subtitle: '9 PM — "Your day in review"',
             value: settings.reportReminder,
-            onChanged: (v) => ref.read(settingsProvider.notifier).setReportReminder(v),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setReportReminder(v),
           ),
           _toggleTile(
             title: 'Streak warning',
             subtitle: '8 PM if no activity today',
             value: settings.streakWarning,
-            onChanged: (v) => ref.read(settingsProvider.notifier).setStreakWarning(v),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setStreakWarning(v),
           ),
           _toggleTile(
             title: 'Weekly review',
             subtitle: 'Sunday 8 PM — 5-min guided flow',
             value: settings.weeklyReview,
-            onChanged: (v) => ref.read(settingsProvider.notifier).setWeeklyReview(v),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setWeeklyReview(v),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -86,13 +94,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             min: 10,
             max: 120,
             suffix: 'min',
-            onChanged: (v) => ref.read(settingsProvider.notifier).setScrollBudget(v.round()),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setScrollBudget(v.round()),
           ),
           _toggleTile(
             title: 'Ambient sounds',
             subtitle: 'Play background audio during focus',
             value: settings.soundEnabled,
-            onChanged: (v) => ref.read(settingsProvider.notifier).setSoundEnabled(v),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setSoundEnabled(v),
+          ),
+          _actionTile(
+            title: 'Focus protection: ${settings.focusProtection.label}',
+            subtitle: settings.focusProtection.description,
+            icon: Icons.shield_outlined,
+            onTap: _showFocusProtectionSheet,
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -102,9 +118,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: 'Auto sync',
             subtitle: 'Sync data to cloud after every change',
             value: settings.autoSync,
-            onChanged: (v) => ref.read(settingsProvider.notifier).setAutoSync(v),
+            onChanged: (v) =>
+                ref.read(settingsProvider.notifier).setAutoSync(v),
           ),
-           _actionTile(
+          _actionTile(
             title: 'Sync now',
             subtitle: 'Force a full sync with the server',
             icon: Icons.sync_rounded,
@@ -121,10 +138,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(result.hasErrors 
-                          ? 'Sync completed with errors.' 
-                          : 'Sync successful!'),
-                      backgroundColor: result.hasErrors ? AppColors.dangerCoral : AppColors.emerald,
+                      content: Text(
+                        result.hasErrors
+                            ? 'Sync completed with errors.'
+                            : 'Sync successful!',
+                      ),
+                      backgroundColor: result.hasErrors
+                          ? AppColors.dangerCoral
+                          : AppColors.emerald,
                     ),
                   );
                 }
@@ -227,6 +248,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           color: AppColors.textTertiary,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  void _showFocusProtectionSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.background1,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: FocusProtectionSelector(
+            value: ref.read(settingsProvider).focusProtection,
+            onChanged: (level) {
+              ref.read(settingsProvider.notifier).setFocusProtection(level);
+              Navigator.pop(sheetContext);
+            },
+          ),
         ),
       ),
     );
@@ -472,8 +512,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ),
                   if (isSelected)
-                    Icon(Icons.check_circle_rounded,
-                        size: 20, color: theme.accent),
+                    Icon(
+                      Icons.check_circle_rounded,
+                      size: 20,
+                      color: theme.accent,
+                    ),
                 ],
               ),
             ),
@@ -490,8 +533,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.background2,
-        title: Text('Sign out?',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          'Sign out?',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         content: Text(
           'Your local data will be preserved. You can sign in again anytime.',
           style: AppTypography.bodySmall.copyWith(
@@ -509,8 +554,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               await ref.read(authServiceProvider).signOut();
               if (mounted) context.go('/auth');
             },
-            child: Text('Sign Out',
-                style: TextStyle(color: AppColors.warningAmber)),
+            child: Text(
+              'Sign Out',
+              style: TextStyle(color: AppColors.warningAmber),
+            ),
           ),
         ],
       ),
@@ -522,8 +569,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.background2,
-        title: Text('Delete all data?',
-            style: AppTypography.h3.copyWith(color: AppColors.dangerCoral)),
+        title: Text(
+          'Delete all data?',
+          style: AppTypography.h3.copyWith(color: AppColors.dangerCoral),
+        ),
         content: Text(
           'This will permanently delete all your tasks, sessions, XP, and achievements. This cannot be undone.',
           style: AppTypography.bodySmall.copyWith(
@@ -540,12 +589,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               Navigator.pop(ctx);
               final db = ref.read(databaseProvider);
               await db.clearAllData();
-              
+
               final isLoggedIn = ref.read(isLoggedInProvider);
               if (isLoggedIn) {
                 await ref.read(authServiceProvider).signOut();
               }
-              
+
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -556,8 +605,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 context.go('/auth');
               }
             },
-            child: Text('Delete Everything',
-                style: TextStyle(color: AppColors.dangerCoral)),
+            child: Text(
+              'Delete Everything',
+              style: TextStyle(color: AppColors.dangerCoral),
+            ),
           ),
         ],
       ),
@@ -569,14 +620,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.background2,
-        title: Text(title, style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          title,
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           height: 400,
           child: SingleChildScrollView(
             child: Text(
               content,
-              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary, height: 1.4),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
             ),
           ),
         ),
@@ -635,14 +692,18 @@ Data Storage & Security
         ),
         content: Text(
           'This will package all your tasks, focus sessions, XP ledger history, and local settings into a JSON backup file and open the system share sheet.\n\nThe export includes task titles and activity history. It does not include authentication tokens.',
-          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
           ),
           ElevatedButton(

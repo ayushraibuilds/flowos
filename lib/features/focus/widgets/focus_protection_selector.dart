@@ -28,9 +28,20 @@ class FocusProtectionSelector extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Focus Protection', style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
+          Text(
+            'Focus Protection',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: AppSpacing.xs),
-          Text('Choose the support you want for this session.', style: AppTypography.caption.copyWith(color: AppColors.textTertiary)),
+          Text(
+            'Choose the support you want for this session.',
+            style: AppTypography.caption.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: AppSpacing.xs,
@@ -43,13 +54,27 @@ class FocusProtectionSelector extends StatelessWidget {
                 onSelected: (_) => onChanged(level),
                 selectedColor: AppColors.focusBlue.withValues(alpha: 0.24),
                 backgroundColor: AppColors.background0,
-                side: BorderSide(color: selected ? AppColors.focusBlue : Colors.white.withValues(alpha: 0.08)),
-                labelStyle: AppTypography.caption.copyWith(color: selected ? AppColors.focusBlue : AppColors.textSecondary),
+                side: BorderSide(
+                  color: selected
+                      ? AppColors.focusBlue
+                      : Colors.white.withValues(alpha: 0.08),
+                ),
+                labelStyle: AppTypography.caption.copyWith(
+                  color: selected
+                      ? AppColors.focusBlue
+                      : AppColors.textSecondary,
+                ),
               );
             }).toList(),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(value.description, style: AppTypography.caption.copyWith(color: AppColors.textSecondary, height: 1.35)),
+          Text(
+            value.description,
+            style: AppTypography.caption.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.35,
+            ),
+          ),
         ],
       ),
     );

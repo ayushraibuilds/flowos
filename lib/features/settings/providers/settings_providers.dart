@@ -50,9 +50,11 @@ class SettingsState {
   }
 }
 
-final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
-  return SettingsNotifier(ref);
-});
+final settingsProvider = StateNotifierProvider<SettingsNotifier, SettingsState>(
+  (ref) {
+    return SettingsNotifier(ref);
+  },
+);
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
   final Ref _ref;
@@ -67,7 +69,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   static const _keyFocusProtection = 'flowos_focus_protection';
 
   SettingsNotifier(this._ref)
-      : super(const SettingsState(
+    : super(
+        const SettingsState(
           energyReminders: true,
           reportReminder: true,
           streakWarning: true,
@@ -76,7 +79,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           soundEnabled: true,
           autoSync: true,
           focusProtection: FocusProtectionLevel.softReturn,
-        )) {
+        ),
+      ) {
     _load();
   }
 

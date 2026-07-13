@@ -11,6 +11,10 @@ class ScrollLogs extends Table {
   BoolColumn get recoveryActionTaken => boolean().withDefault(const Constant(false))();
   TextColumn get recoveryActionType => text().nullable()(); // breathing, walk, tinyTask, focusSprint
 
+  TextColumn get intent => text().nullable()(); // reply | lookup | rest | avoiding | scrolling
+  BoolColumn get wasTimeboxed => boolean().withDefault(const Constant(false))();
+  IntColumn get plannedMinutes => integer().nullable()();
+
   DateTimeColumn get timestamp => dateTime().withDefault(currentDateAndTime)();
 
   @override

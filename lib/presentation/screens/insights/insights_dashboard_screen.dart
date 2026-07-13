@@ -6,6 +6,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/insights/providers/insights_providers.dart';
+import '../../../features/rhythm/providers/rhythm_providers.dart';
+import '../../widgets/rhythm_recommendation_card.dart';
 
 /// Insights Dashboard — data visualization for productivity patterns.
 ///
@@ -36,6 +38,17 @@ class InsightsDashboardScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: AppSpacing.lg),
+            ref.watch(rhythmRecommendationProvider).when(
+                  data: (rec) {
+                    if (rec == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+                      child: RhythmRecommendationCard(recommendation: rec),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
 
             // ─── Energy Forecast ───────────────────────────
             _sectionTitle('⚡ Energy Forecast'),
