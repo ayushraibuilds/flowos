@@ -169,8 +169,9 @@ final insightsScrollVsFocusProvider = FutureProvider<({
 
   for (final m in metrics) {
     focusData.add(m.focusMinutes);
-    scrollData.add(m.scrollMinutes);
-    if (m.focusMinutes > 0 || m.scrollMinutes > 0) {
+    final effectiveScroll = m.deviceUsageMinutes > 0 ? m.deviceUsageMinutes : m.scrollMinutes;
+    scrollData.add(effectiveScroll);
+    if (m.focusMinutes > 0 || effectiveScroll > 0) {
       hasAnyData = true;
     }
   }

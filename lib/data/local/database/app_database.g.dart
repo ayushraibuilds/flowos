@@ -5262,6 +5262,464 @@ class DailyPlansCompanion extends UpdateCompanion<DailyPlan> {
   }
 }
 
+class $DeviceUsageRecordsTable extends DeviceUsageRecords
+    with TableInfo<$DeviceUsageRecordsTable, DeviceUsageRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeviceUsageRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _packageNameMeta = const VerificationMeta(
+    'packageName',
+  );
+  @override
+  late final GeneratedColumn<String> packageName = GeneratedColumn<String>(
+    'package_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _minutesMeta = const VerificationMeta(
+    'minutes',
+  );
+  @override
+  late final GeneratedColumn<int> minutes = GeneratedColumn<int>(
+    'minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncTimeMeta = const VerificationMeta(
+    'syncTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncTime = GeneratedColumn<DateTime>(
+    'sync_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    date,
+    platform,
+    packageName,
+    label,
+    minutes,
+    syncTime,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'device_usage_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeviceUsageRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('package_name')) {
+      context.handle(
+        _packageNameMeta,
+        packageName.isAcceptableOrUnknown(
+          data['package_name']!,
+          _packageNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_packageNameMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('minutes')) {
+      context.handle(
+        _minutesMeta,
+        minutes.isAcceptableOrUnknown(data['minutes']!, _minutesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_minutesMeta);
+    }
+    if (data.containsKey('sync_time')) {
+      context.handle(
+        _syncTimeMeta,
+        syncTime.isAcceptableOrUnknown(data['sync_time']!, _syncTimeMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeviceUsageRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeviceUsageRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      packageName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}package_name'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      minutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}minutes'],
+      )!,
+      syncTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}sync_time'],
+      )!,
+    );
+  }
+
+  @override
+  $DeviceUsageRecordsTable createAlias(String alias) {
+    return $DeviceUsageRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class DeviceUsageRecord extends DataClass
+    implements Insertable<DeviceUsageRecord> {
+  final String id;
+  final DateTime date;
+  final String platform;
+  final String packageName;
+  final String? label;
+  final int minutes;
+  final DateTime syncTime;
+  const DeviceUsageRecord({
+    required this.id,
+    required this.date,
+    required this.platform,
+    required this.packageName,
+    this.label,
+    required this.minutes,
+    required this.syncTime,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['date'] = Variable<DateTime>(date);
+    map['platform'] = Variable<String>(platform);
+    map['package_name'] = Variable<String>(packageName);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['minutes'] = Variable<int>(minutes);
+    map['sync_time'] = Variable<DateTime>(syncTime);
+    return map;
+  }
+
+  DeviceUsageRecordsCompanion toCompanion(bool nullToAbsent) {
+    return DeviceUsageRecordsCompanion(
+      id: Value(id),
+      date: Value(date),
+      platform: Value(platform),
+      packageName: Value(packageName),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      minutes: Value(minutes),
+      syncTime: Value(syncTime),
+    );
+  }
+
+  factory DeviceUsageRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeviceUsageRecord(
+      id: serializer.fromJson<String>(json['id']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      platform: serializer.fromJson<String>(json['platform']),
+      packageName: serializer.fromJson<String>(json['packageName']),
+      label: serializer.fromJson<String?>(json['label']),
+      minutes: serializer.fromJson<int>(json['minutes']),
+      syncTime: serializer.fromJson<DateTime>(json['syncTime']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'date': serializer.toJson<DateTime>(date),
+      'platform': serializer.toJson<String>(platform),
+      'packageName': serializer.toJson<String>(packageName),
+      'label': serializer.toJson<String?>(label),
+      'minutes': serializer.toJson<int>(minutes),
+      'syncTime': serializer.toJson<DateTime>(syncTime),
+    };
+  }
+
+  DeviceUsageRecord copyWith({
+    String? id,
+    DateTime? date,
+    String? platform,
+    String? packageName,
+    Value<String?> label = const Value.absent(),
+    int? minutes,
+    DateTime? syncTime,
+  }) => DeviceUsageRecord(
+    id: id ?? this.id,
+    date: date ?? this.date,
+    platform: platform ?? this.platform,
+    packageName: packageName ?? this.packageName,
+    label: label.present ? label.value : this.label,
+    minutes: minutes ?? this.minutes,
+    syncTime: syncTime ?? this.syncTime,
+  );
+  DeviceUsageRecord copyWithCompanion(DeviceUsageRecordsCompanion data) {
+    return DeviceUsageRecord(
+      id: data.id.present ? data.id.value : this.id,
+      date: data.date.present ? data.date.value : this.date,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      packageName: data.packageName.present
+          ? data.packageName.value
+          : this.packageName,
+      label: data.label.present ? data.label.value : this.label,
+      minutes: data.minutes.present ? data.minutes.value : this.minutes,
+      syncTime: data.syncTime.present ? data.syncTime.value : this.syncTime,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeviceUsageRecord(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('platform: $platform, ')
+          ..write('packageName: $packageName, ')
+          ..write('label: $label, ')
+          ..write('minutes: $minutes, ')
+          ..write('syncTime: $syncTime')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, date, platform, packageName, label, minutes, syncTime);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeviceUsageRecord &&
+          other.id == this.id &&
+          other.date == this.date &&
+          other.platform == this.platform &&
+          other.packageName == this.packageName &&
+          other.label == this.label &&
+          other.minutes == this.minutes &&
+          other.syncTime == this.syncTime);
+}
+
+class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
+  final Value<String> id;
+  final Value<DateTime> date;
+  final Value<String> platform;
+  final Value<String> packageName;
+  final Value<String?> label;
+  final Value<int> minutes;
+  final Value<DateTime> syncTime;
+  final Value<int> rowid;
+  const DeviceUsageRecordsCompanion({
+    this.id = const Value.absent(),
+    this.date = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.packageName = const Value.absent(),
+    this.label = const Value.absent(),
+    this.minutes = const Value.absent(),
+    this.syncTime = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeviceUsageRecordsCompanion.insert({
+    required String id,
+    required DateTime date,
+    required String platform,
+    required String packageName,
+    this.label = const Value.absent(),
+    required int minutes,
+    this.syncTime = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       date = Value(date),
+       platform = Value(platform),
+       packageName = Value(packageName),
+       minutes = Value(minutes);
+  static Insertable<DeviceUsageRecord> custom({
+    Expression<String>? id,
+    Expression<DateTime>? date,
+    Expression<String>? platform,
+    Expression<String>? packageName,
+    Expression<String>? label,
+    Expression<int>? minutes,
+    Expression<DateTime>? syncTime,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (date != null) 'date': date,
+      if (platform != null) 'platform': platform,
+      if (packageName != null) 'package_name': packageName,
+      if (label != null) 'label': label,
+      if (minutes != null) 'minutes': minutes,
+      if (syncTime != null) 'sync_time': syncTime,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeviceUsageRecordsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? date,
+    Value<String>? platform,
+    Value<String>? packageName,
+    Value<String?>? label,
+    Value<int>? minutes,
+    Value<DateTime>? syncTime,
+    Value<int>? rowid,
+  }) {
+    return DeviceUsageRecordsCompanion(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      platform: platform ?? this.platform,
+      packageName: packageName ?? this.packageName,
+      label: label ?? this.label,
+      minutes: minutes ?? this.minutes,
+      syncTime: syncTime ?? this.syncTime,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (packageName.present) {
+      map['package_name'] = Variable<String>(packageName.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (minutes.present) {
+      map['minutes'] = Variable<int>(minutes.value);
+    }
+    if (syncTime.present) {
+      map['sync_time'] = Variable<DateTime>(syncTime.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeviceUsageRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('platform: $platform, ')
+          ..write('packageName: $packageName, ')
+          ..write('label: $label, ')
+          ..write('minutes: $minutes, ')
+          ..write('syncTime: $syncTime, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5276,6 +5734,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DailyReportsTable dailyReports = $DailyReportsTable(this);
   late final $AchievementsTable achievements = $AchievementsTable(this);
   late final $DailyPlansTable dailyPlans = $DailyPlansTable(this);
+  late final $DeviceUsageRecordsTable deviceUsageRecords =
+      $DeviceUsageRecordsTable(this);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final FocusSessionsDao focusSessionsDao = FocusSessionsDao(
     this as AppDatabase,
@@ -5295,6 +5755,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AttentionCostsDao attentionCostsDao = AttentionCostsDao(
     this as AppDatabase,
   );
+  late final DeviceUsageRecordsDao deviceUsageRecordsDao =
+      DeviceUsageRecordsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5309,6 +5771,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dailyReports,
     achievements,
     dailyPlans,
+    deviceUsageRecords,
   ];
 }
 
@@ -7901,6 +8364,259 @@ typedef $$DailyPlansTableProcessedTableManager =
       DailyPlan,
       PrefetchHooks Function()
     >;
+typedef $$DeviceUsageRecordsTableCreateCompanionBuilder =
+    DeviceUsageRecordsCompanion Function({
+      required String id,
+      required DateTime date,
+      required String platform,
+      required String packageName,
+      Value<String?> label,
+      required int minutes,
+      Value<DateTime> syncTime,
+      Value<int> rowid,
+    });
+typedef $$DeviceUsageRecordsTableUpdateCompanionBuilder =
+    DeviceUsageRecordsCompanion Function({
+      Value<String> id,
+      Value<DateTime> date,
+      Value<String> platform,
+      Value<String> packageName,
+      Value<String?> label,
+      Value<int> minutes,
+      Value<DateTime> syncTime,
+      Value<int> rowid,
+    });
+
+class $$DeviceUsageRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $DeviceUsageRecordsTable> {
+  $$DeviceUsageRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minutes => $composableBuilder(
+    column: $table.minutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncTime => $composableBuilder(
+    column: $table.syncTime,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DeviceUsageRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeviceUsageRecordsTable> {
+  $$DeviceUsageRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get minutes => $composableBuilder(
+    column: $table.minutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncTime => $composableBuilder(
+    column: $table.syncTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DeviceUsageRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeviceUsageRecordsTable> {
+  $$DeviceUsageRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get packageName => $composableBuilder(
+    column: $table.packageName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get minutes =>
+      $composableBuilder(column: $table.minutes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncTime =>
+      $composableBuilder(column: $table.syncTime, builder: (column) => column);
+}
+
+class $$DeviceUsageRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeviceUsageRecordsTable,
+          DeviceUsageRecord,
+          $$DeviceUsageRecordsTableFilterComposer,
+          $$DeviceUsageRecordsTableOrderingComposer,
+          $$DeviceUsageRecordsTableAnnotationComposer,
+          $$DeviceUsageRecordsTableCreateCompanionBuilder,
+          $$DeviceUsageRecordsTableUpdateCompanionBuilder,
+          (
+            DeviceUsageRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $DeviceUsageRecordsTable,
+              DeviceUsageRecord
+            >,
+          ),
+          DeviceUsageRecord,
+          PrefetchHooks Function()
+        > {
+  $$DeviceUsageRecordsTableTableManager(
+    _$AppDatabase db,
+    $DeviceUsageRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeviceUsageRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeviceUsageRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeviceUsageRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> packageName = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<int> minutes = const Value.absent(),
+                Value<DateTime> syncTime = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeviceUsageRecordsCompanion(
+                id: id,
+                date: date,
+                platform: platform,
+                packageName: packageName,
+                label: label,
+                minutes: minutes,
+                syncTime: syncTime,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime date,
+                required String platform,
+                required String packageName,
+                Value<String?> label = const Value.absent(),
+                required int minutes,
+                Value<DateTime> syncTime = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeviceUsageRecordsCompanion.insert(
+                id: id,
+                date: date,
+                platform: platform,
+                packageName: packageName,
+                label: label,
+                minutes: minutes,
+                syncTime: syncTime,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DeviceUsageRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeviceUsageRecordsTable,
+      DeviceUsageRecord,
+      $$DeviceUsageRecordsTableFilterComposer,
+      $$DeviceUsageRecordsTableOrderingComposer,
+      $$DeviceUsageRecordsTableAnnotationComposer,
+      $$DeviceUsageRecordsTableCreateCompanionBuilder,
+      $$DeviceUsageRecordsTableUpdateCompanionBuilder,
+      (
+        DeviceUsageRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $DeviceUsageRecordsTable,
+          DeviceUsageRecord
+        >,
+      ),
+      DeviceUsageRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7923,4 +8639,6 @@ class $AppDatabaseManager {
       $$AchievementsTableTableManager(_db, _db.achievements);
   $$DailyPlansTableTableManager get dailyPlans =>
       $$DailyPlansTableTableManager(_db, _db.dailyPlans);
+  $$DeviceUsageRecordsTableTableManager get deviceUsageRecords =>
+      $$DeviceUsageRecordsTableTableManager(_db, _db.deviceUsageRecords);
 }

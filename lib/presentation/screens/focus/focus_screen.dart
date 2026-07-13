@@ -18,6 +18,7 @@ import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 import '../../../features/settings/providers/settings_providers.dart';
+import '../../../features/focus/services/ambient_sound_player.dart';
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
@@ -65,8 +66,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   ];
 
   // Ambient sound
-  int _selectedSound = 3; // 0=rain, 1=café, 2=waves, 3=silence
-  final _sounds = ['🌧️', '☕', '🌊', '🔇'];
+  String _selectedSound = 'none';
+  final _sounds = [
+    (key: 'none', emoji: '🔇', label: 'Silent'),
+    (key: 'binaural', emoji: '🧠', label: 'Binaural'),
+    (key: 'rain', emoji: '🌧️', label: 'Rain'),
+    (key: 'cafe', emoji: '☕', label: 'Café'),
+    (key: 'piano', emoji: '🎹', label: 'Piano'),
+  ];
 
   @override
   void initState() {
@@ -87,6 +94,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   void dispose() {
     _timer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
+    AmbientSoundPlayer.stop();
     super.dispose();
   }
 
@@ -144,6 +152,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     );
 
     _runTimer();
+    AmbientSoundPlayer.play(_selectedSound);
   }
 
   void _runTimer() {
@@ -169,12 +178,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         _showReturnCue = false;
       });
       _runTimer();
+      AmbientSoundPlayer.play(_selectedSound);
     } else {
       _timer?.cancel();
       setState(() {
         _isPaused = true;
         _pauseCount++;
       });
+      AmbientSoundPlayer.stop();
     }
     HapticFeedback.selectionClick();
   }
@@ -209,6 +220,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         : 'C';
 
     setState(() => _isRunning = false);
+    AmbientSoundPlayer.fadeOut();
 
     if (mounted) {
       if (result.gardenGrowth != null) {
@@ -236,6 +248,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   void _stopSession() async {
     _timer?.cancel();
+    AmbientSoundPlayer.stop();
     final isFlowtime = _selectedSessionType == 3;
     final elapsed = isFlowtime
         ? _remainingSeconds
@@ -658,12 +671,16 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
             // ─── Ambient Sounds ───────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (i) {
-                final isActive = i == _selectedSound;
+              children: List.generate(_sounds.length, (i) {
+                final s = _sounds[i];
+                final isActive = s.key == _selectedSound;
                 return GestureDetector(
                   onTap: () {
-                    setState(() => _selectedSound = i);
                     HapticFeedback.selectionClick();
+                    setState(() => _selectedSound = s.key);
+                    if (_isRunning && !_isPaused) {
+                      AmbientSoundPlayer.play(s.key);
+                    }
                   },
                   child: Container(
                     width: 48,
@@ -685,7 +702,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                     ),
                     child: Center(
                       child: Text(
-                        _sounds[i],
+                        s.emoji,
                         style: const TextStyle(fontSize: 20),
                       ),
                     ),

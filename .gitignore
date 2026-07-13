@@ -79,3 +79,4 @@ coverage/
 Thumbs.db
 doc/api/
 __pycache__/
+test/*.apk

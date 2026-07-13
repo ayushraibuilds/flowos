@@ -32,6 +32,13 @@ class HistoryAggregator {
               p.date.isSmallerThanValue(end)))
         .get();
 
+    // 6. Fetch device usage records in range
+    final deviceUsageRecords = await (db.select(db.deviceUsageRecords)
+          ..where((r) =>
+              r.date.isBiggerOrEqualValue(start) &
+              r.date.isSmallerThanValue(end)))
+        .get();
+
     final List<DailyMetric> metrics = [];
 
     // Loop day-by-day from start to end (inclusive of end day)
@@ -73,16 +80,27 @@ class HistoryAggregator {
           l.timestamp.isBefore(dayEnd));
       final dayScrollMinutes = dayScrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
 
+      // Filter device usage records
+      final dayDeviceUsageRecords = deviceUsageRecords.where((r) =>
+          r.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          r.date.isBefore(dayEnd));
+      final dayDeviceUsageMinutes = dayDeviceUsageRecords.fold<int>(0, (sum, r) => sum + r.minutes);
+
       // Filter energy check-ins
       final dayEnergyCheckins = energyCheckins.where((e) =>
           e.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
           e.date.isBefore(dayEnd));
       final dayEnergyCount = dayEnergyCheckins.length;
 
+      // Use device usage minutes if available, fallback to manual scroll minutes
+      final effectiveDistractionMinutes = dayDeviceUsageMinutes > 0
+          ? dayDeviceUsageMinutes
+          : dayScrollMinutes;
+
       final score = DailyScoreCalculator.calculate(
         focusMinutes: dayFocusMinutes,
         mitsCompleted: dayMits,
-        scrollMinutes: dayScrollMinutes,
+        scrollMinutes: effectiveDistractionMinutes,
         scrollBudget: scrollBudget,
         intentionCompleted: hasIntention,
         shutdownCompleted: hasShutdown,
@@ -93,6 +111,7 @@ class HistoryAggregator {
       final hasActivity = dayFocusMinutes > 0 ||
           dayMits > 0 ||
           dayScrollMinutes > 0 ||
+          dayDeviceUsageMinutes > 0 ||
           dayEnergyCount > 0 ||
           hasIntention ||
           hasShutdown;
@@ -102,6 +121,7 @@ class HistoryAggregator {
         score: score,
         focusMinutes: dayFocusMinutes,
         scrollMinutes: dayScrollMinutes,
+        deviceUsageMinutes: dayDeviceUsageMinutes,
         energyCheckInCount: dayEnergyCount,
         hasActivity: hasActivity,
       ));
@@ -118,6 +138,7 @@ class DailyMetric {
   final int score;
   final int focusMinutes;
   final int scrollMinutes;
+  final int deviceUsageMinutes;
   final int energyCheckInCount;
   final bool hasActivity;
 
@@ -126,6 +147,7 @@ class DailyMetric {
     required this.score,
     required this.focusMinutes,
     required this.scrollMinutes,
+    required this.deviceUsageMinutes,
     required this.energyCheckInCount,
     required this.hasActivity,
   });

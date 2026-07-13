@@ -37,6 +37,18 @@ class MainActivity : FlutterActivity() {
                             result.success(todayUsageMinutes())
                         }
                     }
+                    "getUsageForDays" -> {
+                        if (!hasUsageStatsPermission()) {
+                            result.error(
+                                "permission_denied",
+                                "Usage Access is required to read device screen time.",
+                                null,
+                            )
+                        } else {
+                            val days = call.argument<Int>("days") ?: 1
+                            result.success(getUsageForDays(days))
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -74,5 +86,78 @@ class MainActivity : FlutterActivity() {
         return usageStats.queryAndAggregateUsageStats(startOfDay, now)
             .mapValues { (_, stats) -> stats.totalTimeInForeground / 60_000L }
             .filterValues { it > 0 }
+    }
+
+    private fun getAppName(packageName: String): String {
+        return try {
+            val pm = packageManager
+            val info = pm.getApplicationInfo(packageName, 0)
+            info.loadLabel(pm).toString()
+        } catch (e: Exception) {
+            packageName
+        }
+    }
+
+    private fun getUsageForDays(days: Int): List<Map<String, Any>> {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        
+        val calendar = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, -days + 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startTime = calendar.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        val statsList = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY,
+            startTime,
+            endTime
+        ) ?: return emptyList()
+
+        val aggregated = mutableMapOf<String, Long>()
+        
+        for (stats in statsList) {
+            val foregroundTimeMs = stats.totalTimeInForeground
+            if (foregroundTimeMs <= 0) continue
+
+            val entryCal = Calendar.getInstance().apply {
+                timeInMillis = stats.firstTimeStamp
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            
+            val dateStr = String.format(
+                "%04d-%02d-%02d",
+                entryCal.get(Calendar.YEAR),
+                entryCal.get(Calendar.MONTH) + 1,
+                entryCal.get(Calendar.DAY_OF_MONTH)
+            )
+
+            val key = "${dateStr}_${stats.packageName}"
+            aggregated[key] = (aggregated[key] ?: 0L) + foregroundTimeMs
+        }
+
+        val result = mutableListOf<Map<String, Any>>()
+        for ((key, durationMs) in aggregated) {
+            val minutes = durationMs / 60_000L
+            if (minutes <= 0) continue
+
+            val parts = key.split("_", limit = 2)
+            if (parts.size == 2) {
+                result.add(mapOf(
+                    "date" to parts[0],
+                    "packageName" to parts[1],
+                    "label" to getAppName(parts[1]),
+                    "minutes" to minutes
+                ))
+            }
+        }
+        
+        return result
     }
 }

@@ -8,7 +8,7 @@ import 'package:just_audio/just_audio.dart';
 /// - Binaural beats (40Hz gamma)
 /// - Rain
 /// - Café ambiance
-/// - Forest / Nature
+/// - Piano
 /// - Synth (cyberpunk)
 ///
 /// Uses just_audio for gapless looping and volume control.
@@ -17,15 +17,13 @@ class AmbientSoundPlayer {
   static AudioPlayer? _player;
   static String? _currentSound;
 
-  /// Asset paths for bundled ambient sounds
   static const _assets = {
     'binaural': 'assets/sounds/bodhisounds-gamma-binaural-beats-enhance-brain-power-relaxing-music-for-study-161763.mp3',
     'rain': 'assets/sounds/boons_freak-rain-sound-188158.mp3',
     'cafe': 'assets/sounds/km007-cafe-ambience-9263.mp3',
-    'forest': 'assets/sounds/the_mountain-piano-background-487020.mp3',
+    'piano': 'assets/sounds/the_mountain-piano-background-487020.mp3',
     'synth': 'assets/sounds/freemusiclab-dark-cyberpunk-i-free-background-music-i-free-music-lab-release-469493.mp3',
   };
-
   /// Lazily initializes the player. Returns null if initialization fails.
   static AudioPlayer? _getPlayer() {
     try {

@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/insights/providers/insights_providers.dart';
 import '../../../features/rhythm/providers/rhythm_providers.dart';
 import '../../widgets/rhythm_recommendation_card.dart';
+import '../../../features/usage/services/device_usage_service.dart';
 
 /// Insights Dashboard — data visualization for productivity patterns.
 ///
@@ -17,11 +18,24 @@ import '../../widgets/rhythm_recommendation_card.dart';
 /// - Scroll vs Focus weekly trend
 /// - Energy vs Output correlation
 /// - Energy Forecast (predicted peak windows)
-class InsightsDashboardScreen extends ConsumerWidget {
+class InsightsDashboardScreen extends ConsumerStatefulWidget {
   const InsightsDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<InsightsDashboardScreen> createState() => _InsightsDashboardScreenState();
+}
+
+class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(deviceUsageServiceProvider).syncUsageLogs(days: 7);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background0,
       appBar: AppBar(

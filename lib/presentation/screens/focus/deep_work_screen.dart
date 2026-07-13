@@ -23,7 +23,7 @@ import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
 /// - 90-min timer with ambient glow animation
-/// - Ambient sound selector (binaural, rain, café, forest)
+/// - Ambient sound selector (binaural, rain, café, piano)
 /// - Pause/resume with count tracking
 /// - 2× XP multiplier
 /// - Quality grade on completion
@@ -58,7 +58,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     (key: 'binaural', emoji: '🧠', label: 'Binaural'),
     (key: 'rain', emoji: '🌧️', label: 'Rain'),
     (key: 'cafe', emoji: '☕', label: 'Café'),
-    (key: 'forest', emoji: '🌲', label: 'Forest'),
+    (key: 'piano', emoji: '🎹', label: 'Piano'),
     (key: 'synth', emoji: '👾', label: 'Cyber'),
   ];
 
