@@ -23,6 +23,7 @@ import '../screens/auth/auth_screen.dart';
 import '../screens/focus/deep_work_screen.dart';
 import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/settings/permission_center_screen.dart';
 import '../screens/flow_garden/garden_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../screens/rest/intentional_rest_screen.dart';
@@ -180,6 +181,11 @@ final appRouter = GoRouter(
       path: '/scroll-tracker',
       name: 'scrollTracker',
       builder: (context, state) => const ScrollTrackerScreen(),
+    ),
+    GoRoute(
+      path: '/permissions',
+      name: 'permissions',
+      builder: (context, state) => const PermissionCenterScreen(),
     ),
     GoRoute(
       path: '/focus-ritual',

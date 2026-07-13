@@ -182,6 +182,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             value: _isAccessibilityEnabled,
             onChanged: _toggleAccessibilityService,
           ),
+          _actionTile(
+            title: 'System Permissions & Privacy',
+            subtitle: 'Manage usage access, accessibility blocker, and notification status',
+            icon: Icons.lock_outline_rounded,
+            onTap: () => context.push('/permissions'),
+          ),
           const SizedBox(height: AppSpacing.xxl),
 
           // ─── Sync ──────────────────────────────────────
@@ -722,34 +728,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
   void _showPrivacyPolicy() {
     _showScrollableDialog(
       'Privacy Policy',
-      '''Last Updated: June 2026
+      '''Last Updated: July 2026
 
 Overview
 FlowOS ("the App") is a productivity and focus tracking application. Your privacy is important to us.
 
-Data We Collect
+Data We Collect & Access
 - Task Data: Titles, descriptions, energy levels, completion status
 - Focus Sessions: Session type, duration, quality grades
 - Energy Check-ins: Energy level readings (1-5 scale) with optional notes
 - Brain Dump Text: Free-text entries you submit for AI sorting
 - XP & Achievements: Experience points and achievements unlocked
 - Scroll Tracking: Self-reported scrolling time on social media apps
+- Native Device Screen Time (Android): Foreground usage minutes of distracting apps (mapped locally on your device). This data is kept strictly local and is never synced to the cloud or shared with third parties.
+- Accessibility Data (Android): Active package name tracking. We only observe window state changes to intercept and shield distraction apps during active focus sessions. No text content, keyboard inputs, or personal information is recorded or stored.
 
-Data We Do NOT Collect
-- We do not access your device's Screen Time or Digital Wellbeing APIs
-- We do not access contacts, photos, location, or files
-- We do not collect advertising identifiers
-
-How We Use Your Data
-1. Core Functionality: Your tasks, sessions, and XP are stored locally.
-2. AI Insights: Task and session data is sent to our backend proxy server, which uses Google's Gemini API to generate daily reports, break suggestions, and task sorting.
-3. Cloud Sync: If you create an account, your data is synced to Supabase.
-4. No Selling: We never sell your data to third parties.
-
-Data Storage & Security
-- Local First: All data is stored locally on your device in an SQLite database.
-- Encryption: All data in transit uses HTTPS/TLS encryption.
-- Deletion: You can delete all your data permanently from Settings → Account → Delete All Data.''',
+Data Storage, Control & Revocation
+- Local-First Storage: All task data, focus session history, and screen time usage records are stored in a local SQLite database on your device.
+- Suppabase Sync: If you register an account, your task, focus sessions, and check-in history are backed up securely. Usage logs are NOT backed up.
+- Revoke Access: You can disable accessibility shielding or usage stats tracking at any time by toggling the settings inside System Settings → Accessibility or System Settings → Special Access.
+- Permanent Deletion: You can clear all local databases by clearing app storage, or delete your account and all data permanently from Settings → Account → Delete All Data.''',
     );
   }
 
