@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../../features/notifications/services/notification_service.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../focus/models/focus_protection.dart';
 
 class SettingsState {
   final bool energyReminders;
@@ -13,6 +14,7 @@ class SettingsState {
   final int scrollBudget;
   final bool soundEnabled;
   final bool autoSync;
+  final FocusProtectionLevel focusProtection;
 
   const SettingsState({
     required this.energyReminders,
@@ -22,6 +24,7 @@ class SettingsState {
     required this.scrollBudget,
     required this.soundEnabled,
     required this.autoSync,
+    required this.focusProtection,
   });
 
   SettingsState copyWith({
@@ -32,6 +35,7 @@ class SettingsState {
     int? scrollBudget,
     bool? soundEnabled,
     bool? autoSync,
+    FocusProtectionLevel? focusProtection,
   }) {
     return SettingsState(
       energyReminders: energyReminders ?? this.energyReminders,
@@ -41,6 +45,7 @@ class SettingsState {
       scrollBudget: scrollBudget ?? this.scrollBudget,
       soundEnabled: soundEnabled ?? this.soundEnabled,
       autoSync: autoSync ?? this.autoSync,
+      focusProtection: focusProtection ?? this.focusProtection,
     );
   }
 }
@@ -59,6 +64,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   static const _keyScrollBudget = 'flowos_scroll_budget';
   static const _keySoundEnabled = 'flowos_ambient_sounds';
   static const _keyAutoSync = 'flowos_auto_sync';
+  static const _keyFocusProtection = 'flowos_focus_protection';
 
   SettingsNotifier(this._ref)
       : super(const SettingsState(
@@ -69,6 +75,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           scrollBudget: 30,
           soundEnabled: true,
           autoSync: true,
+          focusProtection: FocusProtectionLevel.softReturn,
         )) {
     _load();
   }
@@ -83,6 +90,10 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       scrollBudget: prefs.getInt(_keyScrollBudget) ?? 30,
       soundEnabled: prefs.getBool(_keySoundEnabled) ?? true,
       autoSync: prefs.getBool(_keyAutoSync) ?? true,
+      focusProtection: FocusProtectionLevel.values.firstWhere(
+        (level) => level.name == prefs.getString(_keyFocusProtection),
+        orElse: () => FocusProtectionLevel.softReturn,
+      ),
     );
   }
 
@@ -165,5 +176,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     state = state.copyWith(autoSync: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyAutoSync, value);
+  }
+
+  Future<void> setFocusProtection(FocusProtectionLevel value) async {
+    state = state.copyWith(focusProtection: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFocusProtection, value.name);
   }
 }
