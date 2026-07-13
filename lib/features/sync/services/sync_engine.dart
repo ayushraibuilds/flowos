@@ -68,6 +68,7 @@ class SyncEngine {
       pulled += await _pullSessions();
       pulled += await _pullPlans();
       pulled += await _pullAchievements();
+      pulled += await _pullDailyReports();
 
       // Push (local → server)
       pushed += await _pushTasks();
@@ -77,6 +78,7 @@ class SyncEngine {
       pushed += await _pushEnergy();
       pushed += await _pushPlans();
       pushed += await _pushAchievements();
+      pushed += await _pushDailyReports();
 
       // Mark sync time
       await _setLastSyncAt(DateTime.now());
@@ -110,6 +112,7 @@ class SyncEngine {
       await _pushScrollLogs();
       await _pushEnergy();
       await _pushPlans();
+      await _pushDailyReports();
     } catch (e) {
       debugPrint('Push error: $e');
     } finally {
@@ -250,6 +253,7 @@ class SyncEngine {
             scrollBudgetMinutes: Value(row['scroll_budget_minutes'] ?? 30),
             intentionCompleted: Value(row['intention_completed'] ?? false),
             shutdownCompleted: Value(row['shutdown_completed'] ?? false),
+            intentionNote: Value(row['intention_note']),
           ));
           count++;
         }
@@ -282,6 +286,40 @@ class SyncEngine {
       return count;
     } catch (e) {
       debugPrint('Pull achievements error: $e');
+      return 0;
+    }
+  }
+
+  Future<int> _pullDailyReports() async {
+    try {
+      final data = await _client
+          .from('daily_reports')
+          .select()
+          .order('date', ascending: false)
+          .limit(30);
+
+      int count = 0;
+      for (final row in (data as List)) {
+        final serverId = row['id'] as String;
+        final local = await (_db.select(_db.dailyReports)..where((r) => r.id.equals(serverId))).getSingleOrNull();
+
+        if (local == null) {
+          await _db.dailyReportsDao.upsertReport(DailyReportsCompanion(
+            id: Value(serverId),
+            date: Value(DateTime.parse(row['date'])),
+            reportJson: Value(row['report_json']),
+            dailyScore: Value(row['daily_score'] ?? 0),
+            xpEarnedToday: Value(row['xp_earned_today'] ?? 0),
+            attentionCostToday: Value(row['attention_cost_today'] ?? 0),
+            promptVersion: Value(row['prompt_version']),
+            generatedAt: Value(DateTime.parse(row['generated_at'])),
+          ));
+          count++;
+        }
+      }
+      return count;
+    } catch (e) {
+      debugPrint('Pull daily reports error: $e');
       return 0;
     }
   }
@@ -452,6 +490,7 @@ class SyncEngine {
         'scroll_budget_minutes': p.scrollBudgetMinutes,
         'intention_completed': p.intentionCompleted,
         'shutdown_completed': p.shutdownCompleted,
+        'intention_note': p.intentionNote,
       }).toList();
 
       await _upsertBatch('daily_plans', rows);
@@ -479,6 +518,34 @@ class SyncEngine {
       return rows.length;
     } catch (e) {
       debugPrint('Push achievements error: $e');
+      return 0;
+    }
+  }
+
+  Future<int> _pushDailyReports() async {
+    try {
+      final lastSync = await _getLastSyncAt();
+      final reports = await _db.dailyReportsDao.getModifiedSince(lastSync);
+
+      if (reports.isEmpty) return 0;
+
+      final rows = reports.map((r) => {
+        'id': r.id,
+        'date': DateTime(r.date.year, r.date.month, r.date.day)
+            .toIso8601String()
+            .split('T')[0],
+        'report_json': r.reportJson,
+        'daily_score': r.dailyScore,
+        'xp_earned_today': r.xpEarnedToday,
+        'attention_cost_today': r.attentionCostToday,
+        'prompt_version': r.promptVersion,
+        'generated_at': r.generatedAt.toIso8601String(),
+      }).toList();
+
+      await _upsertBatch('daily_reports', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push daily reports error: $e');
       return 0;
     }
   }

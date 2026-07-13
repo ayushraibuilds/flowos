@@ -5292,6 +5292,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AchievementsDao achievementsDao = AchievementsDao(
     this as AppDatabase,
   );
+  late final AttentionCostsDao attentionCostsDao = AttentionCostsDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

@@ -23,6 +23,7 @@ import '../dao/energy_checkins_dao.dart';
 import '../dao/daily_plans_dao.dart';
 import '../dao/daily_reports_dao.dart';
 import '../dao/achievements_dao.dart';
+import '../dao/attention_costs_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -49,6 +50,7 @@ part 'app_database.g.dart';
     DailyPlansDao,
     DailyReportsDao,
     AchievementsDao,
+    AttentionCostsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {

@@ -30,4 +30,14 @@ class DailyReportsDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(r) => OrderingTerm.desc(r.date)])
             ..limit(limit))
           .get();
+
+  /// Get reports generated since a given timestamp
+  Future<List<DailyReport>> getModifiedSince(DateTime since) =>
+      (select(dailyReports)
+            ..where((r) => r.generatedAt.isBiggerOrEqualValue(since)))
+          .get();
+
+  /// Upsert report (insert or update on conflict)
+  Future<void> upsertReport(DailyReportsCompanion entry) =>
+      into(dailyReports).insertOnConflictUpdate(entry);
 }
