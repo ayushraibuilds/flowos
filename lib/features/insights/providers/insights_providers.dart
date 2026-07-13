@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/energy_checkins_table.dart';
+import '../../settings/providers/settings_providers.dart';
 import '../services/history_aggregator.dart';
 
 // Helper to convert task quality score letter to a numerical value (0-100)
@@ -217,5 +219,96 @@ final insightsCompletionFunnelProvider = FutureProvider<({
     created: created,
     started: started,
     completed: completed,
+  );
+});
+
+/// 6. App Breakdown Provider (7 Days distraction list)
+final insightsAppBreakdownProvider = FutureProvider<List<({String label, String packageName, int minutes})>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final end = DateTime.now();
+  final start = end.subtract(const Duration(days: 7));
+  final records = await (db.select(db.deviceUsageRecords)
+        ..where((r) => r.date.isBiggerOrEqualValue(start) & r.date.isSmallerThanValue(end)))
+      .get();
+  
+  final Map<String, ({String label, int minutes})> grouped = {};
+  for (final r in records) {
+    final current = grouped[r.packageName];
+    final label = r.label ?? r.packageName;
+    if (current == null) {
+      grouped[r.packageName] = (label: label, minutes: r.minutes);
+    } else {
+      grouped[r.packageName] = (label: label, minutes: current.minutes + r.minutes);
+    }
+  }
+  
+  final list = grouped.entries.map((e) => (
+    packageName: e.key,
+    label: e.value.label,
+    minutes: e.value.minutes,
+  )).toList();
+  
+  list.sort((a, b) => b.minutes.compareTo(a.minutes));
+  return list;
+});
+
+/// 7. Overrides and Recovery Actions Provider
+final insightsOverridesAndRecoveryProvider = FutureProvider<({
+  int overridesCount,
+  int recoveryCount,
+  List<({String type, String app, int minutes})> recentRecoveries
+})>((ref) async {
+  final db = ref.watch(databaseProvider);
+  
+  final sessions = await db.select(db.focusSessions).get();
+  int overrides = 0;
+  for (final s in sessions) {
+    overrides += s.appBackgroundCount + s.pauseCount;
+  }
+  
+  final logs = await (db.select(db.scrollLogs)..where((l) => l.recoveryActionTaken)).get();
+  
+  final recent = logs.map((l) => (
+    type: l.recoveryActionType ?? 'Breathing',
+    app: l.appName,
+    minutes: l.durationMinutes,
+  )).toList();
+  
+  return (
+    overridesCount: overrides,
+    recoveryCount: logs.length,
+    recentRecoveries: recent,
+  );
+});
+
+/// 8. Attention Budget Today Provider
+final insightsAttentionBudgetProvider = FutureProvider<({
+  int scrollBudget,
+  int scrollMinutes,
+  double progressFraction,
+})>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final settings = ref.watch(settingsProvider);
+  
+  final plan = await db.dailyPlansDao.getToday();
+  final budget = plan?.scrollBudgetMinutes ?? settings.scrollBudget;
+  
+  final now = DateTime.now();
+  final start = DateTime(now.year, now.month, now.day);
+  final end = start.add(const Duration(days: 1));
+  
+  final logs = await (db.select(db.scrollLogs)..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.timestamp.isSmallerThanValue(end))).get();
+  final manualScroll = logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+  
+  final deviceRecords = await (db.select(db.deviceUsageRecords)..where((r) => r.date.isBiggerOrEqualValue(start) & r.date.isSmallerThanValue(end))).get();
+  final deviceScroll = deviceRecords.fold<int>(0, (sum, r) => sum + r.minutes);
+  
+  final totalScroll = deviceScroll > 0 ? deviceScroll : manualScroll;
+  final fraction = budget > 0 ? totalScroll / budget : 0.0;
+  
+  return (
+    scrollBudget: budget,
+    scrollMinutes: totalScroll,
+    progressFraction: fraction.clamp(0.0, 1.0),
   );
 });
