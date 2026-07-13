@@ -49,9 +49,26 @@ class MainActivity : FlutterActivity() {
                             result.success(getUsageForDays(days))
                         }
                     }
+                    "checkAccessibilityPermission" -> {
+                        result.success(isAccessibilityServiceEnabled())
+                    }
+                    "requestAccessibilityPermission" -> {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        result.success(null)
+                    }
+                    "getBlockedAppTrigger" -> {
+                        val trigger = intent?.getStringExtra("blocked_app_trigger")
+                        intent?.removeExtra("blocked_app_trigger")
+                        result.success(trigger)
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     private fun hasUsageStatsPermission(): Boolean {
@@ -159,5 +176,31 @@ class MainActivity : FlutterActivity() {
         }
         
         return result
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val service = "$packageName/${FocusBlockerService::class.java.canonicalName}"
+        val enabled = Settings.Secure.getInt(
+            contentResolver,
+            Settings.Secure.ACCESSIBILITY_ENABLED,
+            0
+        )
+        if (enabled == 1) {
+            val settingValue = Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            )
+            if (settingValue != null) {
+                val splitter = android.text.TextUtils.SimpleStringSplitter(':')
+                splitter.setString(settingValue)
+                while (splitter.hasNext()) {
+                    val accessService = splitter.next()
+                    if (accessService.equals(service, ignoreCase = true)) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
     }
 }

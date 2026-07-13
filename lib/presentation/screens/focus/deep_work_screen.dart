@@ -19,6 +19,8 @@ import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
 import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/widgets/intentional_exit_dialog.dart';
+import '../../../features/focus/widgets/focus_shield_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -118,7 +120,45 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       }
     } else if (state == AppLifecycleState.resumed) {
       _wasBackgrounded = false;
+      _checkBlockedAppTrigger();
     }
+  }
+
+  Future<void> _checkBlockedAppTrigger() async {
+    const channel = MethodChannel('flowos/usage_stats');
+    try {
+      final String? triggeredPackage = await channel.invokeMethod<String>('getBlockedAppTrigger');
+      if (triggeredPackage != null && mounted) {
+        if (_isRunning && !_isPaused) {
+          _pauseTimer();
+        }
+        if (context.mounted) {
+          await FocusShieldOverlay.show(
+            context,
+            packageName: triggeredPackage,
+            protectionLevel: _sessionProtection,
+            onKeepFocus: () {
+              if (_isRunning && mounted) {
+                _resumeTimer();
+              }
+            },
+            onCancelSession: () {
+              if (mounted) {
+                _requestCompleteSession();
+              }
+            },
+            onGrantBreak: (minutes) async {
+              final prefs = await SharedPreferences.getInstance();
+              final blockedUntilMs = DateTime.now().add(Duration(minutes: minutes)).millisecondsSinceEpoch;
+              await prefs.setInt('blocked_until', blockedUntilMs);
+              if (_isRunning && mounted) {
+                _resumeTimer();
+              }
+            },
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   void _startTimer() async {

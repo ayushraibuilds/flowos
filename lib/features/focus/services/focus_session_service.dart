@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/constants/xp_constants.dart';
@@ -51,7 +53,37 @@ class FocusSessionService {
         startedAt: Value(DateTime.now()),
       ),
     );
+
+    // Save active state and distractor packages for Android Accessibility Blocker
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_focus_active', true);
+
+      final rawProfile = prefs.getString('flowos_user_profile');
+      if (rawProfile != null) {
+        final json = jsonDecode(rawProfile) as Map<String, dynamic>;
+        final distractions = List<String>.from(json['distractions'] ?? []);
+        final packageNames = distractions
+            .map((d) => _mapToPackageName(d))
+            .whereType<String>()
+            .toList();
+        await prefs.setString('blocked_packages', jsonEncode(packageNames));
+      }
+    } catch (_) {}
+
     return sessionId;
+  }
+
+  String? _mapToPackageName(String label) {
+    return switch (label.toLowerCase()) {
+      'instagram' => 'com.instagram.android',
+      'youtube/shorts' || 'youtube' => 'com.google.android.youtube',
+      'tiktok' => 'com.zhiliaoapp.musically',
+      'x/twitter' || 'twitter' || 'x' => 'com.twitter.android',
+      'reddit' => 'com.reddit.frontpage',
+      'browser' => 'com.android.chrome',
+      _ => null,
+    };
   }
 
   /// Complete a focus session (countdown target hit or Flowtime closed by user).
@@ -65,6 +97,12 @@ class FocusSessionService {
     required SessionTypeColumn type,
     bool isFlowtime = false,
   }) async {
+    // Deactivate accessibility blocker
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_focus_active', false);
+    } catch (_) {}
+
     final actualMin = (elapsedSeconds / 60).round();
     final interrupts = pauseCount + backgroundCount;
     final quality = interrupts == 0
@@ -152,6 +190,12 @@ class FocusSessionService {
     required int backgroundCount,
     required SessionTypeColumn type,
   }) async {
+    // Deactivate accessibility blocker
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_focus_active', false);
+    } catch (_) {}
+
     final actualMin = (elapsedSeconds / 60).round();
     final pct = totalSeconds > 0 ? (elapsedSeconds / totalSeconds) : 0.0;
 

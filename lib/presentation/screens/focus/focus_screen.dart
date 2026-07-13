@@ -19,6 +19,8 @@ import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
+import '../../../features/focus/widgets/focus_shield_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
@@ -115,7 +117,56 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       }
     } else if (state == AppLifecycleState.resumed) {
       _wasBackgrounded = false;
+      _checkBlockedAppTrigger();
     }
+  }
+
+  Future<void> _checkBlockedAppTrigger() async {
+    const channel = MethodChannel('flowos/usage_stats');
+    try {
+      final String? triggeredPackage = await channel.invokeMethod<String>('getBlockedAppTrigger');
+      if (triggeredPackage != null && mounted) {
+        if (_isRunning && !_isPaused) {
+          _timer?.cancel();
+          setState(() {
+            _isPaused = true;
+          });
+        }
+        if (context.mounted) {
+          await FocusShieldOverlay.show(
+            context,
+            packageName: triggeredPackage,
+            protectionLevel: _sessionProtection,
+            onKeepFocus: () {
+              if (_isRunning && mounted) {
+                setState(() {
+                  _isPaused = false;
+                  _showReturnCue = false;
+                });
+                _runTimer();
+              }
+            },
+            onCancelSession: () {
+              if (mounted) {
+                _stopSession();
+              }
+            },
+            onGrantBreak: (minutes) async {
+              final prefs = await SharedPreferences.getInstance();
+              final blockedUntilMs = DateTime.now().add(Duration(minutes: minutes)).millisecondsSinceEpoch;
+              await prefs.setInt('blocked_until', blockedUntilMs);
+              if (_isRunning && mounted) {
+                setState(() {
+                  _isPaused = false;
+                  _showReturnCue = false;
+                });
+                _runTimer();
+              }
+            },
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   void _startTimer() async {

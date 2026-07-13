@@ -25,7 +25,71 @@ class SettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBindingObserver {
+  bool _isAccessibilityEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkAccessibility();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAccessibility();
+    }
+  }
+
+  Future<void> _checkAccessibility() async {
+    const channel = MethodChannel('flowos/usage_stats');
+    try {
+      final bool enabled = await channel.invokeMethod<bool>('checkAccessibilityPermission') ?? false;
+      if (mounted) {
+        setState(() {
+          _isAccessibilityEnabled = enabled;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleAccessibilityService(bool enable) async {
+    if (enable && !_isAccessibilityEnabled) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.background2,
+          title: const Text('Enable App Shielding?'),
+          content: const Text(
+            'FlowOS needs Accessibility permission to detect when selected distraction apps are in the foreground and temporarily shield them. We do not observe or collect any sensitive text, password inputs, or personal information. Everything is evaluated local-only on your device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Allow'),
+            ),
+          ],
+        ),
+      ) ?? false;
+
+      if (proceed && mounted) {
+        const channel = MethodChannel('flowos/usage_stats');
+        await channel.invokeMethod('requestAccessibilityPermission');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentTheme = ref.watch(themeProvider);
@@ -109,6 +173,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: settings.focusProtection.description,
             icon: Icons.shield_outlined,
             onTap: _showFocusProtectionSheet,
+          ),
+          _toggleTile(
+            title: 'App Shielding (Android)',
+            subtitle: _isAccessibilityEnabled
+                ? 'Active — Distraction apps will be shielded'
+                : 'Tap to configure Accessibility permission',
+            value: _isAccessibilityEnabled,
+            onChanged: _toggleAccessibilityService,
           ),
           const SizedBox(height: AppSpacing.xxl),
 

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">FlowOS uses this service to detect when distraction apps are opened in the foreground during focus sessions and overlay your chosen protection level shield.</string>
+</resources>
