@@ -59,6 +59,14 @@ class GardenObject {
   }
 }
 
+enum GardenVitality {
+  flourishing,
+  growing,
+  thirsty,
+  recovering,
+  resting,
+}
+
 class GardenDay {
   final DateTime date;
   final List<GardenObject> objects;
@@ -81,6 +89,25 @@ class GardenDay {
   });
 
   bool get isResting => objects.isEmpty;
+
+  GardenVitality get vitality {
+    if (isResting) {
+      return GardenVitality.resting;
+    }
+    if (scrollMinutes > scrollBudgetMinutes) {
+      return GardenVitality.thirsty;
+    }
+    if (recoveryCount > 0) {
+      return GardenVitality.recovering;
+    }
+    if (focusMinutes > 0) {
+      if (focusMinutes < 25) {
+        return GardenVitality.growing;
+      }
+      return GardenVitality.flourishing;
+    }
+    return GardenVitality.resting;
+  }
 
   String get headline {
     if (isResting) {

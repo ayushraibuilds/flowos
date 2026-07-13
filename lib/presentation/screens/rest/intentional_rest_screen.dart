@@ -9,7 +9,14 @@ import '../../../core/theme/app_typography.dart';
 import '../../widgets/flow_surface.dart';
 
 class IntentionalRestScreen extends StatefulWidget {
-  const IntentionalRestScreen({super.key});
+  final int defaultMinutes;
+  final bool autoStart;
+
+  const IntentionalRestScreen({
+    super.key,
+    this.defaultMinutes = 5,
+    this.autoStart = false,
+  });
 
   @override
   State<IntentionalRestScreen> createState() => _IntentionalRestScreenState();
@@ -19,7 +26,7 @@ class _IntentionalRestScreenState extends State<IntentionalRestScreen>
     with SingleTickerProviderStateMixin {
   int _selectedMinutes = 5;
   bool _isActive = false;
-  int _secondsRemaining = 5 * 60;
+  int _secondsRemaining = 300;
   Timer? _timer;
 
   // Box Breathing Animation
@@ -32,6 +39,8 @@ class _IntentionalRestScreenState extends State<IntentionalRestScreen>
   @override
   void initState() {
     super.initState();
+    _selectedMinutes = widget.defaultMinutes;
+    _secondsRemaining = widget.defaultMinutes * 60;
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
@@ -39,6 +48,12 @@ class _IntentionalRestScreenState extends State<IntentionalRestScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.6).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOutSine),
     );
+
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startRest();
+      });
+    }
   }
 
   @override

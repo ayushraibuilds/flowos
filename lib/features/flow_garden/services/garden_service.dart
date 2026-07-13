@@ -31,14 +31,27 @@ class GardenService {
             .get();
     final checkIns = await _db.energyCheckInsDao.getForDate(start);
     final plan = await _db.dailyPlansDao.getByDateRange(start, end);
+
+    // Fetch device usage records in range
+    final deviceUsageRecords = await (_db.select(_db.deviceUsageRecords)..where(
+          (r) =>
+              r.date.isBiggerOrEqualValue(start) &
+              r.date.isSmallerThanValue(end),
+        ))
+        .get();
+    final deviceUsageMinutes = deviceUsageRecords.fold<int>(0, (sum, r) => sum + r.minutes);
+
     final focusMinutes = focusSessions.fold<int>(
       0,
       (total, session) => total + session.actualMinutes,
     );
-    final scrollMinutes = logs.fold<int>(
+    final manualScrollMinutes = logs.fold<int>(
       0,
       (total, log) => total + log.durationMinutes,
     );
+    // Combine native device usage minutes with manual scroll logs
+    final scrollMinutes = deviceUsageMinutes > 0 ? deviceUsageMinutes : manualScrollMinutes;
+
     final recoveryCount = logs.where((log) => log.recoveryActionTaken).length;
     final budget = plan?.scrollBudgetMinutes ?? 30;
     final objects = <GardenObject>[];

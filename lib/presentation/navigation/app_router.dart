@@ -149,7 +149,15 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/rest',
       name: 'rest',
-      builder: (context, state) => const IntentionalRestScreen(),
+      builder: (context, state) {
+        final extras = state.extra as Map<String, dynamic>?;
+        final minutes = extras?['defaultMinutes'] as int? ?? 5;
+        final autoStart = extras?['autoStart'] as bool? ?? false;
+        return IntentionalRestScreen(
+          defaultMinutes: minutes,
+          autoStart: autoStart,
+        );
+      },
     ),
     GoRoute(
       path: '/morning-intention',

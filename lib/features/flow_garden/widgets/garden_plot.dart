@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -77,22 +78,39 @@ class GardenPlot extends StatelessWidget {
                 return Positioned(
                   left: constraints.maxWidth * object.x - 20,
                   top: height * object.y - 20,
-                  child: AnimatedScale(
-                    duration: const Duration(milliseconds: 850),
-                    curve: Curves.elasticOut,
-                    scale: isGrowing ? 1.24 : 1,
-                    child: Text(
-                      object.emoji,
-                      style: TextStyle(
-                        fontSize: object.kind == GardenObjectKind.tree
-                            ? 42
-                            : 30,
-                        shadows: [
-                          Shadow(
-                            color: AppColors.emerald.withValues(alpha: 0.35),
-                            blurRadius: 12,
-                          ),
-                        ],
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      if (object.kind == GardenObjectKind.wildlife) {
+                        context.push(
+                          '/rest',
+                          extra: {
+                            'defaultMinutes': 2,
+                            'autoStart': true,
+                          },
+                        );
+                      } else if (object.kind == GardenObjectKind.tree ||
+                          object.kind == GardenObjectKind.flower) {
+                        context.push('/focus');
+                      }
+                    },
+                    child: AnimatedScale(
+                      duration: const Duration(milliseconds: 850),
+                      curve: Curves.elasticOut,
+                      scale: isGrowing ? 1.24 : 1,
+                      child: Text(
+                        object.emoji,
+                        style: TextStyle(
+                          fontSize: object.kind == GardenObjectKind.tree
+                              ? 42
+                              : 30,
+                          shadows: [
+                            Shadow(
+                              color: AppColors.emerald.withValues(alpha: 0.35),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
