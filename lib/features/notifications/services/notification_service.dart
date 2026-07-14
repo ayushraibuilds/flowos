@@ -52,9 +52,9 @@ class NotificationService {
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     await _plugin.initialize(
@@ -86,6 +86,25 @@ class NotificationService {
     }
 
     _initialized = true;
+  }
+
+  /// Explicitly request notification permissions from the user.
+  static Future<bool> requestPermissions() async {
+    if (Platform.isIOS) {
+      final iosImplementation = _plugin.resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin>();
+      return await iosImplementation?.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          ) ??
+          false;
+    } else if (Platform.isAndroid) {
+      final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      return await androidImplementation?.requestNotificationsPermission() ?? false;
+    }
+    return false;
   }
 
   // ─── Focus Timer Foreground (Android) ──────────────────────

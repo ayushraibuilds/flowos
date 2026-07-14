@@ -106,6 +106,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnergyReminders, value);
     if (value) {
+      await NotificationService.requestPermissions();
       await NotificationService.scheduleEnergyCheckIns();
     } else {
       await NotificationService.cancelEnergyCheckIns();
@@ -117,6 +118,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyReportReminder, value);
     if (value) {
+      await NotificationService.requestPermissions();
       await NotificationService.scheduleReportReminder();
     } else {
       await NotificationService.cancelReportReminder();
@@ -128,6 +130,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyStreakWarning, value);
     if (value) {
+      await NotificationService.requestPermissions();
       await NotificationService.scheduleStreakWarning();
     } else {
       await NotificationService.cancelStreakWarning();
@@ -139,6 +142,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyWeeklyReview, value);
     if (value) {
+      await NotificationService.requestPermissions();
       await NotificationService.scheduleWeeklyReview();
     } else {
       await NotificationService.cancelWeeklyReview();

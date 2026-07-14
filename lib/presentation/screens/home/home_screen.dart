@@ -552,8 +552,56 @@ class HomeScreen extends ConsumerWidget {
           );
         }
 
-        // 4. Default: Start Focus Session
+        // 4. Default: Smart Contextual Actions
         if (!plan.shutdownCompleted) {
+          // Check for suggested peak focus window
+          final suggestedWindow = ref.watch(suggestedFocusWindowProvider).valueOrNull;
+          if (suggestedWindow != null && hour >= suggestedWindow.start && hour < suggestedWindow.end) {
+            return _heroCard(
+              title: "Start Protected Focus",
+              subtitle: "You are within your predicted peak window (${_formatHour(suggestedWindow.start)} - ${_formatHour(suggestedWindow.end)}). Start a focus block now.",
+              buttonText: "Start Protected Focus ⚡",
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                context.go('/focus');
+              },
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F2B3A), Color(0xFF06151E)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderColor: AppColors.focusBlue.withValues(alpha: 0.3),
+              glowColor: AppColors.focusBlue.withValues(alpha: 0.15),
+            );
+          }
+
+          // Check for incomplete MIT
+          final mits = ref.watch(mitsProvider).valueOrNull ?? [];
+          Task? incompleteMit;
+          for (final task in mits) {
+            if (!task.isCompleted) {
+              incompleteMit = task;
+              break;
+            }
+          }
+
+          if (incompleteMit != null) {
+            return _heroCard(
+              title: "Next Priority",
+              subtitle: "Start focus on your MIT: \"${incompleteMit.title}\".",
+              buttonText: "Focus on MIT 🎯",
+              onTap: () => _startDeepWork(context, incompleteMit!),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1B2E24), Color(0xFF0D1812)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderColor: AppColors.emerald.withValues(alpha: 0.3),
+              glowColor: AppColors.emerald.withValues(alpha: 0.15),
+            );
+          }
+
+          // Fallback Pomodoro card
           return _heroCard(
             title: "Enter the Flow Cave",
             subtitle:
@@ -798,5 +846,11 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  static String _formatHour(int hour) {
+    if (hour == 0) return '12 AM';
+    if (hour == 12) return '12 PM';
+    return hour < 12 ? '$hour AM' : '${hour - 12} PM';
   }
 }

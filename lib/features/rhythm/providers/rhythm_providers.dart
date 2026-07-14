@@ -41,3 +41,13 @@ class RhythmRecommendationController {
     _ref.invalidate(rhythmRecommendationProvider);
   }
 }
+
+final suggestedFocusWindowProvider = FutureProvider<({int start, int end})?>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final start = prefs.getInt('flowos_suggested_focus_start');
+  final end = prefs.getInt('flowos_suggested_focus_end');
+  if (start != null && end != null) {
+    return (start: start, end: end);
+  }
+  return null;
+});
