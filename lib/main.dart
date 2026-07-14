@@ -37,10 +37,7 @@ Future<void> main() async {
     debugPrint('   Run with: flutter run --dart-define-from-file=.env');
   }
 
-  onboardingComplete = true;
-  if (prefs.getBool('flowos_onboarding_complete') != true) {
-    await prefs.setBool('flowos_onboarding_complete', true);
-  }
+  onboardingComplete = prefs.getBool('flowos_onboarding_complete') ?? false;
 
   // Set system UI style for dark theme
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

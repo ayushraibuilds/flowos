@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'dart:io';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -17,7 +19,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
+    with WidgetsBindingObserver {
   int _currentStep = 0;
 
   // Form State
@@ -46,15 +49,55 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     'Other',
   ];
 
+  bool _usagePermissionActive = false;
+  bool _accessibilityPermissionActive = false;
+
   @override
   void initState() {
     super.initState();
-    // Pre-populate steps if user kills app and resumes (not needed if wizard starts clean, but good practice)
-    _loadStoredStep();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermissions();
   }
 
-  Future<void> _loadStoredStep() async {
-    // If we wanted to resume last step index from prefs, we could load here
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    const channel = MethodChannel('flowos/usage_stats');
+    try {
+      final bool usage = await channel.invokeMethod<bool>('checkUsagePermission') ?? false;
+      final bool access = await channel.invokeMethod<bool>('checkAccessibilityPermission') ?? false;
+      if (mounted) {
+        setState(() {
+          _usagePermissionActive = usage;
+          _accessibilityPermissionActive = access;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _requestUsagePermission() async {
+    const channel = MethodChannel('flowos/usage_stats');
+    try {
+      await channel.invokeMethod('requestUsagePermission');
+    } catch (_) {}
+  }
+
+  Future<void> _requestAccessibilityPermission() async {
+    const channel = MethodChannel('flowos/usage_stats');
+    try {
+      await channel.invokeMethod('requestAccessibilityPermission');
+    } catch (_) {}
   }
 
   bool get _isNextEnabled {
@@ -63,6 +106,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       1 => _selectedDistractions.length == 3,
       2 => _endHour > _startHour,
       3 => true, // protection mode is default 'gentle'
+      4 => true, // setup step is always continueable
+      5 => true, // seed step
       _ => true,
     };
   }
@@ -80,7 +125,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // Save profile configurations
     await ref.read(userProfileProvider.notifier).updateProfile(profile);
 
-    if (_currentStep < 4) {
+    if (_currentStep < 5) {
       setState(() => _currentStep++);
     } else {
       // Mark onboarding complete early so that dropping focus mid-session doesn't lock user in onboarding
@@ -155,7 +200,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
               child: Row(
-                children: List.generate(5, (i) {
+                children: List.generate(6, (i) {
                   final isActive = i <= _currentStep;
                   return Expanded(
                     child: AnimatedContainer(
@@ -213,7 +258,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     ),
                   ),
                   child: Text(
-                    _currentStep == 4 ? 'Plant my seed' : 'Continue',
+                    _currentStep == 5 ? 'Plant my seed' : 'Continue',
                     style: AppTypography.button,
                   ),
                 ),
@@ -231,7 +276,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       1 => _buildDistractionsStep(),
       2 => _buildProtectedWindowStep(),
       3 => _buildProtectionStyleStep(),
-      4 => _buildPlantSeedStep(),
+      4 => _buildPermissionsStep(),
+      5 => _buildPlantSeedStep(),
       _ => const SizedBox.shrink(),
     };
   }
@@ -631,6 +677,120 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionsStep() {
+    final isAndroid = Platform.isAndroid;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Device Setup', style: AppTypography.h1),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Allow FlowOS to read attention cost and manage focus blocks locally.',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        
+        if (isAndroid) ...[
+          // Usage access permission card
+          _buildPermissionCard(
+            title: 'Usage Access (Required)',
+            description: 'Required to read distraction app screen time and calculate your daily scores.',
+            status: _usagePermissionActive,
+            onTap: _requestUsagePermission,
+          ),
+          
+          const SizedBox(height: AppSpacing.lg),
+          
+          // Accessibility permission card
+          _buildPermissionCard(
+            title: 'Accessibility Blocker (Optional)',
+            description: 'Required to automatically intercept and shield distraction apps during deep focus blocks.',
+            status: _accessibilityPermissionActive,
+            onTap: _requestAccessibilityPermission,
+          ),
+        ] else ...[
+          _buildPermissionCard(
+            title: 'iOS Screen Time Permissions',
+            description: 'FlowOS uses Apple\'s Screen Time API to block distractions. Tapping below will verify permissions on the next screen.',
+            status: false,
+            onTap: () {},
+          ),
+        ]
+      ],
+    );
+  }
+
+  Widget _buildPermissionCard({
+    required String title,
+    required String description,
+    required bool status,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.background2,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        border: Border.all(
+          color: status ? AppColors.emerald.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                decoration: BoxDecoration(
+                  color: status ? AppColors.emerald.withValues(alpha: 0.1) : AppColors.warningAmber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                ),
+                child: Text(
+                  status ? 'Granted' : 'Pending',
+                  style: AppTypography.monoSmall.copyWith(
+                    color: status ? AppColors.emerald : AppColors.warningAmber,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            description,
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+          ),
+          if (Platform.isAndroid) ...[
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(36),
+                side: BorderSide(
+                  color: status ? AppColors.textTertiary.withValues(alpha: 0.2) : AppColors.emerald,
+                ),
+                foregroundColor: status ? AppColors.textPrimary : AppColors.emerald,
+              ),
+              child: Text(status ? 'Settings Configured' : 'Grant Permission'),
+            ),
+          ],
+        ],
       ),
     );
   }
