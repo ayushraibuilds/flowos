@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,7 +69,16 @@ class HomeScreen extends ConsumerWidget {
               _buildHeader(context, ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Hero CTA Card (Dynamic Alignment) ──────────────
-              _buildHeroCTA(context, ref),
+              ref.watch(hasFocusHistoryProvider).when(
+                    data: (hasHistory) {
+                      if (!hasHistory) {
+                        return _buildFirstSeedCard(context, ref);
+                      }
+                      return _buildHeroCTA(context, ref);
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => _buildHeroCTA(context, ref),
+                  ),
               const SizedBox(height: AppSpacing.lg),
               // ─── Today's Garden — a living reason to return ──────
               const HomeGardenGlance(),
@@ -629,6 +639,84 @@ class HomeScreen extends ConsumerWidget {
                 elevation: 0,
               ),
               child: Text(buttonText),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFirstSeedCard(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F3A20), Color(0xFF061A0E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        border: Border.all(
+          color: AppColors.emerald.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.emerald.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('🌱', style: TextStyle(fontSize: 24)),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'Plant Your First Seed',
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Ready to cultivate your focus garden? Start your first 10-minute focus session to grow a starter plant in today\'s plot.',
+            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          ElevatedButton(
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              context.push('/focus', extra: {
+                'durationMinutes': 10,
+                'sessionLabel': 'Plant my first seed',
+                'firstSeed': true,
+                'autoStart': false,
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.emerald,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+              ),
+            ),
+            child: Text(
+              'Configure Starter Session 🎯',
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

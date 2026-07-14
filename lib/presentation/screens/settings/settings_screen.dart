@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/config/supabase_config.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -15,6 +18,8 @@ import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/models/focus_protection.dart';
+import '../../../features/onboarding/providers/onboarding_providers.dart';
+import '../../../features/onboarding/models/user_profile.dart';
 
 /// Full Settings Screen — notification prefs, themes, scroll budget,
 /// sync controls, account management.
@@ -188,6 +193,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             icon: Icons.lock_outline_rounded,
             onTap: () => context.push('/permissions'),
           ),
+          _actionTile(
+            title: 'Shape my focus',
+            subtitle: 'Customize goals, distractions, and protected focus hours',
+            icon: Icons.tune_rounded,
+            onTap: () => _showShapeFocusSheet(context),
+          ),
           const SizedBox(height: AppSpacing.xxl),
 
           // ─── Sync ──────────────────────────────────────
@@ -238,6 +249,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
                 }
               }
             },
+          ),
+          _actionTile(
+            title: 'Pair browser extension',
+            subtitle: 'Generate a pairing token for your Chrome extension',
+            icon: Icons.extension_rounded,
+            onTap: () => _showPairingSheet(context),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -813,6 +830,415 @@ Data Storage, Control & Revocation
           ),
         ],
       ),
+    );
+  }
+
+  void _showPairingSheet(BuildContext context) {
+    final bool isConfigured = SupabaseConfig.isConfigured;
+    final user = isConfigured ? Supabase.instance.client.auth.currentUser : null;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusCard)),
+      ),
+      builder: (ctx) {
+        if (!isConfigured || user == null) {
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Account Pair Required',
+                  style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'To connect your browser extension and sync active focus state, you must be signed in to your FlowOS account.',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.emerald,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('Okay'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Generate Pairing Token
+        final session = Supabase.instance.client.auth.currentSession;
+        final tokenData = {
+          'userId': user.id,
+          'supabaseUrl': SupabaseConfig.supabaseUrl,
+          'supabaseKey': SupabaseConfig.supabaseAnonKey,
+          'refreshToken': session?.refreshToken ?? '',
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        };
+        final pairingToken = base64Encode(utf8.encode(jsonEncode(tokenData)));
+
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Pair Browser Extension',
+                style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Copy this pairing token and paste it into the FlowOS Chrome Extension Settings under "Pair with FlowOS Mobile App".',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.background0,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                  border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.1)),
+                ),
+                child: SelectableText(
+                  pairingToken,
+                  maxLines: 4,
+                  style: AppTypography.monoSmall.copyWith(
+                    color: AppColors.emerald,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              ElevatedButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: pairingToken));
+                  HapticFeedback.mediumImpact();
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Pairing token copied to clipboard!'),
+                      backgroundColor: AppColors.emerald,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.emerald,
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                child: const Text('Copy Token'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showShapeFocusSheet(BuildContext context) {
+    final initialProfile = ref.read(userProfileProvider);
+
+    List<String> tempGoals = List.from(initialProfile.goals);
+    List<String> tempDistractions = List.from(initialProfile.distractions);
+    int tempStartHour = initialProfile.protectedStartHour;
+    int tempEndHour = initialProfile.protectedEndHour;
+    bool tempWeekdaysOnly = initialProfile.protectedWeekdaysOnly;
+    String tempMode = initialProfile.protectionMode;
+
+    final goalsOptions = ['Deep work', 'Study', 'Rest', 'Less scrolling'];
+    final distractionsOptions = [
+      'Instagram',
+      'YouTube/Shorts',
+      'TikTok',
+      'X/Twitter',
+      'Reddit',
+      'Browser',
+      'Games',
+      'Other'
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.background2,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusCard)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.85,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (scrollContext, scrollController) {
+                return SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.textTertiary.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Shape My Focus',
+                        style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Customize your focus targets, distraction lists, and protected blocks.',
+                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+
+                      // 1. Focus Goals
+                      Text(
+                        'Focus Goals',
+                        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: goalsOptions.map((g) {
+                          final isSel = tempGoals.contains(g);
+                          return FilterChip(
+                            label: Text(g),
+                            selected: isSel,
+                            selectedColor: AppColors.emerald.withValues(alpha: 0.2),
+                            checkmarkColor: AppColors.emerald,
+                            labelStyle: AppTypography.bodySmall.copyWith(
+                              color: isSel ? AppColors.emerald : AppColors.textSecondary,
+                            ),
+                            onSelected: (selected) {
+                              setSheetState(() {
+                                if (selected) {
+                                  tempGoals.add(g);
+                                } else {
+                                  tempGoals.remove(g);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // 2. Distractions
+                      Text(
+                        'Distraction Apps',
+                        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: distractionsOptions.map((d) {
+                          final isSel = tempDistractions.contains(d);
+                          return FilterChip(
+                            label: Text(d),
+                            selected: isSel,
+                            selectedColor: AppColors.dangerCoral.withValues(alpha: 0.2),
+                            checkmarkColor: AppColors.dangerCoral,
+                            labelStyle: AppTypography.bodySmall.copyWith(
+                              color: isSel ? AppColors.dangerCoral : AppColors.textSecondary,
+                            ),
+                            onSelected: (selected) {
+                              setSheetState(() {
+                                if (selected) {
+                                  tempDistractions.add(d);
+                                } else {
+                                  tempDistractions.remove(d);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // 3. Protected Focus Hours
+                      Text(
+                        'Protected Focus Hours',
+                        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: tempStartHour,
+                              decoration: const InputDecoration(
+                                labelText: 'Start Hour',
+                                border: OutlineInputBorder(),
+                              ),
+                              dropdownColor: AppColors.background2,
+                              items: List.generate(24, (i) {
+                                return DropdownMenuItem<int>(
+                                  value: i,
+                                  child: Text('$i:00'),
+                                );
+                              }),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setSheetState(() => tempStartHour = val);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              value: tempEndHour,
+                              decoration: const InputDecoration(
+                                labelText: 'End Hour',
+                                border: OutlineInputBorder(),
+                              ),
+                              dropdownColor: AppColors.background2,
+                              items: List.generate(24, (i) {
+                                return DropdownMenuItem<int>(
+                                  value: i,
+                                  child: Text('$i:00'),
+                                );
+                              }),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setSheetState(() => tempEndHour = val);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      SwitchListTile(
+                        title: Text(
+                          'Weekdays only',
+                          style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                        ),
+                        subtitle: Text(
+                          'Only shield target apps during weekdays (Mon-Fri)',
+                          style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                        ),
+                        value: tempWeekdaysOnly,
+                        activeColor: AppColors.emerald,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (val) {
+                          setSheetState(() => tempWeekdaysOnly = val);
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // 4. Protection Level
+                      Text(
+                        'Shield Protection Mode',
+                        style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Center(child: Text('Gentle (Reflect)')),
+                              selected: tempMode == 'gentle',
+                              selectedColor: AppColors.emerald.withValues(alpha: 0.2),
+                              labelStyle: AppTypography.bodySmall.copyWith(
+                                color: tempMode == 'gentle' ? AppColors.emerald : AppColors.textSecondary,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setSheetState(() => tempMode = 'gentle');
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: ChoiceChip(
+                              label: const Center(child: Text('Firm (Guard/Deep)')),
+                              selected: tempMode == 'firm',
+                              selectedColor: AppColors.dangerCoral.withValues(alpha: 0.2),
+                              labelStyle: AppTypography.bodySmall.copyWith(
+                                color: tempMode == 'firm' ? AppColors.dangerCoral : AppColors.textSecondary,
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setSheetState(() => tempMode = 'firm');
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+
+                      // Action Button
+                      ElevatedButton(
+                        onPressed: () async {
+                          HapticFeedback.mediumImpact();
+                          final updated = UserProfile(
+                            goals: tempGoals,
+                            distractions: tempDistractions,
+                            protectedStartHour: tempStartHour,
+                            protectedEndHour: tempEndHour,
+                            protectedWeekdaysOnly: tempWeekdaysOnly,
+                            protectionMode: tempMode,
+                          );
+                          await ref.read(userProfileProvider.notifier).updateProfile(updated);
+                          if (scrollContext.mounted) {
+                            Navigator.pop(scrollContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Focus shape updated successfully!'),
+                                backgroundColor: AppColors.emerald,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.emerald,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                          ),
+                        ),
+                        child: Text(
+                          'Save Settings',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 

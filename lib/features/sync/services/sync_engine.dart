@@ -79,6 +79,7 @@ class SyncEngine {
       pushed += await _pushPlans();
       pushed += await _pushAchievements();
       pushed += await _pushDailyReports();
+      pushed += await _pushUnlockAttempts();
 
       // Mark sync time
       await _setLastSyncAt(DateTime.now());
@@ -113,6 +114,7 @@ class SyncEngine {
       await _pushEnergy();
       await _pushPlans();
       await _pushDailyReports();
+      await _pushUnlockAttempts();
     } catch (e) {
       debugPrint('Push error: $e');
     } finally {
@@ -546,6 +548,33 @@ class SyncEngine {
       return rows.length;
     } catch (e) {
       debugPrint('Push daily reports error: $e');
+      return 0;
+    }
+  }
+
+  Future<int> _pushUnlockAttempts() async {
+    try {
+      final lastSync = await _getLastSyncAt();
+      final attempts = await _db.unlockAttemptsDao.getModifiedSince(lastSync);
+
+      if (attempts.isEmpty) return 0;
+
+      final rows = attempts.map((a) => {
+        'id': a.id,
+        'platform': a.platform,
+        'target': a.target,
+        'level': a.level,
+        'requested_break_minutes': a.requestedBreakMinutes,
+        'intention': a.intention,
+        'wait_outcome': a.waitOutcome,
+        'session_id': a.sessionId,
+        'timestamp': a.timestamp.toIso8601String(),
+      }).toList();
+
+      await _appendBatch('unlock_attempts', rows);
+      return rows.length;
+    } catch (e) {
+      debugPrint('Push unlock attempts error: $e');
       return 0;
     }
   }

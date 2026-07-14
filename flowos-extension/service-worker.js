@@ -39,6 +39,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     periodInMinutes: 1,
   });
 
+  // Set up active focus session sync alarm (every 1 minute)
+  await chrome.alarms.create('sync-focus-state', {
+    periodInMinutes: 1,
+  });
+
   console.log('FlowOS extension installed');
 });
 
@@ -175,6 +180,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
+  if (message.type === 'SYNC_FOCUS_STATE') {
+    (async () => {
+      await syncFocusState();
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
   if (message.type === 'GET_STATE') {
     (async () => {
       const state = await chrome.storage.local.get([
@@ -259,15 +272,27 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'recalc-flow-score') {
     await updateTodayStats();
   }
+  if (alarm.name === 'sync-focus-state') {
+    await syncFocusState();
+  }
 });
 
 // ─── Supabase Sync ──────────────────────────────────────────────
 
-async function syncToSupabase() {
-  const { supabaseUrl, supabasePublishableKey } = globalThis.FLOWOS_CONFIG || {};
-  if (!supabaseUrl || !supabasePublishableKey) return;
+async function getSupabaseConfig() {
+  const local = await chrome.storage.local.get(['supabaseUrl', 'supabasePublishableKey']);
+  const config = globalThis.FLOWOS_CONFIG || {};
+  return {
+    supabaseUrl: local.supabaseUrl || config.supabaseUrl || '',
+    supabasePublishableKey: local.supabasePublishableKey || config.supabasePublishableKey || '',
+  };
+}
 
-  const session = await getValidSession(supabaseUrl, supabasePublishableKey);
+async function syncToSupabase() {
+  const config = await getSupabaseConfig();
+  if (!config.supabaseUrl || !config.supabasePublishableKey) return;
+
+  const session = await getValidSession(config.supabaseUrl, config.supabasePublishableKey);
   if (!session) return;
 
   const { accessToken, userId } = session;
@@ -356,5 +381,47 @@ async function getValidSession(supabaseUrl, supabasePublishableKey) {
   } catch (err) {
     console.error('Session refresh error:', err);
     return null;
+  }
+}
+
+// ─── Focus Session Active State Sync ───────────────────────────
+
+async function syncFocusState() {
+  const { isPaired = false, userId, focusActive = false } =
+    await chrome.storage.local.get(['isPaired', 'userId', 'focusActive']);
+
+  if (!isPaired || !userId) return;
+
+  const config = await getSupabaseConfig();
+  if (!config.supabaseUrl || !config.supabasePublishableKey) return;
+
+  const session = await getValidSession(config.supabaseUrl, config.supabasePublishableKey);
+  if (!session) return;
+
+  try {
+    const res = await fetch(`${config.supabaseUrl}/rest/v1/focus_sessions?user_id=eq.${userId}&completed_at=is.null`, {
+      method: 'GET',
+      headers: {
+        'apikey': config.supabasePublishableKey,
+        'Authorization': `Bearer ${session.accessToken}`,
+      },
+    });
+
+    if (res.ok) {
+      const activeSessions = await res.json();
+      const hasActive = activeSessions && activeSessions.length > 0;
+
+      if (hasActive && !focusActive) {
+        await enableFocusBlocking();
+        await chrome.storage.local.set({ focusActive: true });
+        console.log('Sync Focus: Active session detected, enabled blocking');
+      } else if (!hasActive && focusActive) {
+        await disableFocusBlocking();
+        await chrome.storage.local.set({ focusActive: false });
+        console.log('Sync Focus: No active session, disabled blocking');
+      }
+    }
+  } catch (err) {
+    console.error('Focus state sync error:', err);
   }
 }

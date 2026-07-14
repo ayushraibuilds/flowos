@@ -37,25 +37,10 @@ Future<void> main() async {
     debugPrint('   Run with: flutter run --dart-define-from-file=.env');
   }
 
-  bool onboardingDone = prefs.getBool('flowos_onboarding_complete') ?? false;
-
-  if (!onboardingDone) {
-    final db = AppDatabase();
-    try {
-      final plans = await db.select(db.dailyPlans).get();
-      final xp = await db.select(db.xpLedgerEntries).get();
-      if (plans.isNotEmpty || xp.isNotEmpty) {
-        onboardingDone = true;
-        await prefs.setBool('flowos_onboarding_complete', true);
-      }
-    } catch (e) {
-      debugPrint('Error during onboarding check: $e');
-    } finally {
-      await db.close();
-    }
+  onboardingComplete = true;
+  if (prefs.getBool('flowos_onboarding_complete') != true) {
+    await prefs.setBool('flowos_onboarding_complete', true);
   }
-
-  onboardingComplete = onboardingDone;
 
   // Set system UI style for dark theme
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(

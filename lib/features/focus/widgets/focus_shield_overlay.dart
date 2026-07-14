@@ -1,14 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import 'package:drift/drift.dart' show Value;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../models/focus_protection.dart';
+import '../../../data/local/database/app_database.dart';
+import '../../../core/config/supabase_config.dart';
+import '../../../features/sync/providers/sync_providers.dart';
 
 /// Full-screen, premium focus protection shield overlay.
 /// Displayed when a blocked app is intercepted.
-class FocusShieldOverlay extends StatefulWidget {
+class FocusShieldOverlay extends ConsumerStatefulWidget {
   final String packageName;
   final FocusProtectionLevel protectionLevel;
   final VoidCallback onKeepFocus;
@@ -59,15 +65,126 @@ class FocusShieldOverlay extends StatefulWidget {
   }
 
   @override
-  State<FocusShieldOverlay> createState() => _FocusShieldOverlayState();
+  ConsumerState<FocusShieldOverlay> createState() => _FocusShieldOverlayState();
 }
 
-class _FocusShieldOverlayState extends State<FocusShieldOverlay>
+class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
     with SingleTickerProviderStateMixin {
   late int _secondsRemaining;
   Timer? _timer;
   bool _canAction = false;
   int _selectedBreakMinutes = 5;
+
+  Future<void> _logUnlockAttempt({
+    required String outcome,
+    required int breakMinutes,
+    String? intention,
+  }) async {
+    try {
+      final db = ref.read(databaseProvider);
+      final id = const Uuid().v4();
+      await db.unlockAttemptsDao.insertAttempt(
+        UnlockAttemptsCompanion(
+          id: Value(id),
+          platform: const Value('android'),
+          target: Value(widget.packageName),
+          level: Value(widget.protectionLevel.name),
+          requestedBreakMinutes: Value(breakMinutes),
+          intention: Value(intention),
+          waitOutcome: Value(outcome),
+          sessionId: const Value(null),
+          timestamp: Value(DateTime.now()),
+        ),
+      );
+      if (SupabaseConfig.isConfigured) {
+        ref.read(syncEngineProvider).schedulePush();
+      }
+    } catch (e) {
+      debugPrint('Error logging unlock attempt: $e');
+    }
+  }
+
+  Future<void> _showIntentionDialog(int breakMinutes) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background2,
+        title: Text(
+          'State your Intention',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Why do you need to unlock ${_cleanAppName(widget.packageName)} right now?',
+              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: controller,
+              style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'e.g., Checking flight status, quick update...',
+                hintStyle: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                border: const OutlineInputBorder(),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.dangerCoral),
+                ),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ''),
+            child: Text(
+              'Skip',
+              style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: Text(
+              'Confirm',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.dangerCoral,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      await _logUnlockAttempt(
+        outcome: 'completed_wait',
+        breakMinutes: breakMinutes,
+        intention: result.isNotEmpty ? result : null,
+      );
+      widget.onGrantBreak?.call(breakMinutes);
+    }
+  }
+
+  Future<void> _handleResumeFocus() async {
+    await _logUnlockAttempt(
+      outcome: 'returned_to_focus',
+      breakMinutes: 0,
+    );
+    widget.onKeepFocus();
+  }
+
+  Future<void> _handleCancelSession() async {
+    await _logUnlockAttempt(
+      outcome: 'session_cancelled',
+      breakMinutes: 0,
+    );
+    widget.onCancelSession();
+  }
 
   // Pulse/Breathing Animation
   late AnimationController _pulseController;
@@ -244,7 +361,7 @@ class _FocusShieldOverlayState extends State<FocusShieldOverlay>
                 if (widget.protectionLevel == FocusProtectionLevel.softReturn) ...[
                   // Reflect Mode Actions
                   ElevatedButton(
-                    onPressed: widget.onKeepFocus,
+                    onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.emerald,
                       foregroundColor: Colors.white,
@@ -254,7 +371,7 @@ class _FocusShieldOverlayState extends State<FocusShieldOverlay>
                   ),
                   const SizedBox(height: AppSpacing.md),
                   OutlinedButton(
-                    onPressed: () => widget.onGrantBreak?.call(5),
+                    onPressed: () => _showIntentionDialog(5),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                     ),
@@ -263,7 +380,7 @@ class _FocusShieldOverlayState extends State<FocusShieldOverlay>
                 ] else if (widget.protectionLevel == FocusProtectionLevel.pauseAndProtect) ...[
                   // Guard Mode Actions
                   ElevatedButton(
-                    onPressed: widget.onKeepFocus,
+                    onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.emerald,
                       foregroundColor: Colors.white,
@@ -275,7 +392,7 @@ class _FocusShieldOverlayState extends State<FocusShieldOverlay>
                   _buildBreakPicker(),
                   const SizedBox(height: AppSpacing.md),
                   OutlinedButton(
-                    onPressed: () => widget.onGrantBreak?.call(_selectedBreakMinutes),
+                    onPressed: () => _showIntentionDialog(_selectedBreakMinutes),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                     ),
@@ -284,7 +401,7 @@ class _FocusShieldOverlayState extends State<FocusShieldOverlay>
                 ] else ...[
                   // Deep Mode Actions
                   ElevatedButton(
-                    onPressed: widget.onKeepFocus,
+                    onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.emerald,
                       foregroundColor: Colors.white,
@@ -294,7 +411,7 @@ class _FocusShieldOverlayState extends State<FocusShieldOverlay>
                   ),
                   const SizedBox(height: AppSpacing.md),
                   TextButton(
-                    onPressed: widget.onCancelSession,
+                    onPressed: _handleCancelSession,
                     child: const Text(
                       'Give up & End Focus Session',
                       style: TextStyle(color: AppColors.dangerCoral),

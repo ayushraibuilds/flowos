@@ -41,6 +41,14 @@ async function loadSettings() {
     loginButton.textContent = 'Update';
   }
 
+  const { isPaired = false } = await chrome.storage.local.get('isPaired');
+  const pairingStatus = document.getElementById('pairingStatus');
+  if (isPaired) {
+    pairingStatus.textContent = '✅ Paired with FlowOS App';
+    pairingStatus.className = 'status success';
+    document.getElementById('pairBtn').textContent = 'Update Pairing';
+  }
+
   renderCategories(customCategories);
 }
 
@@ -188,5 +196,41 @@ function setupListeners() {
 
     document.getElementById('clearStatus').textContent = '✅ Data cleared';
     document.getElementById('clearStatus').className = 'status success';
+  });
+
+  // Pair mobile app
+  document.getElementById('pairBtn').addEventListener('click', async () => {
+    const token = document.getElementById('pairingToken').value.trim();
+    const statusEl = document.getElementById('pairingStatus');
+    if (!token) {
+      statusEl.textContent = '❌ Please enter a pairing token';
+      statusEl.className = 'status error';
+      return;
+    }
+    statusEl.textContent = 'Pairing...';
+    statusEl.className = 'status';
+    try {
+      const decoded = atob(token);
+      const data = JSON.parse(decoded);
+      if (!data.userId || !data.supabaseUrl || !data.supabaseKey) {
+        throw new Error('Invalid pairing token format');
+      }
+      await chrome.storage.local.set({
+        userId: data.userId,
+        supabaseUrl: data.supabaseUrl,
+        supabasePublishableKey: data.supabaseKey,
+        isPaired: true,
+      });
+      statusEl.textContent = '✅ Paired successfully!';
+      statusEl.className = 'status success';
+      document.getElementById('pairBtn').textContent = 'Update Pairing';
+      document.getElementById('pairingToken').value = '';
+      
+      // Request active session sync immediately
+      await chrome.runtime.sendMessage({ type: 'SYNC_FOCUS_STATE' });
+    } catch (err) {
+      statusEl.textContent = `❌ Pairing failed: ${err.message}`;
+      statusEl.className = 'status error';
+    }
   });
 }

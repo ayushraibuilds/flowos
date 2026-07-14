@@ -48,6 +48,7 @@ class MainActivity : FlutterActivity() {
                             val days = call.argument<Int>("days") ?: 1
                             result.success(getUsageForDays(days))
                         }
+                    }
                     "checkUsagePermission" -> {
                         result.success(hasUsageStatsPermission())
                     }

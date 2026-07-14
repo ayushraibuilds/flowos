@@ -119,6 +119,26 @@ class GardenService {
           y: 0.56,
         ),
       );
+    } else {
+      final today = _startOfToday();
+      final isToday = start.year == today.year &&
+          start.month == today.month &&
+          start.day == today.day;
+      if (isToday) {
+        // Always add today's wildlife companion so they can tap for recovery actions
+        objects.add(
+          const GardenObject(
+            id: 'today-companion',
+            kind: GardenObjectKind.wildlife,
+            emoji: '🦋',
+            seedEmoji: '🦋',
+            title: 'Wildlife Companion',
+            detail: 'Tap your companion to start a 2-minute recovery session.',
+            x: 0.15,
+            y: 0.48,
+          ),
+        );
+      }
     }
 
     return GardenDay(

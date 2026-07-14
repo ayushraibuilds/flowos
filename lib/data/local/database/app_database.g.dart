@@ -5720,6 +5720,579 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
   }
 }
 
+class $UnlockAttemptsTable extends UnlockAttempts
+    with TableInfo<$UnlockAttemptsTable, UnlockAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UnlockAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetMeta = const VerificationMeta('target');
+  @override
+  late final GeneratedColumn<String> target = GeneratedColumn<String>(
+    'target',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _requestedBreakMinutesMeta =
+      const VerificationMeta('requestedBreakMinutes');
+  @override
+  late final GeneratedColumn<int> requestedBreakMinutes = GeneratedColumn<int>(
+    'requested_break_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _intentionMeta = const VerificationMeta(
+    'intention',
+  );
+  @override
+  late final GeneratedColumn<String> intention = GeneratedColumn<String>(
+    'intention',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _waitOutcomeMeta = const VerificationMeta(
+    'waitOutcome',
+  );
+  @override
+  late final GeneratedColumn<String> waitOutcome = GeneratedColumn<String>(
+    'wait_outcome',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    platform,
+    target,
+    level,
+    requestedBreakMinutes,
+    intention,
+    waitOutcome,
+    sessionId,
+    timestamp,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'unlock_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UnlockAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('target')) {
+      context.handle(
+        _targetMeta,
+        target.isAcceptableOrUnknown(data['target']!, _targetMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_targetMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_levelMeta);
+    }
+    if (data.containsKey('requested_break_minutes')) {
+      context.handle(
+        _requestedBreakMinutesMeta,
+        requestedBreakMinutes.isAcceptableOrUnknown(
+          data['requested_break_minutes']!,
+          _requestedBreakMinutesMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_requestedBreakMinutesMeta);
+    }
+    if (data.containsKey('intention')) {
+      context.handle(
+        _intentionMeta,
+        intention.isAcceptableOrUnknown(data['intention']!, _intentionMeta),
+      );
+    }
+    if (data.containsKey('wait_outcome')) {
+      context.handle(
+        _waitOutcomeMeta,
+        waitOutcome.isAcceptableOrUnknown(
+          data['wait_outcome']!,
+          _waitOutcomeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_waitOutcomeMeta);
+    }
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UnlockAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UnlockAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      target: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level'],
+      )!,
+      requestedBreakMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}requested_break_minutes'],
+      )!,
+      intention: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}intention'],
+      ),
+      waitOutcome: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}wait_outcome'],
+      )!,
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      ),
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+    );
+  }
+
+  @override
+  $UnlockAttemptsTable createAlias(String alias) {
+    return $UnlockAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class UnlockAttempt extends DataClass implements Insertable<UnlockAttempt> {
+  final String id;
+  final String platform;
+  final String target;
+  final String level;
+  final int requestedBreakMinutes;
+  final String? intention;
+  final String waitOutcome;
+  final String? sessionId;
+  final DateTime timestamp;
+  const UnlockAttempt({
+    required this.id,
+    required this.platform,
+    required this.target,
+    required this.level,
+    required this.requestedBreakMinutes,
+    this.intention,
+    required this.waitOutcome,
+    this.sessionId,
+    required this.timestamp,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['platform'] = Variable<String>(platform);
+    map['target'] = Variable<String>(target);
+    map['level'] = Variable<String>(level);
+    map['requested_break_minutes'] = Variable<int>(requestedBreakMinutes);
+    if (!nullToAbsent || intention != null) {
+      map['intention'] = Variable<String>(intention);
+    }
+    map['wait_outcome'] = Variable<String>(waitOutcome);
+    if (!nullToAbsent || sessionId != null) {
+      map['session_id'] = Variable<String>(sessionId);
+    }
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    return map;
+  }
+
+  UnlockAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return UnlockAttemptsCompanion(
+      id: Value(id),
+      platform: Value(platform),
+      target: Value(target),
+      level: Value(level),
+      requestedBreakMinutes: Value(requestedBreakMinutes),
+      intention: intention == null && nullToAbsent
+          ? const Value.absent()
+          : Value(intention),
+      waitOutcome: Value(waitOutcome),
+      sessionId: sessionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionId),
+      timestamp: Value(timestamp),
+    );
+  }
+
+  factory UnlockAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UnlockAttempt(
+      id: serializer.fromJson<String>(json['id']),
+      platform: serializer.fromJson<String>(json['platform']),
+      target: serializer.fromJson<String>(json['target']),
+      level: serializer.fromJson<String>(json['level']),
+      requestedBreakMinutes: serializer.fromJson<int>(
+        json['requestedBreakMinutes'],
+      ),
+      intention: serializer.fromJson<String?>(json['intention']),
+      waitOutcome: serializer.fromJson<String>(json['waitOutcome']),
+      sessionId: serializer.fromJson<String?>(json['sessionId']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'platform': serializer.toJson<String>(platform),
+      'target': serializer.toJson<String>(target),
+      'level': serializer.toJson<String>(level),
+      'requestedBreakMinutes': serializer.toJson<int>(requestedBreakMinutes),
+      'intention': serializer.toJson<String?>(intention),
+      'waitOutcome': serializer.toJson<String>(waitOutcome),
+      'sessionId': serializer.toJson<String?>(sessionId),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+    };
+  }
+
+  UnlockAttempt copyWith({
+    String? id,
+    String? platform,
+    String? target,
+    String? level,
+    int? requestedBreakMinutes,
+    Value<String?> intention = const Value.absent(),
+    String? waitOutcome,
+    Value<String?> sessionId = const Value.absent(),
+    DateTime? timestamp,
+  }) => UnlockAttempt(
+    id: id ?? this.id,
+    platform: platform ?? this.platform,
+    target: target ?? this.target,
+    level: level ?? this.level,
+    requestedBreakMinutes: requestedBreakMinutes ?? this.requestedBreakMinutes,
+    intention: intention.present ? intention.value : this.intention,
+    waitOutcome: waitOutcome ?? this.waitOutcome,
+    sessionId: sessionId.present ? sessionId.value : this.sessionId,
+    timestamp: timestamp ?? this.timestamp,
+  );
+  UnlockAttempt copyWithCompanion(UnlockAttemptsCompanion data) {
+    return UnlockAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      target: data.target.present ? data.target.value : this.target,
+      level: data.level.present ? data.level.value : this.level,
+      requestedBreakMinutes: data.requestedBreakMinutes.present
+          ? data.requestedBreakMinutes.value
+          : this.requestedBreakMinutes,
+      intention: data.intention.present ? data.intention.value : this.intention,
+      waitOutcome: data.waitOutcome.present
+          ? data.waitOutcome.value
+          : this.waitOutcome,
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UnlockAttempt(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('target: $target, ')
+          ..write('level: $level, ')
+          ..write('requestedBreakMinutes: $requestedBreakMinutes, ')
+          ..write('intention: $intention, ')
+          ..write('waitOutcome: $waitOutcome, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('timestamp: $timestamp')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    platform,
+    target,
+    level,
+    requestedBreakMinutes,
+    intention,
+    waitOutcome,
+    sessionId,
+    timestamp,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UnlockAttempt &&
+          other.id == this.id &&
+          other.platform == this.platform &&
+          other.target == this.target &&
+          other.level == this.level &&
+          other.requestedBreakMinutes == this.requestedBreakMinutes &&
+          other.intention == this.intention &&
+          other.waitOutcome == this.waitOutcome &&
+          other.sessionId == this.sessionId &&
+          other.timestamp == this.timestamp);
+}
+
+class UnlockAttemptsCompanion extends UpdateCompanion<UnlockAttempt> {
+  final Value<String> id;
+  final Value<String> platform;
+  final Value<String> target;
+  final Value<String> level;
+  final Value<int> requestedBreakMinutes;
+  final Value<String?> intention;
+  final Value<String> waitOutcome;
+  final Value<String?> sessionId;
+  final Value<DateTime> timestamp;
+  final Value<int> rowid;
+  const UnlockAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.target = const Value.absent(),
+    this.level = const Value.absent(),
+    this.requestedBreakMinutes = const Value.absent(),
+    this.intention = const Value.absent(),
+    this.waitOutcome = const Value.absent(),
+    this.sessionId = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UnlockAttemptsCompanion.insert({
+    required String id,
+    required String platform,
+    required String target,
+    required String level,
+    required int requestedBreakMinutes,
+    this.intention = const Value.absent(),
+    required String waitOutcome,
+    this.sessionId = const Value.absent(),
+    required DateTime timestamp,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       platform = Value(platform),
+       target = Value(target),
+       level = Value(level),
+       requestedBreakMinutes = Value(requestedBreakMinutes),
+       waitOutcome = Value(waitOutcome),
+       timestamp = Value(timestamp);
+  static Insertable<UnlockAttempt> custom({
+    Expression<String>? id,
+    Expression<String>? platform,
+    Expression<String>? target,
+    Expression<String>? level,
+    Expression<int>? requestedBreakMinutes,
+    Expression<String>? intention,
+    Expression<String>? waitOutcome,
+    Expression<String>? sessionId,
+    Expression<DateTime>? timestamp,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (platform != null) 'platform': platform,
+      if (target != null) 'target': target,
+      if (level != null) 'level': level,
+      if (requestedBreakMinutes != null)
+        'requested_break_minutes': requestedBreakMinutes,
+      if (intention != null) 'intention': intention,
+      if (waitOutcome != null) 'wait_outcome': waitOutcome,
+      if (sessionId != null) 'session_id': sessionId,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UnlockAttemptsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? platform,
+    Value<String>? target,
+    Value<String>? level,
+    Value<int>? requestedBreakMinutes,
+    Value<String?>? intention,
+    Value<String>? waitOutcome,
+    Value<String?>? sessionId,
+    Value<DateTime>? timestamp,
+    Value<int>? rowid,
+  }) {
+    return UnlockAttemptsCompanion(
+      id: id ?? this.id,
+      platform: platform ?? this.platform,
+      target: target ?? this.target,
+      level: level ?? this.level,
+      requestedBreakMinutes:
+          requestedBreakMinutes ?? this.requestedBreakMinutes,
+      intention: intention ?? this.intention,
+      waitOutcome: waitOutcome ?? this.waitOutcome,
+      sessionId: sessionId ?? this.sessionId,
+      timestamp: timestamp ?? this.timestamp,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (target.present) {
+      map['target'] = Variable<String>(target.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
+    if (requestedBreakMinutes.present) {
+      map['requested_break_minutes'] = Variable<int>(
+        requestedBreakMinutes.value,
+      );
+    }
+    if (intention.present) {
+      map['intention'] = Variable<String>(intention.value);
+    }
+    if (waitOutcome.present) {
+      map['wait_outcome'] = Variable<String>(waitOutcome.value);
+    }
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UnlockAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('target: $target, ')
+          ..write('level: $level, ')
+          ..write('requestedBreakMinutes: $requestedBreakMinutes, ')
+          ..write('intention: $intention, ')
+          ..write('waitOutcome: $waitOutcome, ')
+          ..write('sessionId: $sessionId, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5736,6 +6309,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DailyPlansTable dailyPlans = $DailyPlansTable(this);
   late final $DeviceUsageRecordsTable deviceUsageRecords =
       $DeviceUsageRecordsTable(this);
+  late final $UnlockAttemptsTable unlockAttempts = $UnlockAttemptsTable(this);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final FocusSessionsDao focusSessionsDao = FocusSessionsDao(
     this as AppDatabase,
@@ -5757,6 +6331,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final DeviceUsageRecordsDao deviceUsageRecordsDao =
       DeviceUsageRecordsDao(this as AppDatabase);
+  late final UnlockAttemptsDao unlockAttemptsDao = UnlockAttemptsDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5772,6 +6349,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     achievements,
     dailyPlans,
     deviceUsageRecords,
+    unlockAttempts,
   ];
 }
 
@@ -8617,6 +9195,288 @@ typedef $$DeviceUsageRecordsTableProcessedTableManager =
       DeviceUsageRecord,
       PrefetchHooks Function()
     >;
+typedef $$UnlockAttemptsTableCreateCompanionBuilder =
+    UnlockAttemptsCompanion Function({
+      required String id,
+      required String platform,
+      required String target,
+      required String level,
+      required int requestedBreakMinutes,
+      Value<String?> intention,
+      required String waitOutcome,
+      Value<String?> sessionId,
+      required DateTime timestamp,
+      Value<int> rowid,
+    });
+typedef $$UnlockAttemptsTableUpdateCompanionBuilder =
+    UnlockAttemptsCompanion Function({
+      Value<String> id,
+      Value<String> platform,
+      Value<String> target,
+      Value<String> level,
+      Value<int> requestedBreakMinutes,
+      Value<String?> intention,
+      Value<String> waitOutcome,
+      Value<String?> sessionId,
+      Value<DateTime> timestamp,
+      Value<int> rowid,
+    });
+
+class $$UnlockAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $UnlockAttemptsTable> {
+  $$UnlockAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get target => $composableBuilder(
+    column: $table.target,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get requestedBreakMinutes => $composableBuilder(
+    column: $table.requestedBreakMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get intention => $composableBuilder(
+    column: $table.intention,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get waitOutcome => $composableBuilder(
+    column: $table.waitOutcome,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UnlockAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UnlockAttemptsTable> {
+  $$UnlockAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get target => $composableBuilder(
+    column: $table.target,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get requestedBreakMinutes => $composableBuilder(
+    column: $table.requestedBreakMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get intention => $composableBuilder(
+    column: $table.intention,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get waitOutcome => $composableBuilder(
+    column: $table.waitOutcome,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sessionId => $composableBuilder(
+    column: $table.sessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UnlockAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UnlockAttemptsTable> {
+  $$UnlockAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get target =>
+      $composableBuilder(column: $table.target, builder: (column) => column);
+
+  GeneratedColumn<String> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<int> get requestedBreakMinutes => $composableBuilder(
+    column: $table.requestedBreakMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get intention =>
+      $composableBuilder(column: $table.intention, builder: (column) => column);
+
+  GeneratedColumn<String> get waitOutcome => $composableBuilder(
+    column: $table.waitOutcome,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sessionId =>
+      $composableBuilder(column: $table.sessionId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+}
+
+class $$UnlockAttemptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UnlockAttemptsTable,
+          UnlockAttempt,
+          $$UnlockAttemptsTableFilterComposer,
+          $$UnlockAttemptsTableOrderingComposer,
+          $$UnlockAttemptsTableAnnotationComposer,
+          $$UnlockAttemptsTableCreateCompanionBuilder,
+          $$UnlockAttemptsTableUpdateCompanionBuilder,
+          (
+            UnlockAttempt,
+            BaseReferences<_$AppDatabase, $UnlockAttemptsTable, UnlockAttempt>,
+          ),
+          UnlockAttempt,
+          PrefetchHooks Function()
+        > {
+  $$UnlockAttemptsTableTableManager(
+    _$AppDatabase db,
+    $UnlockAttemptsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UnlockAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UnlockAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UnlockAttemptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> target = const Value.absent(),
+                Value<String> level = const Value.absent(),
+                Value<int> requestedBreakMinutes = const Value.absent(),
+                Value<String?> intention = const Value.absent(),
+                Value<String> waitOutcome = const Value.absent(),
+                Value<String?> sessionId = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UnlockAttemptsCompanion(
+                id: id,
+                platform: platform,
+                target: target,
+                level: level,
+                requestedBreakMinutes: requestedBreakMinutes,
+                intention: intention,
+                waitOutcome: waitOutcome,
+                sessionId: sessionId,
+                timestamp: timestamp,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String platform,
+                required String target,
+                required String level,
+                required int requestedBreakMinutes,
+                Value<String?> intention = const Value.absent(),
+                required String waitOutcome,
+                Value<String?> sessionId = const Value.absent(),
+                required DateTime timestamp,
+                Value<int> rowid = const Value.absent(),
+              }) => UnlockAttemptsCompanion.insert(
+                id: id,
+                platform: platform,
+                target: target,
+                level: level,
+                requestedBreakMinutes: requestedBreakMinutes,
+                intention: intention,
+                waitOutcome: waitOutcome,
+                sessionId: sessionId,
+                timestamp: timestamp,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UnlockAttemptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UnlockAttemptsTable,
+      UnlockAttempt,
+      $$UnlockAttemptsTableFilterComposer,
+      $$UnlockAttemptsTableOrderingComposer,
+      $$UnlockAttemptsTableAnnotationComposer,
+      $$UnlockAttemptsTableCreateCompanionBuilder,
+      $$UnlockAttemptsTableUpdateCompanionBuilder,
+      (
+        UnlockAttempt,
+        BaseReferences<_$AppDatabase, $UnlockAttemptsTable, UnlockAttempt>,
+      ),
+      UnlockAttempt,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8641,4 +9501,6 @@ class $AppDatabaseManager {
       $$DailyPlansTableTableManager(_db, _db.dailyPlans);
   $$DeviceUsageRecordsTableTableManager get deviceUsageRecords =>
       $$DeviceUsageRecordsTableTableManager(_db, _db.deviceUsageRecords);
+  $$UnlockAttemptsTableTableManager get unlockAttempts =>
+      $$UnlockAttemptsTableTableManager(_db, _db.unlockAttempts);
 }

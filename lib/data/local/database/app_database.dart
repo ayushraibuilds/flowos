@@ -26,6 +26,8 @@ import '../dao/achievements_dao.dart';
 import '../dao/attention_costs_dao.dart';
 import '../tables/device_usage_records_table.dart';
 import '../dao/device_usage_records_dao.dart';
+import '../tables/unlock_attempts_table.dart';
+import '../dao/unlock_attempts_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -43,6 +45,7 @@ part 'app_database.g.dart';
     Achievements,
     DailyPlans,
     DeviceUsageRecords,
+    UnlockAttempts,
   ],
   daos: [
     TasksDao,
@@ -55,6 +58,7 @@ part 'app_database.g.dart';
     AchievementsDao,
     AttentionCostsDao,
     DeviceUsageRecordsDao,
+    UnlockAttemptsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -64,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -80,6 +84,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.createTable(deviceUsageRecords);
+      }
+      if (from < 4) {
+        await m.createTable(unlockAttempts);
       }
     },
   );
@@ -98,6 +105,7 @@ class AppDatabase extends _$AppDatabase {
         batch.deleteWhere(achievements, (_) => const Constant(true));
         batch.deleteWhere(attentionCosts, (_) => const Constant(true));
         batch.deleteWhere(deviceUsageRecords, (_) => const Constant(true));
+        batch.deleteWhere(unlockAttempts, (_) => const Constant(true));
       });
     });
   }

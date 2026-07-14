@@ -43,6 +43,14 @@ final currentTierProvider = Provider<String>((ref) {
   return XpConstants.tierName(level);
 });
 
+/// Watch if the user has any focus sessions in history.
+final hasFocusHistoryProvider = StreamProvider<bool>((ref) {
+  final db = ref.watch(databaseProvider);
+  return (db.select(db.focusSessions)..limit(1))
+      .watch()
+      .map((list) => list.isNotEmpty);
+});
+
 /// Today's daily score — computed from all DAO sources.
 final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   final db = ref.watch(databaseProvider);

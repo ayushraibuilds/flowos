@@ -13,8 +13,9 @@ class FocusBlockerService : AccessibilityService() {
 
         val packageName = event.packageName?.toString() ?: return
         
-        // Don't block ourselves
+        // Don't block ourselves or system critical packages
         if (packageName == this.packageName) return
+        if (isSystemCriticalPackage(packageName)) return
 
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val isFocusActive = prefs.getBoolean("flutter.is_focus_active", false)
@@ -49,6 +50,25 @@ class FocusBlockerService : AccessibilityService() {
         } catch (e: Exception) {
             emptySet()
         }
+    }
+
+    private fun isSystemCriticalPackage(pkg: String): Boolean {
+        val systemCritical = setOf(
+            "com.android.phone",
+            "com.android.server.telecom",
+            "com.google.android.dialer",
+            "com.android.emergency",
+            "com.android.settings",
+            "com.android.systemui",
+            "com.android.launcher",
+            "com.android.launcher3",
+            "com.google.android.apps.nexuslauncher",
+            "com.sec.android.app.launcher",
+            "com.huawei.android.launcher",
+            "com.oppo.launcher",
+            "com.miui.home"
+        )
+        return systemCritical.contains(pkg) || pkg.endsWith(".launcher") || pkg.contains("telephony")
     }
 
     override fun onInterrupt() {}
