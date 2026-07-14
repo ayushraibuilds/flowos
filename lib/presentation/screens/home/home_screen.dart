@@ -18,6 +18,8 @@ import '../../widgets/task_card.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/tasks/services/task_completion_service.dart';
 import '../../../features/attention/widgets/attention_radar_card.dart';
+import '../../../features/onboarding/providers/onboarding_providers.dart';
+import '../../../features/onboarding/models/user_profile.dart';
 import '../../../features/flow_garden/widgets/home_garden_glance.dart';
 import '../../../features/rhythm/providers/rhythm_providers.dart';
 import '../../widgets/rhythm_recommendation_card.dart';
@@ -67,6 +69,10 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.lg),
               // ─── Header: Level + Streak ────────────────────────
               _buildHeader(context, ref),
+              if (ref.watch(userProfileProvider).isInProtectedWindow()) ...[
+                const SizedBox(height: AppSpacing.md),
+                _buildProtectedWindowBanner(context, ref.read(userProfileProvider)),
+              ],
               const SizedBox(height: AppSpacing.xxl),
               // ─── Hero CTA Card (Dynamic Alignment) ──────────────
               ref.watch(hasFocusHistoryProvider).when(
@@ -714,6 +720,76 @@ class HomeScreen extends ConsumerWidget {
             child: Text(
               'Configure Starter Session 🎯',
               style: AppTypography.bodySmall.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProtectedWindowBanner(BuildContext context, UserProfile profile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.emerald.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        border: Border.all(
+          color: AppColors.emerald.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Text('🛡️', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Protected Focus Block',
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Protected window · ${profile.protectedWindowLabel}',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              context.go('/focus');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.emerald,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+              ),
+            ),
+            child: Text(
+              'Focus 🎯',
+              style: AppTypography.caption.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),

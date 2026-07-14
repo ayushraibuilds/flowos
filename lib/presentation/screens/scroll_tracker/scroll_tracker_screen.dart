@@ -49,6 +49,17 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   void initState() {
     super.initState();
     _loadBudget();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = ref.read(userProfileProvider);
+      if (profile.protectionMode == 'firm' && profile.isInProtectedWindow()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("You're in protected time. Intent required."),
+            backgroundColor: AppColors.dangerCoral,
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _loadBudget() async {

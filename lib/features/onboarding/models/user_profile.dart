@@ -47,4 +47,35 @@ class UserProfile {
       'protectionMode': protectionMode,
     };
   }
+
+  bool isInProtectedWindow([DateTime? now]) {
+    final time = now ?? DateTime.now();
+
+    // Check if weekdays only is enabled, and if today is a weekday
+    if (protectedWeekdaysOnly) {
+      if (time.weekday == DateTime.saturday || time.weekday == DateTime.sunday) {
+        return false;
+      }
+    }
+
+    final currentHour = time.hour;
+    if (protectedStartHour <= protectedEndHour) {
+      return currentHour >= protectedStartHour && currentHour < protectedEndHour;
+    } else {
+      // Overnight range, e.g. 22:00 to 06:00
+      return currentHour >= protectedStartHour || currentHour < protectedEndHour;
+    }
+  }
+
+  String get protectedWindowLabel {
+    final start = _formatHour(protectedStartHour);
+    final end = _formatHour(protectedEndHour);
+    return '$start - $end';
+  }
+
+  static String _formatHour(int hour) {
+    if (hour == 0) return '12 AM';
+    if (hour == 12) return '12 PM';
+    return hour < 12 ? '$hour AM' : '${hour - 12} PM';
+  }
 }

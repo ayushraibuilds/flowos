@@ -52,14 +52,22 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  Row(
-                    children: [
-                      _buildSmallButton('🧠 Brain Dump', () {}),
-                      const SizedBox(width: AppSpacing.xs),
-                      _buildSmallButton('⚡ Match Energy', () {
-                        setState(() => _matchEnergy = !_matchEnergy);
-                      }, isSelected: _matchEnergy),
-                    ],
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          _buildSmallButton('🧠 Brain Dump', () => context.push('/brain-dump')),
+                          const SizedBox(width: AppSpacing.xs),
+                          _buildSmallButton('🎰 Roulette', _runTaskRoulette),
+                          const SizedBox(width: AppSpacing.xs),
+                          _buildSmallButton('⚡ Match Energy', () {
+                            setState(() => _matchEnergy = !_matchEnergy);
+                          }, isSelected: _matchEnergy),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -295,6 +303,57 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => const _AddTaskSheet(),
+    );
+  }
+
+  void _runTaskRoulette() {
+    HapticFeedback.mediumImpact();
+    final tasksAsync = ref.read(activeTasksProvider);
+    tasksAsync.when(
+      loading: () {},
+      error: (_, __) {},
+      data: (tasks) {
+        final incomplete = tasks.where((t) => !t.isCompleted).toList();
+        if (incomplete.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No incomplete tasks to pick from! Create one first.'),
+              backgroundColor: AppColors.dangerCoral,
+            ),
+          );
+          return;
+        }
+
+        final randomTask = (incomplete..shuffle()).first;
+
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.background2,
+            title: const Text('Task Roulette 🎰'),
+            content: Text(
+              'Divert attention to "${randomTask.title}"?\nLet\'s start a deep focus session.',
+              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: TextStyle(color: AppColors.textTertiary)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  context.push('/deep-work', extra: {
+                    'taskId': randomTask.id,
+                    'taskTitle': randomTask.title,
+                  });
+                },
+                child: Text('Start Focus 🚀', style: TextStyle(color: AppColors.emerald)),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
