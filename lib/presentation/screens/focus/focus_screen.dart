@@ -203,7 +203,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     );
 
     _runTimer();
-    AmbientSoundPlayer.play(_selectedSound);
+    if (ref.read(settingsProvider).soundEnabled) {
+      AmbientSoundPlayer.play(_selectedSound);
+    }
   }
 
   void _runTimer() {
@@ -229,7 +231,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         _showReturnCue = false;
       });
       _runTimer();
-      AmbientSoundPlayer.play(_selectedSound);
+      if (ref.read(settingsProvider).soundEnabled) {
+        AmbientSoundPlayer.play(_selectedSound);
+      }
     } else {
       _timer?.cancel();
       setState(() {
@@ -730,7 +734,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                     HapticFeedback.selectionClick();
                     setState(() => _selectedSound = s.key);
                     if (_isRunning && !_isPaused) {
-                      AmbientSoundPlayer.play(s.key);
+                      if (ref.read(settingsProvider).soundEnabled) {
+                        AmbientSoundPlayer.play(s.key);
+                      }
                     }
                   },
                   child: Container(
