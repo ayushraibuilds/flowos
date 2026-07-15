@@ -30,6 +30,7 @@ import '../screens/flow_garden/garden_screen.dart';
 import '../screens/protection/app_picker_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../screens/rest/intentional_rest_screen.dart';
+import '../screens/settings/sleep_mode_screen.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -277,6 +278,11 @@ final appRouter = GoRouter(
       path: '/app-picker',
       name: 'appPicker',
       builder: (context, state) => const AppPickerScreen(),
+    ),
+    GoRoute(
+      path: '/sleep-mode',
+      name: 'sleepMode',
+      builder: (context, state) => const SleepModeScreen(),
     ),
     GoRoute(
       path: '/energy-checkin',

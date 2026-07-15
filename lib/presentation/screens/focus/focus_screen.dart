@@ -165,6 +165,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
             packageName: trigger.packageName,
             appDisplayName: appDisplayName,
             protectionMode: effectiveMode,
+            bypassAllowed: trigger.bypassAllowed,
             onKeepFocus: () {
               if (_isRunning && mounted) {
                 setState(() {

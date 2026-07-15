@@ -11,6 +11,7 @@ import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
 import '../../../features/attention/widgets/app_picker_editor.dart';
 import '../../../features/attention/providers/app_picker_providers.dart';
+import '../../../features/settings/providers/sleep_mode_provider.dart';
 
 class OnboardingConnectScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
@@ -196,6 +197,9 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
         }
       }
     }
+
+    // Refresh versioned native sleep config after picker selection completes
+    await ref.read(sleepConfigWriterProvider).writeSleepConfig();
 
     widget.onComplete();
   }

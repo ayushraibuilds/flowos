@@ -232,10 +232,16 @@ class AttentionDataRepository {
     final end = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
 
     try {
-      final rawUsage = await _platform.getDailyUsage(start, end);
-      final rawUnlocks = await _platform.getDailyUnlockEvents(start, end);
-
       final prefs = await SharedPreferences.getInstance();
+      final deletedTimestamp = prefs.getInt('flowos_unlocks_deleted_timestamp') ?? 0;
+      DateTime unlockStart = start;
+      if (deletedTimestamp > start.millisecondsSinceEpoch) {
+        unlockStart = DateTime.fromMillisecondsSinceEpoch(deletedTimestamp);
+      }
+
+      final rawUsage = await _platform.getDailyUsage(start, end);
+      final rawUnlocks = await _platform.getDailyUnlockEvents(unlockStart, end);
+
       final rawProfile = prefs.getString('flowos_user_profile');
       final watchlist = <String>{};
       if (rawProfile != null) {
@@ -277,11 +283,48 @@ class AttentionDataRepository {
           item['date'] as String: item['count'] as int
       };
 
+      final observedFromMs = prefs.getInt('flowos_notification_observed_from');
+      final observedFrom = observedFromMs != null ? DateTime.fromMillisecondsSinceEpoch(observedFromMs) : null;
+
       for (int i = 0; i < days; i++) {
         final d = now.subtract(Duration(days: i));
         final date = DateTime(d.year, d.month, d.day);
         final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
         final unlocks = unlockMap[dateStr];
+
+        // 1. Calculate notificationCoverage
+        String notifCoverage = 'none';
+        if (observedFrom != null) {
+          final obsDay = DateTime(observedFrom.year, observedFrom.month, observedFrom.day);
+          if (date.isBefore(obsDay)) {
+            notifCoverage = 'none';
+          } else if (date.isAtSameMomentAs(obsDay)) {
+            notifCoverage = 'partial';
+          } else {
+            final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+            notifCoverage = isToday ? 'collecting' : 'complete';
+          }
+        }
+
+        // 2. Calculate unlockCoverage
+        String unlCoverage = 'none';
+        if (states.usageAccess) {
+          if (deletedTimestamp > 0) {
+            final delDate = DateTime.fromMillisecondsSinceEpoch(deletedTimestamp);
+            final delDay = DateTime(delDate.year, delDate.month, delDate.day);
+            if (date.isBefore(delDay)) {
+              unlCoverage = 'none';
+            } else if (date.isAtSameMomentAs(delDay)) {
+              unlCoverage = 'partial';
+            } else {
+              final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+              unlCoverage = isToday ? 'collecting' : 'complete';
+            }
+          } else {
+            final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+            unlCoverage = isToday ? 'collecting' : 'complete';
+          }
+        }
 
         await _db.deviceDayMetricsDao.upsertMetric(DeviceDayMetricsCompanion(
           id: Value('${dateStr}_android'),
@@ -290,6 +333,9 @@ class AttentionDataRepository {
           unlockCount: Value(unlocks),
           coverageState: const Value('complete'),
           usageSyncedAt: Value(DateTime.now()),
+          notificationObservedFrom: Value(observedFrom),
+          unlockCoverage: Value(unlCoverage),
+          notificationCoverage: Value(notifCoverage),
         ));
       }
     } catch (_) {}
@@ -412,6 +458,53 @@ class AttentionDataRepository {
       return 'utility';
     }
     return null;
+  }
+
+  Future<void> deleteInterruptionHistory() async {
+    // 1. Clear daily notification totals
+    await _db.notificationDailyCountsDao.clearAll();
+
+    // 2. Set current day's unlockCount to null, and coverage to partial
+    final today = DateTime.now();
+    final date = DateTime(today.year, today.month, today.day);
+    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    
+    await _db.deviceDayMetricsDao.upsertMetric(DeviceDayMetricsCompanion(
+      id: Value('${dateStr}_android'),
+      day: Value(date),
+      platform: const Value('android'),
+      unlockCount: const Value(null),
+      unlockCoverage: const Value('partial'),
+      notificationCoverage: const Value('partial'),
+      usageSyncedAt: Value(DateTime.now()),
+    ));
+
+    // 3. Set a SharedPreferences timestamp to prevent re-importing old keyguard events
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('flowos_unlocks_deleted_timestamp', DateTime.now().millisecondsSinceEpoch);
+
+    // 4. Wipe native pending notification tracker map
+    if (Platform.isAndroid) {
+      await DeviceAttentionPlatform._channel.invokeMethod('wipeNotificationTracker');
+    }
+  }
+
+  Future<void> resetAllLocalData() async {
+    // 1. Purge all tables in SQLite
+    await _db.clearAllData();
+
+    // 2. Wipe native notification tracker batches
+    if (Platform.isAndroid) {
+      await DeviceAttentionPlatform._channel.invokeMethod('wipeNotificationTracker');
+    }
+
+    // 3. Clear SharedPreferences configs
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('flowos_sleep_config');
+    await prefs.remove('flowos_active_policies');
+    await prefs.remove('flowos_interruption_collection_enabled');
+    await prefs.remove('flutter.flowos_pending_trigger');
+    await prefs.remove('flutter.flowos_nudge_events');
   }
 }
 

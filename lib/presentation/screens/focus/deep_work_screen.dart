@@ -163,6 +163,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
             packageName: trigger.packageName,
             appDisplayName: appDisplayName,
             protectionMode: effectiveMode,
+            bypassAllowed: trigger.bypassAllowed,
             onKeepFocus: () {
               if (_isRunning && mounted) {
                 _resumeTimer();

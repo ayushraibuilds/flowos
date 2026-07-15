@@ -21,6 +21,7 @@ import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/onboarding/providers/onboarding_providers.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Full Settings Screen — notification prefs, themes, scroll budget,
 /// sync controls, account management.
@@ -33,12 +34,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBindingObserver {
   bool _isAccessibilityEnabled = false;
+  bool _isInterruptionCollectionEnabled = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _checkAccessibility();
+    _loadInterruptionConsent();
   }
 
   @override
@@ -51,6 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAccessibility();
+      _loadInterruptionConsent();
     }
   }
 
@@ -65,10 +69,140 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
     } catch (_) {}
   }
 
+  Future<void> _loadInterruptionConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isInterruptionCollectionEnabled = prefs.getBool('flowos_interruption_collection_enabled') ?? false;
+      });
+    }
+  }
+
   Future<void> _toggleAccessibilityService(bool enable) async {
     if (enable && !_isAccessibilityEnabled) {
       final platform = DeviceAttentionPlatform();
       await showAccessibilityDisclosure(context, platform);
+    }
+  }
+
+  Future<void> _toggleInterruptionConsent(bool enable) async {
+    if (enable) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.background2,
+          title: Text(
+            'Interruption Insights Disclosure',
+            style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'FlowOS records only the app that posted a notification and a daily count. It never reads notification text, names, senders, or content. This data stays on your device.',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'By enabling this, you consent to locally count incoming notification events.',
+                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'Cancel',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                'I Consent',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.emerald,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('flowos_interruption_collection_enabled', true);
+        if (prefs.getInt('flowos_notification_observed_from') == null) {
+          await prefs.setInt('flowos_notification_observed_from', DateTime.now().millisecondsSinceEpoch);
+        }
+        setState(() {
+          _isInterruptionCollectionEnabled = true;
+        });
+
+        // Trigger settings request
+        final platform = ref.read(deviceAttentionPlatformProvider);
+        final states = await platform.getPermissionStates();
+        if (!states.notificationAccess) {
+          await platform.openNotificationListenerSettings();
+        }
+      }
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('flowos_interruption_collection_enabled', false);
+      setState(() {
+        _isInterruptionCollectionEnabled = false;
+      });
+    }
+  }
+
+  Future<void> _confirmDeleteInterruptionHistory() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.background2,
+        title: Text(
+          'Delete Interruption History',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'This will permanently delete all daily notification logs, set unlocks to null, and temporarily disable future logs collection. This cannot be undone.',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.dangerCoral,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await ref.read(attentionDataRepositoryProvider).deleteInterruptionHistory();
+      setState(() {
+        _isInterruptionCollectionEnabled = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Interruption history deleted.'),
+            backgroundColor: AppColors.dangerCoral,
+          ),
+        );
+      }
     }
   }
 
@@ -164,6 +298,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             value: _isAccessibilityEnabled,
             onChanged: _toggleAccessibilityService,
           ),
+          _toggleTile(
+            title: 'Interruption Insights (Android)',
+            subtitle: _isInterruptionCollectionEnabled
+                ? 'Active — Daily notification count and unlocks tracked'
+                : 'Consent to collect local notification counts and device unlocks',
+            value: _isInterruptionCollectionEnabled,
+            onChanged: _toggleInterruptionConsent,
+          ),
           _actionTile(
             title: 'System Permissions & Privacy',
             subtitle: 'Manage usage access, accessibility blocker, and notification status',
@@ -175,6 +317,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             subtitle: 'Choose which apps are blocked during focus and sleep',
             icon: Icons.app_blocking_outlined,
             onTap: () => context.push('/app-picker'),
+          ),
+          _actionTile(
+            title: 'Sleep Mode',
+            subtitle: 'Configure bedtime app shielding and quiet hours',
+            icon: Icons.nights_stay_outlined,
+            onTap: () => context.push('/sleep-mode'),
           ),
           _actionTile(
             title: 'Update your rhythm',
@@ -254,6 +402,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             subtitle: 'Download task, session, and XP history to a JSON file',
             icon: Icons.download_rounded,
             onTap: () => _exportData(context),
+          ),
+          _actionTile(
+            title: 'Delete interruption history (Android)',
+            subtitle: 'Permanently remove notification logs and unlock counts',
+            icon: Icons.delete_sweep_outlined,
+            onTap: () => _confirmDeleteInterruptionHistory(),
           ),
           const SizedBox(height: AppSpacing.xxl),
 
@@ -671,8 +825,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final db = ref.read(databaseProvider);
-              await db.clearAllData();
+              await ref.read(attentionDataRepositoryProvider).resetAllLocalData();
 
               final isLoggedIn = ref.read(isLoggedInProvider);
               if (isLoggedIn) {

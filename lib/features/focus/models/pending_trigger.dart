@@ -4,6 +4,7 @@ class PendingTrigger {
   final int triggeredAt;
   final String source;
   final bool claimed;
+  final bool bypassAllowed;
 
   const PendingTrigger({
     required this.id,
@@ -11,6 +12,7 @@ class PendingTrigger {
     required this.triggeredAt,
     required this.source,
     required this.claimed,
+    this.bypassAllowed = true,
   });
 
   bool get isExpired {
@@ -24,6 +26,7 @@ class PendingTrigger {
         'triggeredAt': triggeredAt,
         'source': source,
         'claimed': claimed,
+        'bypassAllowed': bypassAllowed,
       };
 
   factory PendingTrigger.fromJson(Map<String, dynamic> json) => PendingTrigger(
@@ -32,6 +35,7 @@ class PendingTrigger {
         triggeredAt: json['triggeredAt'] as int,
         source: json['source'] as String? ?? 'focus',
         claimed: json['claimed'] as bool? ?? false,
+        bypassAllowed: json['bypassAllowed'] as bool? ?? true,
       );
 }
 

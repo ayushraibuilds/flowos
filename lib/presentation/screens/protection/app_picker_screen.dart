@@ -11,6 +11,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/attention/providers/app_picker_providers.dart';
 import '../../../features/attention/widgets/app_picker_editor.dart';
+import '../../../features/settings/providers/sleep_mode_provider.dart';
 
 class AppPickerScreen extends ConsumerStatefulWidget {
   const AppPickerScreen({super.key});
@@ -77,6 +78,9 @@ class _AppPickerScreenState extends ConsumerState<AppPickerScreen> {
         }
       }
     }
+
+    // Refresh versioned native sleep config
+    await ref.read(sleepConfigWriterProvider).writeSleepConfig();
 
     // Set suggestions shown flag
     final prefs = await SharedPreferences.getInstance();

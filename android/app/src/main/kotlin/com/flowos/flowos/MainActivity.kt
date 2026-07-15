@@ -137,66 +137,86 @@ class MainActivity : FlutterActivity() {
                                         "packageName" to trigger.optString("packageName"),
                                         "triggeredAt" to triggeredAt,
                                         "source" to trigger.optString("source", "focus"),
-                                        "claimed" to true
+                                        "claimed" to true,
+                                        "bypassAllowed" to trigger.optBoolean("bypassAllowed", true)
                                     ))
                                     return@setMethodCallHandler
-                                }
-                            } catch (e: Exception) {}
-                        }
-                        result.success(null)
-                    }
-                    "claimPendingNudge" -> {
-                        val now = System.currentTimeMillis()
-                        val claimed = NudgeStore.claim(this, now)
-                        result.success(claimed)
-                    }
-                    "clearNudgesForSession" -> {
-                        val sessionId = call.argument<String>("sessionId")
-                        if (sessionId != null) {
-                            NudgeStore.clearForSession(this, sessionId)
-                        }
-                        result.success(null)
-                    }
-                    "getDefaultEssentialPackages" -> {
-                        result.success(getDefaultEssentialPackagesList())
-                    }
-                    "getDailyUsage" -> {
-                        val start = call.argument<Long>("startMs")
-                        val end = call.argument<Long>("endMs")
-                        if (start != null && end != null) {
-                            if (!hasUsageStatsPermission()) {
-                                result.error(
-                                    "permission_denied",
-                                    "Usage Access is required to read device screen time.",
-                                    null,
-                                )
-                            } else {
-                                result.success(getDailyUsageRange(start, end))
-                            }
-                        } else {
-                            result.error("bad_arguments", "Missing startMs or endMs", null)
-                        }
-                    }
-                    "getDailyUnlockEvents" -> {
-                        val start = call.argument<Long>("startMs")
-                        val end = call.argument<Long>("endMs")
-                        if (start != null && end != null) {
-                            if (!hasUsageStatsPermission()) {
-                                result.error(
-                                    "permission_denied",
-                                    "Usage Access is required to read unlock events.",
-                                    null,
-                                )
-                            } else {
-                                result.success(getDailyUnlockEventsRange(start, end))
-                            }
-                        } else {
-                            result.error("bad_arguments", "Missing startMs or endMs", null)
-                        }
-                    }
-                    else -> result.notImplemented()
-                }
-            }
+                                  }
+                              } catch (e: Exception) {}
+                          }
+                          result.success(null)
+                      }
+                      "claimPendingNudge" -> {
+                          val now = System.currentTimeMillis()
+                          val claimed = NudgeStore.claim(this, now)
+                          result.success(claimed)
+                      }
+                      "clearNudgesForSession" -> {
+                          val sessionId = call.argument<String>("sessionId")
+                          if (sessionId != null) {
+                              NudgeStore.clearForSession(this, sessionId)
+                          }
+                          result.success(null)
+                      }
+                      "getDefaultEssentialPackages" -> {
+                          result.success(getDefaultEssentialPackagesList())
+                      }
+                      "getDailyUsage" -> {
+                          val start = call.argument<Long>("startMs")
+                          val end = call.argument<Long>("endMs")
+                          if (start != null && end != null) {
+                              if (!hasUsageStatsPermission()) {
+                                  result.error(
+                                      "permission_denied",
+                                      "Usage Access is required to read device screen time.",
+                                      null,
+                                  )
+                              } else {
+                                  result.success(getDailyUsageRange(start, end))
+                              }
+                          } else {
+                              result.error("bad_arguments", "Missing startMs or endMs", null)
+                          }
+                      }
+                      "getDailyUnlockEvents" -> {
+                          val start = call.argument<Long>("startMs")
+                          val end = call.argument<Long>("endMs")
+                          if (start != null && end != null) {
+                              if (!hasUsageStatsPermission()) {
+                                  result.error(
+                                      "permission_denied",
+                                      "Usage Access is required to read unlock events.",
+                                      null,
+                                  )
+                              } else {
+                                  result.success(getDailyUnlockEventsRange(start, end))
+                              }
+                          } else {
+                              result.error("bad_arguments", "Missing startMs or endMs", null)
+                          }
+                      }
+                      "startInFlightBatch" -> {
+                          result.success(NotificationCountStore.startInFlightBatch(this))
+                      }
+                      "acknowledgeBatch" -> {
+                          val batchId = call.argument<String>("batchId")
+                          if (batchId != null) {
+                              NotificationCountStore.acknowledgeBatch(this, batchId)
+                              result.success(null)
+                          } else {
+                              result.error("bad_arguments", "Missing batchId", null)
+                          }
+                      }
+                      "getUnacknowledgedBatches" -> {
+                          result.success(NotificationCountStore.getUnacknowledgedBatches(this))
+                      }
+                      "wipeNotificationTracker" -> {
+                          NotificationCountStore.wipeAll(this)
+                          result.success(null)
+                      }
+                      else -> result.notImplemented()
+                  }
+              }
     }
 
     override fun onNewIntent(intent: Intent) {

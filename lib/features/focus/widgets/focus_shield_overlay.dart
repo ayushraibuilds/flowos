@@ -21,6 +21,7 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
   final VoidCallback onKeepFocus;
   final VoidCallback onCancelSession;
   final Function(int minutes)? onGrantBreak;
+  final bool bypassAllowed;
 
   const FocusShieldOverlay({
     super.key,
@@ -30,6 +31,7 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
     required this.onKeepFocus,
     required this.onCancelSession,
     this.onGrantBreak,
+    this.bypassAllowed = true,
   });
 
   static Future<void> show(
@@ -40,6 +42,7 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
     required VoidCallback onKeepFocus,
     required VoidCallback onCancelSession,
     Function(int minutes)? onGrantBreak,
+    bool bypassAllowed = true,
   }) {
     return showGeneralDialog(
       context: context,
@@ -64,6 +67,7 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
                 onGrantBreak(min);
               }
             : null,
+        bypassAllowed: bypassAllowed,
       ),
     );
   }
@@ -343,7 +347,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
 
               // Actions Block
               if (_canAction) ...[
-                if (widget.protectionMode == ProtectionMode.guard || widget.protectionMode == ProtectionMode.nudge) ...[
+                if ((widget.protectionMode == ProtectionMode.guard || widget.protectionMode == ProtectionMode.nudge) && widget.bypassAllowed) ...[
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -370,7 +374,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                   ),
                   const SizedBox(height: AppSpacing.md),
                   _buildBreakDurationSelector(),
-                ] else if (widget.protectionMode == ProtectionMode.deep) ...[
+                ] else ...[
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -378,18 +382,20 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                       foregroundColor: Colors.white,
                       minimumSize: const Size.fromHeight(50),
                     ),
-                    child: const Text('Resume Focus'),
+                    child: const Text('Resume'),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  OutlinedButton(
-                    onPressed: widget.onCancelSession,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.dangerCoral,
-                      side: BorderSide(color: AppColors.dangerCoral),
-                      minimumSize: const Size.fromHeight(50),
+                  if (widget.protectionMode == ProtectionMode.deep) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    OutlinedButton(
+                      onPressed: _handleCancelSession,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.dangerCoral,
+                        side: BorderSide(color: AppColors.dangerCoral),
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                      child: const Text('Cancel Focus Session'),
                     ),
-                    child: const Text('Cancel Focus Session'),
-                  ),
+                  ],
                 ],
               ],
             ],

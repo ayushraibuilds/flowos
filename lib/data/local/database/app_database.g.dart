@@ -7163,6 +7163,39 @@ class $DeviceDayMetricsTable extends DeviceDayMetrics
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _notificationObservedFromMeta =
+      const VerificationMeta('notificationObservedFrom');
+  @override
+  late final GeneratedColumn<DateTime> notificationObservedFrom =
+      GeneratedColumn<DateTime>(
+        'notification_observed_from',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _unlockCoverageMeta = const VerificationMeta(
+    'unlockCoverage',
+  );
+  @override
+  late final GeneratedColumn<String> unlockCoverage = GeneratedColumn<String>(
+    'unlock_coverage',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notificationCoverageMeta =
+      const VerificationMeta('notificationCoverage');
+  @override
+  late final GeneratedColumn<String> notificationCoverage =
+      GeneratedColumn<String>(
+        'notification_coverage',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -7172,6 +7205,9 @@ class $DeviceDayMetricsTable extends DeviceDayMetrics
     screenWakeCount,
     coverageState,
     usageSyncedAt,
+    notificationObservedFrom,
+    unlockCoverage,
+    notificationCoverage,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7244,6 +7280,33 @@ class $DeviceDayMetricsTable extends DeviceDayMetrics
         ),
       );
     }
+    if (data.containsKey('notification_observed_from')) {
+      context.handle(
+        _notificationObservedFromMeta,
+        notificationObservedFrom.isAcceptableOrUnknown(
+          data['notification_observed_from']!,
+          _notificationObservedFromMeta,
+        ),
+      );
+    }
+    if (data.containsKey('unlock_coverage')) {
+      context.handle(
+        _unlockCoverageMeta,
+        unlockCoverage.isAcceptableOrUnknown(
+          data['unlock_coverage']!,
+          _unlockCoverageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notification_coverage')) {
+      context.handle(
+        _notificationCoverageMeta,
+        notificationCoverage.isAcceptableOrUnknown(
+          data['notification_coverage']!,
+          _notificationCoverageMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -7281,6 +7344,18 @@ class $DeviceDayMetricsTable extends DeviceDayMetrics
         DriftSqlType.dateTime,
         data['${effectivePrefix}usage_synced_at'],
       ),
+      notificationObservedFrom: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}notification_observed_from'],
+      ),
+      unlockCoverage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unlock_coverage'],
+      ),
+      notificationCoverage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notification_coverage'],
+      ),
     );
   }
 
@@ -7298,6 +7373,9 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
   final int? screenWakeCount;
   final String coverageState;
   final DateTime? usageSyncedAt;
+  final DateTime? notificationObservedFrom;
+  final String? unlockCoverage;
+  final String? notificationCoverage;
   const DeviceDayMetric({
     required this.id,
     required this.day,
@@ -7306,6 +7384,9 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
     this.screenWakeCount,
     required this.coverageState,
     this.usageSyncedAt,
+    this.notificationObservedFrom,
+    this.unlockCoverage,
+    this.notificationCoverage,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7322,6 +7403,17 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
     map['coverage_state'] = Variable<String>(coverageState);
     if (!nullToAbsent || usageSyncedAt != null) {
       map['usage_synced_at'] = Variable<DateTime>(usageSyncedAt);
+    }
+    if (!nullToAbsent || notificationObservedFrom != null) {
+      map['notification_observed_from'] = Variable<DateTime>(
+        notificationObservedFrom,
+      );
+    }
+    if (!nullToAbsent || unlockCoverage != null) {
+      map['unlock_coverage'] = Variable<String>(unlockCoverage);
+    }
+    if (!nullToAbsent || notificationCoverage != null) {
+      map['notification_coverage'] = Variable<String>(notificationCoverage);
     }
     return map;
   }
@@ -7341,6 +7433,15 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
       usageSyncedAt: usageSyncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(usageSyncedAt),
+      notificationObservedFrom: notificationObservedFrom == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notificationObservedFrom),
+      unlockCoverage: unlockCoverage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unlockCoverage),
+      notificationCoverage: notificationCoverage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notificationCoverage),
     );
   }
 
@@ -7357,6 +7458,13 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
       screenWakeCount: serializer.fromJson<int?>(json['screenWakeCount']),
       coverageState: serializer.fromJson<String>(json['coverageState']),
       usageSyncedAt: serializer.fromJson<DateTime?>(json['usageSyncedAt']),
+      notificationObservedFrom: serializer.fromJson<DateTime?>(
+        json['notificationObservedFrom'],
+      ),
+      unlockCoverage: serializer.fromJson<String?>(json['unlockCoverage']),
+      notificationCoverage: serializer.fromJson<String?>(
+        json['notificationCoverage'],
+      ),
     );
   }
   @override
@@ -7370,6 +7478,11 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
       'screenWakeCount': serializer.toJson<int?>(screenWakeCount),
       'coverageState': serializer.toJson<String>(coverageState),
       'usageSyncedAt': serializer.toJson<DateTime?>(usageSyncedAt),
+      'notificationObservedFrom': serializer.toJson<DateTime?>(
+        notificationObservedFrom,
+      ),
+      'unlockCoverage': serializer.toJson<String?>(unlockCoverage),
+      'notificationCoverage': serializer.toJson<String?>(notificationCoverage),
     };
   }
 
@@ -7381,6 +7494,9 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
     Value<int?> screenWakeCount = const Value.absent(),
     String? coverageState,
     Value<DateTime?> usageSyncedAt = const Value.absent(),
+    Value<DateTime?> notificationObservedFrom = const Value.absent(),
+    Value<String?> unlockCoverage = const Value.absent(),
+    Value<String?> notificationCoverage = const Value.absent(),
   }) => DeviceDayMetric(
     id: id ?? this.id,
     day: day ?? this.day,
@@ -7393,6 +7509,15 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
     usageSyncedAt: usageSyncedAt.present
         ? usageSyncedAt.value
         : this.usageSyncedAt,
+    notificationObservedFrom: notificationObservedFrom.present
+        ? notificationObservedFrom.value
+        : this.notificationObservedFrom,
+    unlockCoverage: unlockCoverage.present
+        ? unlockCoverage.value
+        : this.unlockCoverage,
+    notificationCoverage: notificationCoverage.present
+        ? notificationCoverage.value
+        : this.notificationCoverage,
   );
   DeviceDayMetric copyWithCompanion(DeviceDayMetricsCompanion data) {
     return DeviceDayMetric(
@@ -7411,6 +7536,15 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
       usageSyncedAt: data.usageSyncedAt.present
           ? data.usageSyncedAt.value
           : this.usageSyncedAt,
+      notificationObservedFrom: data.notificationObservedFrom.present
+          ? data.notificationObservedFrom.value
+          : this.notificationObservedFrom,
+      unlockCoverage: data.unlockCoverage.present
+          ? data.unlockCoverage.value
+          : this.unlockCoverage,
+      notificationCoverage: data.notificationCoverage.present
+          ? data.notificationCoverage.value
+          : this.notificationCoverage,
     );
   }
 
@@ -7423,7 +7557,10 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
           ..write('unlockCount: $unlockCount, ')
           ..write('screenWakeCount: $screenWakeCount, ')
           ..write('coverageState: $coverageState, ')
-          ..write('usageSyncedAt: $usageSyncedAt')
+          ..write('usageSyncedAt: $usageSyncedAt, ')
+          ..write('notificationObservedFrom: $notificationObservedFrom, ')
+          ..write('unlockCoverage: $unlockCoverage, ')
+          ..write('notificationCoverage: $notificationCoverage')
           ..write(')'))
         .toString();
   }
@@ -7437,6 +7574,9 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
     screenWakeCount,
     coverageState,
     usageSyncedAt,
+    notificationObservedFrom,
+    unlockCoverage,
+    notificationCoverage,
   );
   @override
   bool operator ==(Object other) =>
@@ -7448,7 +7588,10 @@ class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
           other.unlockCount == this.unlockCount &&
           other.screenWakeCount == this.screenWakeCount &&
           other.coverageState == this.coverageState &&
-          other.usageSyncedAt == this.usageSyncedAt);
+          other.usageSyncedAt == this.usageSyncedAt &&
+          other.notificationObservedFrom == this.notificationObservedFrom &&
+          other.unlockCoverage == this.unlockCoverage &&
+          other.notificationCoverage == this.notificationCoverage);
 }
 
 class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
@@ -7459,6 +7602,9 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
   final Value<int?> screenWakeCount;
   final Value<String> coverageState;
   final Value<DateTime?> usageSyncedAt;
+  final Value<DateTime?> notificationObservedFrom;
+  final Value<String?> unlockCoverage;
+  final Value<String?> notificationCoverage;
   final Value<int> rowid;
   const DeviceDayMetricsCompanion({
     this.id = const Value.absent(),
@@ -7468,6 +7614,9 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
     this.screenWakeCount = const Value.absent(),
     this.coverageState = const Value.absent(),
     this.usageSyncedAt = const Value.absent(),
+    this.notificationObservedFrom = const Value.absent(),
+    this.unlockCoverage = const Value.absent(),
+    this.notificationCoverage = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DeviceDayMetricsCompanion.insert({
@@ -7478,6 +7627,9 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
     this.screenWakeCount = const Value.absent(),
     required String coverageState,
     this.usageSyncedAt = const Value.absent(),
+    this.notificationObservedFrom = const Value.absent(),
+    this.unlockCoverage = const Value.absent(),
+    this.notificationCoverage = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        day = Value(day),
@@ -7491,6 +7643,9 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
     Expression<int>? screenWakeCount,
     Expression<String>? coverageState,
     Expression<DateTime>? usageSyncedAt,
+    Expression<DateTime>? notificationObservedFrom,
+    Expression<String>? unlockCoverage,
+    Expression<String>? notificationCoverage,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -7501,6 +7656,11 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
       if (screenWakeCount != null) 'screen_wake_count': screenWakeCount,
       if (coverageState != null) 'coverage_state': coverageState,
       if (usageSyncedAt != null) 'usage_synced_at': usageSyncedAt,
+      if (notificationObservedFrom != null)
+        'notification_observed_from': notificationObservedFrom,
+      if (unlockCoverage != null) 'unlock_coverage': unlockCoverage,
+      if (notificationCoverage != null)
+        'notification_coverage': notificationCoverage,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -7513,6 +7673,9 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
     Value<int?>? screenWakeCount,
     Value<String>? coverageState,
     Value<DateTime?>? usageSyncedAt,
+    Value<DateTime?>? notificationObservedFrom,
+    Value<String?>? unlockCoverage,
+    Value<String?>? notificationCoverage,
     Value<int>? rowid,
   }) {
     return DeviceDayMetricsCompanion(
@@ -7523,6 +7686,10 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
       screenWakeCount: screenWakeCount ?? this.screenWakeCount,
       coverageState: coverageState ?? this.coverageState,
       usageSyncedAt: usageSyncedAt ?? this.usageSyncedAt,
+      notificationObservedFrom:
+          notificationObservedFrom ?? this.notificationObservedFrom,
+      unlockCoverage: unlockCoverage ?? this.unlockCoverage,
+      notificationCoverage: notificationCoverage ?? this.notificationCoverage,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -7551,6 +7718,19 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
     if (usageSyncedAt.present) {
       map['usage_synced_at'] = Variable<DateTime>(usageSyncedAt.value);
     }
+    if (notificationObservedFrom.present) {
+      map['notification_observed_from'] = Variable<DateTime>(
+        notificationObservedFrom.value,
+      );
+    }
+    if (unlockCoverage.present) {
+      map['unlock_coverage'] = Variable<String>(unlockCoverage.value);
+    }
+    if (notificationCoverage.present) {
+      map['notification_coverage'] = Variable<String>(
+        notificationCoverage.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -7567,6 +7747,1147 @@ class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
           ..write('screenWakeCount: $screenWakeCount, ')
           ..write('coverageState: $coverageState, ')
           ..write('usageSyncedAt: $usageSyncedAt, ')
+          ..write('notificationObservedFrom: $notificationObservedFrom, ')
+          ..write('unlockCoverage: $unlockCoverage, ')
+          ..write('notificationCoverage: $notificationCoverage, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SleepSchedulesTable extends SleepSchedules
+    with TableInfo<$SleepSchedulesTable, SleepSchedule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SleepSchedulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _weekdaysMeta = const VerificationMeta(
+    'weekdays',
+  );
+  @override
+  late final GeneratedColumn<String> weekdays = GeneratedColumn<String>(
+    'weekdays',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bedtimeMinuteMeta = const VerificationMeta(
+    'bedtimeMinute',
+  );
+  @override
+  late final GeneratedColumn<int> bedtimeMinute = GeneratedColumn<int>(
+    'bedtime_minute',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wakeMinuteMeta = const VerificationMeta(
+    'wakeMinute',
+  );
+  @override
+  late final GeneratedColumn<int> wakeMinute = GeneratedColumn<int>(
+    'wake_minute',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timezoneIdMeta = const VerificationMeta(
+    'timezoneId',
+  );
+  @override
+  late final GeneratedColumn<String> timezoneId = GeneratedColumn<String>(
+    'timezone_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _protectionLevelMeta = const VerificationMeta(
+    'protectionLevel',
+  );
+  @override
+  late final GeneratedColumn<String> protectionLevel = GeneratedColumn<String>(
+    'protection_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta(
+    'enabled',
+  );
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enabled" IN (0, 1))',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    weekdays,
+    bedtimeMinute,
+    wakeMinute,
+    timezoneId,
+    protectionLevel,
+    enabled,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sleep_schedules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SleepSchedule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('weekdays')) {
+      context.handle(
+        _weekdaysMeta,
+        weekdays.isAcceptableOrUnknown(data['weekdays']!, _weekdaysMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_weekdaysMeta);
+    }
+    if (data.containsKey('bedtime_minute')) {
+      context.handle(
+        _bedtimeMinuteMeta,
+        bedtimeMinute.isAcceptableOrUnknown(
+          data['bedtime_minute']!,
+          _bedtimeMinuteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_bedtimeMinuteMeta);
+    }
+    if (data.containsKey('wake_minute')) {
+      context.handle(
+        _wakeMinuteMeta,
+        wakeMinute.isAcceptableOrUnknown(data['wake_minute']!, _wakeMinuteMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_wakeMinuteMeta);
+    }
+    if (data.containsKey('timezone_id')) {
+      context.handle(
+        _timezoneIdMeta,
+        timezoneId.isAcceptableOrUnknown(data['timezone_id']!, _timezoneIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timezoneIdMeta);
+    }
+    if (data.containsKey('protection_level')) {
+      context.handle(
+        _protectionLevelMeta,
+        protectionLevel.isAcceptableOrUnknown(
+          data['protection_level']!,
+          _protectionLevelMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_protectionLevelMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(
+        _enabledMeta,
+        enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_enabledMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SleepSchedule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SleepSchedule(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      weekdays: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}weekdays'],
+      )!,
+      bedtimeMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bedtime_minute'],
+      )!,
+      wakeMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}wake_minute'],
+      )!,
+      timezoneId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}timezone_id'],
+      )!,
+      protectionLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}protection_level'],
+      )!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+    );
+  }
+
+  @override
+  $SleepSchedulesTable createAlias(String alias) {
+    return $SleepSchedulesTable(attachedDatabase, alias);
+  }
+}
+
+class SleepSchedule extends DataClass implements Insertable<SleepSchedule> {
+  final String id;
+  final String weekdays;
+  final int bedtimeMinute;
+  final int wakeMinute;
+  final String timezoneId;
+  final String protectionLevel;
+  final bool enabled;
+  const SleepSchedule({
+    required this.id,
+    required this.weekdays,
+    required this.bedtimeMinute,
+    required this.wakeMinute,
+    required this.timezoneId,
+    required this.protectionLevel,
+    required this.enabled,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['weekdays'] = Variable<String>(weekdays);
+    map['bedtime_minute'] = Variable<int>(bedtimeMinute);
+    map['wake_minute'] = Variable<int>(wakeMinute);
+    map['timezone_id'] = Variable<String>(timezoneId);
+    map['protection_level'] = Variable<String>(protectionLevel);
+    map['enabled'] = Variable<bool>(enabled);
+    return map;
+  }
+
+  SleepSchedulesCompanion toCompanion(bool nullToAbsent) {
+    return SleepSchedulesCompanion(
+      id: Value(id),
+      weekdays: Value(weekdays),
+      bedtimeMinute: Value(bedtimeMinute),
+      wakeMinute: Value(wakeMinute),
+      timezoneId: Value(timezoneId),
+      protectionLevel: Value(protectionLevel),
+      enabled: Value(enabled),
+    );
+  }
+
+  factory SleepSchedule.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SleepSchedule(
+      id: serializer.fromJson<String>(json['id']),
+      weekdays: serializer.fromJson<String>(json['weekdays']),
+      bedtimeMinute: serializer.fromJson<int>(json['bedtimeMinute']),
+      wakeMinute: serializer.fromJson<int>(json['wakeMinute']),
+      timezoneId: serializer.fromJson<String>(json['timezoneId']),
+      protectionLevel: serializer.fromJson<String>(json['protectionLevel']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'weekdays': serializer.toJson<String>(weekdays),
+      'bedtimeMinute': serializer.toJson<int>(bedtimeMinute),
+      'wakeMinute': serializer.toJson<int>(wakeMinute),
+      'timezoneId': serializer.toJson<String>(timezoneId),
+      'protectionLevel': serializer.toJson<String>(protectionLevel),
+      'enabled': serializer.toJson<bool>(enabled),
+    };
+  }
+
+  SleepSchedule copyWith({
+    String? id,
+    String? weekdays,
+    int? bedtimeMinute,
+    int? wakeMinute,
+    String? timezoneId,
+    String? protectionLevel,
+    bool? enabled,
+  }) => SleepSchedule(
+    id: id ?? this.id,
+    weekdays: weekdays ?? this.weekdays,
+    bedtimeMinute: bedtimeMinute ?? this.bedtimeMinute,
+    wakeMinute: wakeMinute ?? this.wakeMinute,
+    timezoneId: timezoneId ?? this.timezoneId,
+    protectionLevel: protectionLevel ?? this.protectionLevel,
+    enabled: enabled ?? this.enabled,
+  );
+  SleepSchedule copyWithCompanion(SleepSchedulesCompanion data) {
+    return SleepSchedule(
+      id: data.id.present ? data.id.value : this.id,
+      weekdays: data.weekdays.present ? data.weekdays.value : this.weekdays,
+      bedtimeMinute: data.bedtimeMinute.present
+          ? data.bedtimeMinute.value
+          : this.bedtimeMinute,
+      wakeMinute: data.wakeMinute.present
+          ? data.wakeMinute.value
+          : this.wakeMinute,
+      timezoneId: data.timezoneId.present
+          ? data.timezoneId.value
+          : this.timezoneId,
+      protectionLevel: data.protectionLevel.present
+          ? data.protectionLevel.value
+          : this.protectionLevel,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SleepSchedule(')
+          ..write('id: $id, ')
+          ..write('weekdays: $weekdays, ')
+          ..write('bedtimeMinute: $bedtimeMinute, ')
+          ..write('wakeMinute: $wakeMinute, ')
+          ..write('timezoneId: $timezoneId, ')
+          ..write('protectionLevel: $protectionLevel, ')
+          ..write('enabled: $enabled')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    weekdays,
+    bedtimeMinute,
+    wakeMinute,
+    timezoneId,
+    protectionLevel,
+    enabled,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SleepSchedule &&
+          other.id == this.id &&
+          other.weekdays == this.weekdays &&
+          other.bedtimeMinute == this.bedtimeMinute &&
+          other.wakeMinute == this.wakeMinute &&
+          other.timezoneId == this.timezoneId &&
+          other.protectionLevel == this.protectionLevel &&
+          other.enabled == this.enabled);
+}
+
+class SleepSchedulesCompanion extends UpdateCompanion<SleepSchedule> {
+  final Value<String> id;
+  final Value<String> weekdays;
+  final Value<int> bedtimeMinute;
+  final Value<int> wakeMinute;
+  final Value<String> timezoneId;
+  final Value<String> protectionLevel;
+  final Value<bool> enabled;
+  final Value<int> rowid;
+  const SleepSchedulesCompanion({
+    this.id = const Value.absent(),
+    this.weekdays = const Value.absent(),
+    this.bedtimeMinute = const Value.absent(),
+    this.wakeMinute = const Value.absent(),
+    this.timezoneId = const Value.absent(),
+    this.protectionLevel = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SleepSchedulesCompanion.insert({
+    required String id,
+    required String weekdays,
+    required int bedtimeMinute,
+    required int wakeMinute,
+    required String timezoneId,
+    required String protectionLevel,
+    required bool enabled,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       weekdays = Value(weekdays),
+       bedtimeMinute = Value(bedtimeMinute),
+       wakeMinute = Value(wakeMinute),
+       timezoneId = Value(timezoneId),
+       protectionLevel = Value(protectionLevel),
+       enabled = Value(enabled);
+  static Insertable<SleepSchedule> custom({
+    Expression<String>? id,
+    Expression<String>? weekdays,
+    Expression<int>? bedtimeMinute,
+    Expression<int>? wakeMinute,
+    Expression<String>? timezoneId,
+    Expression<String>? protectionLevel,
+    Expression<bool>? enabled,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (weekdays != null) 'weekdays': weekdays,
+      if (bedtimeMinute != null) 'bedtime_minute': bedtimeMinute,
+      if (wakeMinute != null) 'wake_minute': wakeMinute,
+      if (timezoneId != null) 'timezone_id': timezoneId,
+      if (protectionLevel != null) 'protection_level': protectionLevel,
+      if (enabled != null) 'enabled': enabled,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SleepSchedulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? weekdays,
+    Value<int>? bedtimeMinute,
+    Value<int>? wakeMinute,
+    Value<String>? timezoneId,
+    Value<String>? protectionLevel,
+    Value<bool>? enabled,
+    Value<int>? rowid,
+  }) {
+    return SleepSchedulesCompanion(
+      id: id ?? this.id,
+      weekdays: weekdays ?? this.weekdays,
+      bedtimeMinute: bedtimeMinute ?? this.bedtimeMinute,
+      wakeMinute: wakeMinute ?? this.wakeMinute,
+      timezoneId: timezoneId ?? this.timezoneId,
+      protectionLevel: protectionLevel ?? this.protectionLevel,
+      enabled: enabled ?? this.enabled,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (weekdays.present) {
+      map['weekdays'] = Variable<String>(weekdays.value);
+    }
+    if (bedtimeMinute.present) {
+      map['bedtime_minute'] = Variable<int>(bedtimeMinute.value);
+    }
+    if (wakeMinute.present) {
+      map['wake_minute'] = Variable<int>(wakeMinute.value);
+    }
+    if (timezoneId.present) {
+      map['timezone_id'] = Variable<String>(timezoneId.value);
+    }
+    if (protectionLevel.present) {
+      map['protection_level'] = Variable<String>(protectionLevel.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SleepSchedulesCompanion(')
+          ..write('id: $id, ')
+          ..write('weekdays: $weekdays, ')
+          ..write('bedtimeMinute: $bedtimeMinute, ')
+          ..write('wakeMinute: $wakeMinute, ')
+          ..write('timezoneId: $timezoneId, ')
+          ..write('protectionLevel: $protectionLevel, ')
+          ..write('enabled: $enabled, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $NotificationDailyCountsTable extends NotificationDailyCounts
+    with TableInfo<$NotificationDailyCountsTable, NotificationDailyCount> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotificationDailyCountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<DateTime> day = GeneratedColumn<DateTime>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _appRefMeta = const VerificationMeta('appRef');
+  @override
+  late final GeneratedColumn<String> appRef = GeneratedColumn<String>(
+    'app_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    day,
+    platform,
+    appRef,
+    displayName,
+    count,
+    syncedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'notification_daily_counts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NotificationDailyCount> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('app_ref')) {
+      context.handle(
+        _appRefMeta,
+        appRef.isAcceptableOrUnknown(data['app_ref']!, _appRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_appRefMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_countMeta);
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_syncedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {day, platform, appRef};
+  @override
+  NotificationDailyCount map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NotificationDailyCount(
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}day'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      appRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app_ref'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      )!,
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      )!,
+    );
+  }
+
+  @override
+  $NotificationDailyCountsTable createAlias(String alias) {
+    return $NotificationDailyCountsTable(attachedDatabase, alias);
+  }
+}
+
+class NotificationDailyCount extends DataClass
+    implements Insertable<NotificationDailyCount> {
+  final DateTime day;
+  final String platform;
+  final String appRef;
+  final String displayName;
+  final int count;
+  final DateTime syncedAt;
+  const NotificationDailyCount({
+    required this.day,
+    required this.platform,
+    required this.appRef,
+    required this.displayName,
+    required this.count,
+    required this.syncedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['day'] = Variable<DateTime>(day);
+    map['platform'] = Variable<String>(platform);
+    map['app_ref'] = Variable<String>(appRef);
+    map['display_name'] = Variable<String>(displayName);
+    map['count'] = Variable<int>(count);
+    map['synced_at'] = Variable<DateTime>(syncedAt);
+    return map;
+  }
+
+  NotificationDailyCountsCompanion toCompanion(bool nullToAbsent) {
+    return NotificationDailyCountsCompanion(
+      day: Value(day),
+      platform: Value(platform),
+      appRef: Value(appRef),
+      displayName: Value(displayName),
+      count: Value(count),
+      syncedAt: Value(syncedAt),
+    );
+  }
+
+  factory NotificationDailyCount.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NotificationDailyCount(
+      day: serializer.fromJson<DateTime>(json['day']),
+      platform: serializer.fromJson<String>(json['platform']),
+      appRef: serializer.fromJson<String>(json['appRef']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      count: serializer.fromJson<int>(json['count']),
+      syncedAt: serializer.fromJson<DateTime>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'day': serializer.toJson<DateTime>(day),
+      'platform': serializer.toJson<String>(platform),
+      'appRef': serializer.toJson<String>(appRef),
+      'displayName': serializer.toJson<String>(displayName),
+      'count': serializer.toJson<int>(count),
+      'syncedAt': serializer.toJson<DateTime>(syncedAt),
+    };
+  }
+
+  NotificationDailyCount copyWith({
+    DateTime? day,
+    String? platform,
+    String? appRef,
+    String? displayName,
+    int? count,
+    DateTime? syncedAt,
+  }) => NotificationDailyCount(
+    day: day ?? this.day,
+    platform: platform ?? this.platform,
+    appRef: appRef ?? this.appRef,
+    displayName: displayName ?? this.displayName,
+    count: count ?? this.count,
+    syncedAt: syncedAt ?? this.syncedAt,
+  );
+  NotificationDailyCount copyWithCompanion(
+    NotificationDailyCountsCompanion data,
+  ) {
+    return NotificationDailyCount(
+      day: data.day.present ? data.day.value : this.day,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      appRef: data.appRef.present ? data.appRef.value : this.appRef,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      count: data.count.present ? data.count.value : this.count,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotificationDailyCount(')
+          ..write('day: $day, ')
+          ..write('platform: $platform, ')
+          ..write('appRef: $appRef, ')
+          ..write('displayName: $displayName, ')
+          ..write('count: $count, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(day, platform, appRef, displayName, count, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NotificationDailyCount &&
+          other.day == this.day &&
+          other.platform == this.platform &&
+          other.appRef == this.appRef &&
+          other.displayName == this.displayName &&
+          other.count == this.count &&
+          other.syncedAt == this.syncedAt);
+}
+
+class NotificationDailyCountsCompanion
+    extends UpdateCompanion<NotificationDailyCount> {
+  final Value<DateTime> day;
+  final Value<String> platform;
+  final Value<String> appRef;
+  final Value<String> displayName;
+  final Value<int> count;
+  final Value<DateTime> syncedAt;
+  final Value<int> rowid;
+  const NotificationDailyCountsCompanion({
+    this.day = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.appRef = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.count = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NotificationDailyCountsCompanion.insert({
+    required DateTime day,
+    required String platform,
+    required String appRef,
+    required String displayName,
+    required int count,
+    required DateTime syncedAt,
+    this.rowid = const Value.absent(),
+  }) : day = Value(day),
+       platform = Value(platform),
+       appRef = Value(appRef),
+       displayName = Value(displayName),
+       count = Value(count),
+       syncedAt = Value(syncedAt);
+  static Insertable<NotificationDailyCount> custom({
+    Expression<DateTime>? day,
+    Expression<String>? platform,
+    Expression<String>? appRef,
+    Expression<String>? displayName,
+    Expression<int>? count,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (day != null) 'day': day,
+      if (platform != null) 'platform': platform,
+      if (appRef != null) 'app_ref': appRef,
+      if (displayName != null) 'display_name': displayName,
+      if (count != null) 'count': count,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NotificationDailyCountsCompanion copyWith({
+    Value<DateTime>? day,
+    Value<String>? platform,
+    Value<String>? appRef,
+    Value<String>? displayName,
+    Value<int>? count,
+    Value<DateTime>? syncedAt,
+    Value<int>? rowid,
+  }) {
+    return NotificationDailyCountsCompanion(
+      day: day ?? this.day,
+      platform: platform ?? this.platform,
+      appRef: appRef ?? this.appRef,
+      displayName: displayName ?? this.displayName,
+      count: count ?? this.count,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (day.present) {
+      map['day'] = Variable<DateTime>(day.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (appRef.present) {
+      map['app_ref'] = Variable<String>(appRef.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotificationDailyCountsCompanion(')
+          ..write('day: $day, ')
+          ..write('platform: $platform, ')
+          ..write('appRef: $appRef, ')
+          ..write('displayName: $displayName, ')
+          ..write('count: $count, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProcessedNotificationBatchesTable extends ProcessedNotificationBatches
+    with
+        TableInfo<
+          $ProcessedNotificationBatchesTable,
+          ProcessedNotificationBatche
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProcessedNotificationBatchesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _batchIdMeta = const VerificationMeta(
+    'batchId',
+  );
+  @override
+  late final GeneratedColumn<String> batchId = GeneratedColumn<String>(
+    'batch_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _processedAtMeta = const VerificationMeta(
+    'processedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> processedAt = GeneratedColumn<DateTime>(
+    'processed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [batchId, processedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'processed_notification_batches';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProcessedNotificationBatche> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('batch_id')) {
+      context.handle(
+        _batchIdMeta,
+        batchId.isAcceptableOrUnknown(data['batch_id']!, _batchIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_batchIdMeta);
+    }
+    if (data.containsKey('processed_at')) {
+      context.handle(
+        _processedAtMeta,
+        processedAt.isAcceptableOrUnknown(
+          data['processed_at']!,
+          _processedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_processedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {batchId};
+  @override
+  ProcessedNotificationBatche map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProcessedNotificationBatche(
+      batchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}batch_id'],
+      )!,
+      processedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}processed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProcessedNotificationBatchesTable createAlias(String alias) {
+    return $ProcessedNotificationBatchesTable(attachedDatabase, alias);
+  }
+}
+
+class ProcessedNotificationBatche extends DataClass
+    implements Insertable<ProcessedNotificationBatche> {
+  final String batchId;
+  final DateTime processedAt;
+  const ProcessedNotificationBatche({
+    required this.batchId,
+    required this.processedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['batch_id'] = Variable<String>(batchId);
+    map['processed_at'] = Variable<DateTime>(processedAt);
+    return map;
+  }
+
+  ProcessedNotificationBatchesCompanion toCompanion(bool nullToAbsent) {
+    return ProcessedNotificationBatchesCompanion(
+      batchId: Value(batchId),
+      processedAt: Value(processedAt),
+    );
+  }
+
+  factory ProcessedNotificationBatche.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProcessedNotificationBatche(
+      batchId: serializer.fromJson<String>(json['batchId']),
+      processedAt: serializer.fromJson<DateTime>(json['processedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'batchId': serializer.toJson<String>(batchId),
+      'processedAt': serializer.toJson<DateTime>(processedAt),
+    };
+  }
+
+  ProcessedNotificationBatche copyWith({
+    String? batchId,
+    DateTime? processedAt,
+  }) => ProcessedNotificationBatche(
+    batchId: batchId ?? this.batchId,
+    processedAt: processedAt ?? this.processedAt,
+  );
+  ProcessedNotificationBatche copyWithCompanion(
+    ProcessedNotificationBatchesCompanion data,
+  ) {
+    return ProcessedNotificationBatche(
+      batchId: data.batchId.present ? data.batchId.value : this.batchId,
+      processedAt: data.processedAt.present
+          ? data.processedAt.value
+          : this.processedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProcessedNotificationBatche(')
+          ..write('batchId: $batchId, ')
+          ..write('processedAt: $processedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(batchId, processedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProcessedNotificationBatche &&
+          other.batchId == this.batchId &&
+          other.processedAt == this.processedAt);
+}
+
+class ProcessedNotificationBatchesCompanion
+    extends UpdateCompanion<ProcessedNotificationBatche> {
+  final Value<String> batchId;
+  final Value<DateTime> processedAt;
+  final Value<int> rowid;
+  const ProcessedNotificationBatchesCompanion({
+    this.batchId = const Value.absent(),
+    this.processedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProcessedNotificationBatchesCompanion.insert({
+    required String batchId,
+    required DateTime processedAt,
+    this.rowid = const Value.absent(),
+  }) : batchId = Value(batchId),
+       processedAt = Value(processedAt);
+  static Insertable<ProcessedNotificationBatche> custom({
+    Expression<String>? batchId,
+    Expression<DateTime>? processedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (batchId != null) 'batch_id': batchId,
+      if (processedAt != null) 'processed_at': processedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProcessedNotificationBatchesCompanion copyWith({
+    Value<String>? batchId,
+    Value<DateTime>? processedAt,
+    Value<int>? rowid,
+  }) {
+    return ProcessedNotificationBatchesCompanion(
+      batchId: batchId ?? this.batchId,
+      processedAt: processedAt ?? this.processedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (batchId.present) {
+      map['batch_id'] = Variable<String>(batchId.value);
+    }
+    if (processedAt.present) {
+      map['processed_at'] = Variable<DateTime>(processedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProcessedNotificationBatchesCompanion(')
+          ..write('batchId: $batchId, ')
+          ..write('processedAt: $processedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7594,6 +8915,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DeviceDayMetricsTable deviceDayMetrics = $DeviceDayMetricsTable(
     this,
   );
+  late final $SleepSchedulesTable sleepSchedules = $SleepSchedulesTable(this);
+  late final $NotificationDailyCountsTable notificationDailyCounts =
+      $NotificationDailyCountsTable(this);
+  late final $ProcessedNotificationBatchesTable processedNotificationBatches =
+      $ProcessedNotificationBatchesTable(this);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final FocusSessionsDao focusSessionsDao = FocusSessionsDao(
     this as AppDatabase,
@@ -7624,6 +8950,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final DeviceDayMetricsDao deviceDayMetricsDao = DeviceDayMetricsDao(
     this as AppDatabase,
   );
+  late final SleepSchedulesDao sleepSchedulesDao = SleepSchedulesDao(
+    this as AppDatabase,
+  );
+  late final NotificationDailyCountsDao notificationDailyCountsDao =
+      NotificationDailyCountsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7642,6 +8973,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     unlockAttempts,
     protectedApps,
     deviceDayMetrics,
+    sleepSchedules,
+    notificationDailyCounts,
+    processedNotificationBatches,
   ];
 }
 
@@ -11142,6 +12476,9 @@ typedef $$DeviceDayMetricsTableCreateCompanionBuilder =
       Value<int?> screenWakeCount,
       required String coverageState,
       Value<DateTime?> usageSyncedAt,
+      Value<DateTime?> notificationObservedFrom,
+      Value<String?> unlockCoverage,
+      Value<String?> notificationCoverage,
       Value<int> rowid,
     });
 typedef $$DeviceDayMetricsTableUpdateCompanionBuilder =
@@ -11153,6 +12490,9 @@ typedef $$DeviceDayMetricsTableUpdateCompanionBuilder =
       Value<int?> screenWakeCount,
       Value<String> coverageState,
       Value<DateTime?> usageSyncedAt,
+      Value<DateTime?> notificationObservedFrom,
+      Value<String?> unlockCoverage,
+      Value<String?> notificationCoverage,
       Value<int> rowid,
     });
 
@@ -11197,6 +12537,21 @@ class $$DeviceDayMetricsTableFilterComposer
 
   ColumnFilters<DateTime> get usageSyncedAt => $composableBuilder(
     column: $table.usageSyncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get notificationObservedFrom => $composableBuilder(
+    column: $table.notificationObservedFrom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get unlockCoverage => $composableBuilder(
+    column: $table.unlockCoverage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notificationCoverage => $composableBuilder(
+    column: $table.notificationCoverage,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -11244,6 +12599,21 @@ class $$DeviceDayMetricsTableOrderingComposer
     column: $table.usageSyncedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get notificationObservedFrom => $composableBuilder(
+    column: $table.notificationObservedFrom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unlockCoverage => $composableBuilder(
+    column: $table.unlockCoverage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notificationCoverage => $composableBuilder(
+    column: $table.notificationCoverage,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DeviceDayMetricsTableAnnotationComposer
@@ -11281,6 +12651,21 @@ class $$DeviceDayMetricsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get usageSyncedAt => $composableBuilder(
     column: $table.usageSyncedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get notificationObservedFrom => $composableBuilder(
+    column: $table.notificationObservedFrom,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get unlockCoverage => $composableBuilder(
+    column: $table.unlockCoverage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notificationCoverage => $composableBuilder(
+    column: $table.notificationCoverage,
     builder: (column) => column,
   );
 }
@@ -11329,6 +12714,10 @@ class $$DeviceDayMetricsTableTableManager
                 Value<int?> screenWakeCount = const Value.absent(),
                 Value<String> coverageState = const Value.absent(),
                 Value<DateTime?> usageSyncedAt = const Value.absent(),
+                Value<DateTime?> notificationObservedFrom =
+                    const Value.absent(),
+                Value<String?> unlockCoverage = const Value.absent(),
+                Value<String?> notificationCoverage = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DeviceDayMetricsCompanion(
                 id: id,
@@ -11338,6 +12727,9 @@ class $$DeviceDayMetricsTableTableManager
                 screenWakeCount: screenWakeCount,
                 coverageState: coverageState,
                 usageSyncedAt: usageSyncedAt,
+                notificationObservedFrom: notificationObservedFrom,
+                unlockCoverage: unlockCoverage,
+                notificationCoverage: notificationCoverage,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -11349,6 +12741,10 @@ class $$DeviceDayMetricsTableTableManager
                 Value<int?> screenWakeCount = const Value.absent(),
                 required String coverageState,
                 Value<DateTime?> usageSyncedAt = const Value.absent(),
+                Value<DateTime?> notificationObservedFrom =
+                    const Value.absent(),
+                Value<String?> unlockCoverage = const Value.absent(),
+                Value<String?> notificationCoverage = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DeviceDayMetricsCompanion.insert(
                 id: id,
@@ -11358,6 +12754,9 @@ class $$DeviceDayMetricsTableTableManager
                 screenWakeCount: screenWakeCount,
                 coverageState: coverageState,
                 usageSyncedAt: usageSyncedAt,
+                notificationObservedFrom: notificationObservedFrom,
+                unlockCoverage: unlockCoverage,
+                notificationCoverage: notificationCoverage,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -11383,6 +12782,658 @@ typedef $$DeviceDayMetricsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $DeviceDayMetricsTable, DeviceDayMetric>,
       ),
       DeviceDayMetric,
+      PrefetchHooks Function()
+    >;
+typedef $$SleepSchedulesTableCreateCompanionBuilder =
+    SleepSchedulesCompanion Function({
+      required String id,
+      required String weekdays,
+      required int bedtimeMinute,
+      required int wakeMinute,
+      required String timezoneId,
+      required String protectionLevel,
+      required bool enabled,
+      Value<int> rowid,
+    });
+typedef $$SleepSchedulesTableUpdateCompanionBuilder =
+    SleepSchedulesCompanion Function({
+      Value<String> id,
+      Value<String> weekdays,
+      Value<int> bedtimeMinute,
+      Value<int> wakeMinute,
+      Value<String> timezoneId,
+      Value<String> protectionLevel,
+      Value<bool> enabled,
+      Value<int> rowid,
+    });
+
+class $$SleepSchedulesTableFilterComposer
+    extends Composer<_$AppDatabase, $SleepSchedulesTable> {
+  $$SleepSchedulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get weekdays => $composableBuilder(
+    column: $table.weekdays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bedtimeMinute => $composableBuilder(
+    column: $table.bedtimeMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get wakeMinute => $composableBuilder(
+    column: $table.wakeMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get timezoneId => $composableBuilder(
+    column: $table.timezoneId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get protectionLevel => $composableBuilder(
+    column: $table.protectionLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SleepSchedulesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SleepSchedulesTable> {
+  $$SleepSchedulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get weekdays => $composableBuilder(
+    column: $table.weekdays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bedtimeMinute => $composableBuilder(
+    column: $table.bedtimeMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get wakeMinute => $composableBuilder(
+    column: $table.wakeMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timezoneId => $composableBuilder(
+    column: $table.timezoneId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get protectionLevel => $composableBuilder(
+    column: $table.protectionLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+    column: $table.enabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SleepSchedulesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SleepSchedulesTable> {
+  $$SleepSchedulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get weekdays =>
+      $composableBuilder(column: $table.weekdays, builder: (column) => column);
+
+  GeneratedColumn<int> get bedtimeMinute => $composableBuilder(
+    column: $table.bedtimeMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get wakeMinute => $composableBuilder(
+    column: $table.wakeMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get timezoneId => $composableBuilder(
+    column: $table.timezoneId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get protectionLevel => $composableBuilder(
+    column: $table.protectionLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+}
+
+class $$SleepSchedulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SleepSchedulesTable,
+          SleepSchedule,
+          $$SleepSchedulesTableFilterComposer,
+          $$SleepSchedulesTableOrderingComposer,
+          $$SleepSchedulesTableAnnotationComposer,
+          $$SleepSchedulesTableCreateCompanionBuilder,
+          $$SleepSchedulesTableUpdateCompanionBuilder,
+          (
+            SleepSchedule,
+            BaseReferences<_$AppDatabase, $SleepSchedulesTable, SleepSchedule>,
+          ),
+          SleepSchedule,
+          PrefetchHooks Function()
+        > {
+  $$SleepSchedulesTableTableManager(
+    _$AppDatabase db,
+    $SleepSchedulesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SleepSchedulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SleepSchedulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SleepSchedulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> weekdays = const Value.absent(),
+                Value<int> bedtimeMinute = const Value.absent(),
+                Value<int> wakeMinute = const Value.absent(),
+                Value<String> timezoneId = const Value.absent(),
+                Value<String> protectionLevel = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SleepSchedulesCompanion(
+                id: id,
+                weekdays: weekdays,
+                bedtimeMinute: bedtimeMinute,
+                wakeMinute: wakeMinute,
+                timezoneId: timezoneId,
+                protectionLevel: protectionLevel,
+                enabled: enabled,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String weekdays,
+                required int bedtimeMinute,
+                required int wakeMinute,
+                required String timezoneId,
+                required String protectionLevel,
+                required bool enabled,
+                Value<int> rowid = const Value.absent(),
+              }) => SleepSchedulesCompanion.insert(
+                id: id,
+                weekdays: weekdays,
+                bedtimeMinute: bedtimeMinute,
+                wakeMinute: wakeMinute,
+                timezoneId: timezoneId,
+                protectionLevel: protectionLevel,
+                enabled: enabled,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SleepSchedulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SleepSchedulesTable,
+      SleepSchedule,
+      $$SleepSchedulesTableFilterComposer,
+      $$SleepSchedulesTableOrderingComposer,
+      $$SleepSchedulesTableAnnotationComposer,
+      $$SleepSchedulesTableCreateCompanionBuilder,
+      $$SleepSchedulesTableUpdateCompanionBuilder,
+      (
+        SleepSchedule,
+        BaseReferences<_$AppDatabase, $SleepSchedulesTable, SleepSchedule>,
+      ),
+      SleepSchedule,
+      PrefetchHooks Function()
+    >;
+typedef $$NotificationDailyCountsTableCreateCompanionBuilder =
+    NotificationDailyCountsCompanion Function({
+      required DateTime day,
+      required String platform,
+      required String appRef,
+      required String displayName,
+      required int count,
+      required DateTime syncedAt,
+      Value<int> rowid,
+    });
+typedef $$NotificationDailyCountsTableUpdateCompanionBuilder =
+    NotificationDailyCountsCompanion Function({
+      Value<DateTime> day,
+      Value<String> platform,
+      Value<String> appRef,
+      Value<String> displayName,
+      Value<int> count,
+      Value<DateTime> syncedAt,
+      Value<int> rowid,
+    });
+
+class $$NotificationDailyCountsTableFilterComposer
+    extends Composer<_$AppDatabase, $NotificationDailyCountsTable> {
+  $$NotificationDailyCountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get appRef => $composableBuilder(
+    column: $table.appRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NotificationDailyCountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $NotificationDailyCountsTable> {
+  $$NotificationDailyCountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get appRef => $composableBuilder(
+    column: $table.appRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NotificationDailyCountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NotificationDailyCountsTable> {
+  $$NotificationDailyCountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get appRef =>
+      $composableBuilder(column: $table.appRef, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$NotificationDailyCountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NotificationDailyCountsTable,
+          NotificationDailyCount,
+          $$NotificationDailyCountsTableFilterComposer,
+          $$NotificationDailyCountsTableOrderingComposer,
+          $$NotificationDailyCountsTableAnnotationComposer,
+          $$NotificationDailyCountsTableCreateCompanionBuilder,
+          $$NotificationDailyCountsTableUpdateCompanionBuilder,
+          (
+            NotificationDailyCount,
+            BaseReferences<
+              _$AppDatabase,
+              $NotificationDailyCountsTable,
+              NotificationDailyCount
+            >,
+          ),
+          NotificationDailyCount,
+          PrefetchHooks Function()
+        > {
+  $$NotificationDailyCountsTableTableManager(
+    _$AppDatabase db,
+    $NotificationDailyCountsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NotificationDailyCountsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$NotificationDailyCountsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$NotificationDailyCountsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<DateTime> day = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> appRef = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<int> count = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NotificationDailyCountsCompanion(
+                day: day,
+                platform: platform,
+                appRef: appRef,
+                displayName: displayName,
+                count: count,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required DateTime day,
+                required String platform,
+                required String appRef,
+                required String displayName,
+                required int count,
+                required DateTime syncedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => NotificationDailyCountsCompanion.insert(
+                day: day,
+                platform: platform,
+                appRef: appRef,
+                displayName: displayName,
+                count: count,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NotificationDailyCountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NotificationDailyCountsTable,
+      NotificationDailyCount,
+      $$NotificationDailyCountsTableFilterComposer,
+      $$NotificationDailyCountsTableOrderingComposer,
+      $$NotificationDailyCountsTableAnnotationComposer,
+      $$NotificationDailyCountsTableCreateCompanionBuilder,
+      $$NotificationDailyCountsTableUpdateCompanionBuilder,
+      (
+        NotificationDailyCount,
+        BaseReferences<
+          _$AppDatabase,
+          $NotificationDailyCountsTable,
+          NotificationDailyCount
+        >,
+      ),
+      NotificationDailyCount,
+      PrefetchHooks Function()
+    >;
+typedef $$ProcessedNotificationBatchesTableCreateCompanionBuilder =
+    ProcessedNotificationBatchesCompanion Function({
+      required String batchId,
+      required DateTime processedAt,
+      Value<int> rowid,
+    });
+typedef $$ProcessedNotificationBatchesTableUpdateCompanionBuilder =
+    ProcessedNotificationBatchesCompanion Function({
+      Value<String> batchId,
+      Value<DateTime> processedAt,
+      Value<int> rowid,
+    });
+
+class $$ProcessedNotificationBatchesTableFilterComposer
+    extends Composer<_$AppDatabase, $ProcessedNotificationBatchesTable> {
+  $$ProcessedNotificationBatchesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get processedAt => $composableBuilder(
+    column: $table.processedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProcessedNotificationBatchesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProcessedNotificationBatchesTable> {
+  $$ProcessedNotificationBatchesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get batchId => $composableBuilder(
+    column: $table.batchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get processedAt => $composableBuilder(
+    column: $table.processedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProcessedNotificationBatchesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProcessedNotificationBatchesTable> {
+  $$ProcessedNotificationBatchesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get batchId =>
+      $composableBuilder(column: $table.batchId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get processedAt => $composableBuilder(
+    column: $table.processedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$ProcessedNotificationBatchesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProcessedNotificationBatchesTable,
+          ProcessedNotificationBatche,
+          $$ProcessedNotificationBatchesTableFilterComposer,
+          $$ProcessedNotificationBatchesTableOrderingComposer,
+          $$ProcessedNotificationBatchesTableAnnotationComposer,
+          $$ProcessedNotificationBatchesTableCreateCompanionBuilder,
+          $$ProcessedNotificationBatchesTableUpdateCompanionBuilder,
+          (
+            ProcessedNotificationBatche,
+            BaseReferences<
+              _$AppDatabase,
+              $ProcessedNotificationBatchesTable,
+              ProcessedNotificationBatche
+            >,
+          ),
+          ProcessedNotificationBatche,
+          PrefetchHooks Function()
+        > {
+  $$ProcessedNotificationBatchesTableTableManager(
+    _$AppDatabase db,
+    $ProcessedNotificationBatchesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProcessedNotificationBatchesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ProcessedNotificationBatchesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProcessedNotificationBatchesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> batchId = const Value.absent(),
+                Value<DateTime> processedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProcessedNotificationBatchesCompanion(
+                batchId: batchId,
+                processedAt: processedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String batchId,
+                required DateTime processedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ProcessedNotificationBatchesCompanion.insert(
+                batchId: batchId,
+                processedAt: processedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProcessedNotificationBatchesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProcessedNotificationBatchesTable,
+      ProcessedNotificationBatche,
+      $$ProcessedNotificationBatchesTableFilterComposer,
+      $$ProcessedNotificationBatchesTableOrderingComposer,
+      $$ProcessedNotificationBatchesTableAnnotationComposer,
+      $$ProcessedNotificationBatchesTableCreateCompanionBuilder,
+      $$ProcessedNotificationBatchesTableUpdateCompanionBuilder,
+      (
+        ProcessedNotificationBatche,
+        BaseReferences<
+          _$AppDatabase,
+          $ProcessedNotificationBatchesTable,
+          ProcessedNotificationBatche
+        >,
+      ),
+      ProcessedNotificationBatche,
       PrefetchHooks Function()
     >;
 
@@ -11415,4 +13466,17 @@ class $AppDatabaseManager {
       $$ProtectedAppsTableTableManager(_db, _db.protectedApps);
   $$DeviceDayMetricsTableTableManager get deviceDayMetrics =>
       $$DeviceDayMetricsTableTableManager(_db, _db.deviceDayMetrics);
+  $$SleepSchedulesTableTableManager get sleepSchedules =>
+      $$SleepSchedulesTableTableManager(_db, _db.sleepSchedules);
+  $$NotificationDailyCountsTableTableManager get notificationDailyCounts =>
+      $$NotificationDailyCountsTableTableManager(
+        _db,
+        _db.notificationDailyCounts,
+      );
+  $$ProcessedNotificationBatchesTableTableManager
+  get processedNotificationBatches =>
+      $$ProcessedNotificationBatchesTableTableManager(
+        _db,
+        _db.processedNotificationBatches,
+      );
 }

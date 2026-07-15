@@ -32,6 +32,11 @@ import '../tables/protected_apps_table.dart';
 import '../dao/protected_apps_dao.dart';
 import '../tables/device_day_metrics_table.dart';
 import '../dao/device_day_metrics_dao.dart';
+import '../tables/sleep_schedules_table.dart';
+import '../dao/sleep_schedules_dao.dart';
+import '../tables/notification_daily_counts_table.dart';
+import '../tables/processed_notification_batches_table.dart';
+import '../dao/notification_daily_counts_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -52,6 +57,9 @@ part 'app_database.g.dart';
     UnlockAttempts,
     ProtectedApps,
     DeviceDayMetrics,
+    SleepSchedules,
+    NotificationDailyCounts,
+    ProcessedNotificationBatches,
   ],
   daos: [
     TasksDao,
@@ -67,6 +75,8 @@ part 'app_database.g.dart';
     UnlockAttemptsDao,
     ProtectedAppsDao,
     DeviceDayMetricsDao,
+    SleepSchedulesDao,
+    NotificationDailyCountsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -76,7 +86,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,6 +119,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         await m.addColumn(dailyReports, dailyReports.coverageState);
       }
+      if (from < 7) {
+        await m.createTable(sleepSchedules);
+        await m.createTable(notificationDailyCounts);
+        await m.createTable(processedNotificationBatches);
+        await m.addColumn(deviceDayMetrics, deviceDayMetrics.notificationObservedFrom);
+        await m.addColumn(deviceDayMetrics, deviceDayMetrics.unlockCoverage);
+        await m.addColumn(deviceDayMetrics, deviceDayMetrics.notificationCoverage);
+      }
     },
   );
 
@@ -129,6 +147,9 @@ class AppDatabase extends _$AppDatabase {
         batch.deleteWhere(unlockAttempts, (_) => const Constant(true));
         batch.deleteWhere(protectedApps, (_) => const Constant(true));
         batch.deleteWhere(deviceDayMetrics, (_) => const Constant(true));
+        batch.deleteWhere(sleepSchedules, (_) => const Constant(true));
+        batch.deleteWhere(notificationDailyCounts, (_) => const Constant(true));
+        batch.deleteWhere(processedNotificationBatches, (_) => const Constant(true));
       });
     });
   }
