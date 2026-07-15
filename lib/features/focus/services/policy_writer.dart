@@ -51,6 +51,24 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
     );
 
     await prefs.setString(_key, updated.toPrefsJson());
+
+    if (source == PolicySource.focus) {
+      final sessionId = current.focus?.sessionId;
+      if (sessionId != null && sessionId.isNotEmpty) {
+        final nudgeKey = 'flutter.flowos_nudge_events';
+        final nudgeStr = prefs.getString(nudgeKey);
+        if (nudgeStr != null && nudgeStr.isNotEmpty) {
+          try {
+            final List<dynamic> list = jsonDecode(nudgeStr);
+            list.removeWhere((item) {
+              final m = Map<String, dynamic>.from(item);
+              return m['sessionId'] == sessionId;
+            });
+            await prefs.setString(nudgeKey, jsonEncode(list));
+          } catch (_) {}
+        }
+      }
+    }
   }
 
   @override

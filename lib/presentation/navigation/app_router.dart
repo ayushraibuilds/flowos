@@ -19,10 +19,12 @@ import '../screens/report/daily_report_screen.dart';
 import '../screens/report/weekly_review_screen.dart';
 import '../screens/brain_dump/brain_dump_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/onboarding/device_setup_flow.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/focus/deep_work_screen.dart';
 import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/settings/update_rhythm_screen.dart';
 import '../screens/settings/permission_center_screen.dart';
 import '../screens/flow_garden/garden_screen.dart';
 import '../screens/protection/app_picker_screen.dart';
@@ -32,6 +34,10 @@ import '../screens/rest/intentional_rest_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/supabase_config.dart';
+import '../../features/focus/widgets/focus_nudge_banner.dart';
+import '../../features/focus/providers/nudge_provider.dart';
+import '../../features/focus/services/protection_policy_service.dart';
+import '../../features/focus/models/effective_policy.dart';
 
 bool onboardingComplete = false;
 
@@ -58,46 +64,53 @@ Future<void> completeOnboarding() async {
   await prefs.setBool('flowos_onboarding_complete', true);
 }
 
+String? appRouterRedirect(BuildContext context, GoRouterState state) {
+  final loc = state.matchedLocation;
+  final goingToOnboarding = loc == '/onboarding';
+  final goingToAuth = loc == '/auth';
+  final goingToDeviceSetup = loc == '/device-setup';
+  final goingToUpdateRhythm = loc == '/update-rhythm';
+
+  // 1. If onboarding is not complete, force onboarding (allow auth page if they need it)
+  if (!onboardingComplete) {
+    if (!goingToOnboarding && !goingToAuth) {
+      return '/onboarding';
+    }
+    return null;
+  }
+
+  // Onboarding complete — /device-setup and /update-rhythm are always allowed
+  if (goingToDeviceSetup || goingToUpdateRhythm) {
+    return null;
+  }
+
+  // Auth is optional:
+  // If logged in, redirect away from auth/onboarding to home.
+  // If not logged in, they are free to go to /auth voluntarily, but they are NOT forced.
+  if (goingToOnboarding) {
+    return '/home';
+  }
+
+  if (goingToAuth) {
+    if (SupabaseConfig.isConfigured) {
+      final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
+      if (isLoggedIn) {
+        return '/home';
+      }
+    } else {
+      return '/home';
+    }
+    return null;
+  }
+
+  return null;
+}
+
 /// FlowOS navigation — GoRouter with shell for bottom nav.
 final appRouter = GoRouter(
   initialLocation: '/home',
   refreshListenable: routerRefreshListenable,
-  redirect: (context, state) {
-    final goingToOnboarding = state.matchedLocation == '/onboarding';
-    final goingToAuth = state.matchedLocation == '/auth';
-
-    // 1. If onboarding is not complete, force onboarding (allow auth page if they need it)
-    if (!onboardingComplete) {
-      if (!goingToOnboarding && !goingToAuth) {
-        return '/onboarding';
-      }
-      return null;
-    }
-
-    // Onboarding complete:
-    if (SupabaseConfig.isConfigured) {
-      final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
-      if (!isLoggedIn) {
-        // Not logged in -> must be on auth screen
-        if (!goingToAuth) {
-          return '/auth';
-        }
-        return null;
-      } else {
-        // Logged in -> if trying to go to auth or onboarding, redirect to home
-        if (goingToAuth || goingToOnboarding) {
-          return '/home';
-        }
-        return null;
-      }
-    } else {
-      // Supabase not configured -> skip auth, redirect to home if on auth/onboarding
-      if (goingToAuth || goingToOnboarding) {
-        return '/home';
-      }
-      return null;
-    }
-  },
+  redirect: appRouterRedirect,
   routes: [
     // ─── Shell route with bottom navigation ───────────────────────
     ShellRoute(
@@ -223,6 +236,16 @@ final appRouter = GoRouter(
       builder: (context, state) => const OnboardingScreen(),
     ),
     GoRoute(
+      path: '/device-setup',
+      name: 'deviceSetup',
+      builder: (context, state) => const DeviceSetupFlow(),
+    ),
+    GoRoute(
+      path: '/update-rhythm',
+      name: 'updateRhythm',
+      builder: (context, state) => const UpdateRhythmScreen(),
+    ),
+    GoRoute(
       path: '/auth',
       name: 'auth',
       builder: (context, state) => const AuthScreen(),
@@ -275,7 +298,6 @@ final appRouter = GoRouter(
   ],
 );
 
-/// Bottom navigation shell — persistent across tab screens.
 class _AppShell extends ConsumerWidget {
   const _AppShell({required this.child});
 
@@ -311,9 +333,43 @@ class _AppShell extends ConsumerWidget {
 
     final currentIndex = _currentIndex(context);
     final theme = Theme.of(context);
+    final activeNudge = ref.watch(currentNudgeProvider);
 
     return Scaffold(
-      body: child,
+      body: Stack(
+        children: [
+          child,
+          if (activeNudge != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: FocusNudgeBanner(
+                  appLabel: activeNudge.appLabel,
+                  onReturn: () async {
+                    final service = ref.read(protectionPolicyServiceProvider);
+                    final policies = await service.getActivePolicies();
+                    if (policies?.focus != null) {
+                      if (policies!.focus!.protectionMode == ProtectionMode.deep) {
+                        if (context.mounted) {
+                          context.go('/deep-work');
+                        }
+                      } else {
+                        if (context.mounted) {
+                          context.go('/focus');
+                        }
+                      }
+                    }
+                  },
+                  onDismiss: () {
+                    ref.read(currentNudgeProvider.notifier).dismiss();
+                  },
+                ),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: theme.bottomNavigationBarTheme.backgroundColor,

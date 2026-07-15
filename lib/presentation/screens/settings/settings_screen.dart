@@ -19,7 +19,6 @@ import '../../../data/local/database/app_database.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/onboarding/providers/onboarding_providers.dart';
-import '../../../features/onboarding/models/user_profile.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
 
@@ -56,12 +55,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
   }
 
   Future<void> _checkAccessibility() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      final bool enabled = await channel.invokeMethod<bool>('checkAccessibilityPermission') ?? false;
+      final states = await ref.read(deviceAttentionPlatformProvider).getPermissionStates();
       if (mounted) {
         setState(() {
-          _isAccessibilityEnabled = enabled;
+          _isAccessibilityEnabled = states.accessibility;
         });
       }
     } catch (_) {}
@@ -177,6 +175,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             subtitle: 'Choose which apps are blocked during focus and sleep',
             icon: Icons.app_blocking_outlined,
             onTap: () => context.push('/app-picker'),
+          ),
+          _actionTile(
+            title: 'Update your rhythm',
+            subtitle: 'Update goals and default focus duration',
+            icon: Icons.repeat_rounded,
+            onTap: () => context.push('/update-rhythm'),
           ),
           _actionTile(
             title: 'Shape my focus',
@@ -1181,7 +1185,7 @@ Data Storage, Control & Revocation
                       ElevatedButton(
                         onPressed: () async {
                           HapticFeedback.mediumImpact();
-                          final updated = UserProfile(
+                          final updated = initialProfile.copyWith(
                             goals: tempGoals,
                             distractions: tempDistractions,
                             protectedStartHour: tempStartHour,

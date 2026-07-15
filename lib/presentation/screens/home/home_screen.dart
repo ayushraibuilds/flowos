@@ -23,6 +23,7 @@ import '../../../features/onboarding/models/user_profile.dart';
 import '../../../features/flow_garden/widgets/home_garden_glance.dart';
 import '../../../features/rhythm/providers/rhythm_providers.dart';
 import '../../widgets/rhythm_recommendation_card.dart';
+import '../../../features/onboarding/widgets/device_setup_sheet.dart';
 
 final intentionBannerDismissedProvider =
     StateNotifierProvider<IntentionBannerDismissedNotifier, bool>((ref) {
@@ -54,11 +55,52 @@ class IntentionBannerDismissedNotifier extends StateNotifier<bool> {
 /// Home Dashboard — the "command center."
 /// Shows Flow Score, XP bar, MITs, quick actions, and attention budget.
 /// All data is now reactive from Drift DAOs via Riverpod providers.
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _setupSheetShown = false;
+
+  void _maybeShowDeviceSetupSheet(BuildContext context) async {
+    if (_setupSheetShown) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final lastDismissedStr = prefs.getString('flowos_setup_sheet_dismissed_date');
+    if (lastDismissedStr != null) {
+      final lastDismissed = DateTime.parse(lastDismissedStr);
+      final difference = DateTime.now().difference(lastDismissed);
+      if (difference.inDays < 3) {
+        return;
+      }
+    }
+
+    _setupSheetShown = true;
+    if (mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => const DeviceSetupSheet(),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Watch profile loading and setup status
+    final profileLoaded = ref.watch(profileLoadedProvider);
+    final needsSetup = ref.watch(userProfileProvider.notifier).needsDeviceSetup;
+
+    if (profileLoaded && needsSetup) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeShowDeviceSetupSheet(context);
+      });
+    }
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(

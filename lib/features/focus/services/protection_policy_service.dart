@@ -87,13 +87,20 @@ class ProtectionPolicyService {
     return null;
   }
 
-  Future<List<PendingTrigger>> getNudgeEvents() async {
+  Future<PendingNudge?> claimPendingNudge() async {
     try {
-      final events = await _platform.getNudgeEvents();
-      final list = events.map((e) => PendingTrigger.fromJson(e)).toList();
-      return list.where((e) => !e.isExpired).toList();
+      final nudge = await _platform.claimPendingNudge();
+      if (nudge != null && !nudge.isExpired) {
+        return nudge;
+      }
     } catch (_) {}
-    return [];
+    return null;
+  }
+
+  Future<void> clearNudgesForSession(String sessionId) async {
+    try {
+      await _platform.clearNudgesForSession(sessionId);
+    } catch (_) {}
   }
 
   Future<ActivePolicies?> getActivePolicies() async {

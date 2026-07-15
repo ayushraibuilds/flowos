@@ -3,8 +3,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../services/user_profile_store.dart';
 
+final profileLoadedProvider = StateProvider<bool>((ref) => false);
+
 class UserProfileNotifier extends StateNotifier<UserProfile> {
-  UserProfileNotifier() : super(UserProfile.defaults()) {
+  final Ref _ref;
+
+  UserProfileNotifier(this._ref) : super(UserProfile.defaults()) {
     _load();
   }
 
@@ -12,6 +16,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     final prefs = await SharedPreferences.getInstance();
     final store = UserProfileStore(prefs);
     state = store.getProfile();
+    _ref.read(profileLoadedProvider.notifier).state = true;
   }
 
   Future<void> updateProfile(UserProfile profile) async {
@@ -20,8 +25,17 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     final store = UserProfileStore(prefs);
     await store.saveProfile(profile);
   }
+
+  bool get needsDeviceSetup => state.completedOnboardingVersion < 2 && !state.deviceSetupAcknowledged;
+
+  Future<void> markDeviceSetupAcknowledged() async {
+    await updateProfile(state.copyWith(
+      completedOnboardingVersion: 2,
+      deviceSetupAcknowledged: true,
+    ));
+  }
 }
 
 final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
-  return UserProfileNotifier();
+  return UserProfileNotifier(ref);
 });

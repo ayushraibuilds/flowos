@@ -45,7 +45,7 @@ Future<bool> showAccessibilityDisclosure(
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
-                      'Foreground App Detection',
+                      'App Protection (Android Only)',
                       style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
                     ),
                   ),
@@ -53,23 +53,23 @@ Future<bool> showAccessibilityDisclosure(
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'FlowOS needs Accessibility permission to detect when you are opening distraction apps during focus and sleep sessions.',
+                'FlowOS uses the Android Accessibility Service API to detect when you are opening selected distracting apps during active Focus and Sleep sessions.',
                 style: AppTypography.body.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.lg),
               _buildBulletPoint(
                 Icons.check_circle_outline,
-                'FlowOS detects the foreground app only to apply your selected focus and sleep protection rules.',
+                'FlowOS monitors package launch events only to apply your selected focus and sleep protection policies (Guard, Deep Focus).',
               ),
               const SizedBox(height: AppSpacing.md),
               _buildBulletPoint(
                 Icons.vpn_key_outlined,
-                'This data never leaves your device. No text, passwords, keystrokes, or screen content is observed or collected.',
+                'Privacy First: No personal data, keystrokes, screen contents, notifications, or app data is collected, stored, or sent off the device. This feature operates 100% locally.',
               ),
               const SizedBox(height: AppSpacing.md),
               _buildBulletPoint(
                 Icons.settings_suggest_outlined,
-                'You can disable this at any time in Android Settings → Accessibility.',
+                'You can disable this permission at any time in Android Settings → Accessibility → FlowOS.',
               ),
               const SizedBox(height: AppSpacing.xl),
               ElevatedButton(
@@ -85,7 +85,7 @@ Future<bool> showAccessibilityDisclosure(
                   Navigator.pop(context, true);
                 },
                 child: Text(
-                  'I understand, continue',
+                  'Accept & Open Settings',
                   style: AppTypography.button.copyWith(fontWeight: FontWeight.bold),
                 ),
               ),

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../data/local/database/app_database.dart';
+import '../../focus/models/pending_trigger.dart';
 
 enum DataCoverage { complete, partial, manualOnly, notConnected, unsupported }
 
@@ -135,21 +136,21 @@ class DeviceAttentionPlatform {
     return null;
   }
 
-  Future<List<Map<String, dynamic>>> getNudgeEvents() async {
-    if (!Platform.isAndroid) return [];
+  Future<PendingNudge?> claimPendingNudge() async {
+    if (!Platform.isAndroid) return null;
     try {
-      final List<dynamic>? res = await _channel.invokeMethod('getNudgeEvents');
+      final Map<dynamic, dynamic>? res = await _channel.invokeMethod('claimPendingNudge');
       if (res != null) {
-        return res.map((e) => Map<String, dynamic>.from(e)).toList();
+        return PendingNudge.fromJson(Map<String, dynamic>.from(res));
       }
     } catch (_) {}
-    return [];
+    return null;
   }
 
-  Future<void> acknowledgeNudgeEvent(String id) async {
+  Future<void> clearNudgesForSession(String sessionId) async {
     if (!Platform.isAndroid) return;
     try {
-      await _channel.invokeMethod('acknowledgeNudgeEvent', {'id': id});
+      await _channel.invokeMethod('clearNudgesForSession', {'sessionId': sessionId});
     } catch (_) {}
   }
 

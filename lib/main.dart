@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'data/local/database/app_database.dart';
+import 'features/focus/providers/nudge_provider.dart';
 
 import 'core/config/supabase_config.dart';
 import 'core/theme/app_theme.dart';
@@ -54,11 +54,38 @@ Future<void> main() async {
   );
 }
 
-class FlowOSApp extends ConsumerWidget {
+class FlowOSApp extends ConsumerStatefulWidget {
   const FlowOSApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FlowOSApp> createState() => _FlowOSAppState();
+}
+
+class _FlowOSAppState extends ConsumerState<FlowOSApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentNudgeProvider.notifier).checkForNudge();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(currentNudgeProvider.notifier).checkForNudge();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentTheme = ref.watch(themeProvider);
 
     // Dynamically update AppColors

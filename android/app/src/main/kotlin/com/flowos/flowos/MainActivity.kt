@@ -145,48 +145,15 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(null)
                     }
-                    "getNudgeEvents" -> {
-                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-                        val eventsStr = prefs.getString("flutter.flowos_nudge_events", "[]") ?: "[]"
-                        val resList = mutableListOf<Map<String, Any>>()
+                    "claimPendingNudge" -> {
                         val now = System.currentTimeMillis()
-                        try {
-                            val array = JSONArray(eventsStr)
-                            val newArray = JSONArray()
-                            for (i in 0 until array.length()) {
-                                val e = array.optJSONObject(i) ?: continue
-                                val triggeredAt = e.optLong("triggeredAt", 0L)
-                                if (now - triggeredAt < 60000) {
-                                    newArray.put(e)
-                                    resList.add(mapOf(
-                                        "id" to e.optString("id"),
-                                        "packageName" to e.optString("packageName"),
-                                        "triggeredAt" to triggeredAt,
-                                        "source" to "focus",
-                                        "claimed" to e.optBoolean("claimed", false)
-                                    ))
-                                }
-                            }
-                            prefs.edit().putString("flutter.flowos_nudge_events", newArray.toString()).apply()
-                        } catch (e: Exception) {}
-                        result.success(resList)
+                        val claimed = NudgeStore.claim(this, now)
+                        result.success(claimed)
                     }
-                    "acknowledgeNudgeEvent" -> {
-                        val id = call.argument<String>("id")
-                        if (id != null) {
-                            val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-                            val eventsStr = prefs.getString("flutter.flowos_nudge_events", "[]") ?: "[]"
-                            try {
-                                val array = JSONArray(eventsStr)
-                                val newArray = JSONArray()
-                                for (i in 0 until array.length()) {
-                                    val e = array.optJSONObject(i) ?: continue
-                                    if (e.optString("id") != id) {
-                                        newArray.put(e)
-                                    }
-                                }
-                                prefs.edit().putString("flutter.flowos_nudge_events", newArray.toString()).apply()
-                            } catch (e: Exception) {}
+                    "clearNudgesForSession" -> {
+                        val sessionId = call.argument<String>("sessionId")
+                        if (sessionId != null) {
+                            NudgeStore.clearForSession(this, sessionId)
                         }
                         result.success(null)
                     }

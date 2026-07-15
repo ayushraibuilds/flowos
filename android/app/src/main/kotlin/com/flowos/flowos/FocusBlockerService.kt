@@ -30,6 +30,10 @@ class FocusBlockerService : AccessibilityService() {
             return // Fail-open if unparseable
         }
 
+        // Schema version check: must be 1
+        val schemaVersion = policies.optInt("schemaVersion", 0)
+        if (schemaVersion != 1) return // Fail-open if wrong version
+
         val focusPolicy = policies.optJSONObject("focus")
         val sleepPolicy = policies.optJSONObject("sleep")
 
@@ -40,13 +44,19 @@ class FocusBlockerService : AccessibilityService() {
         var isFocusActive = false
 
         if (focusPolicy != null) {
+            val sessionId = focusPolicy.optString("sessionId", "")
             val activeUntil = focusPolicy.optLong("activeUntil", 0L)
-            if (now <= activeUntil) {
-                val selectedPackages = parseJsonArray(focusPolicy.optJSONArray("selectedPackages"))
-                if (selectedPackages.contains(packageName)) {
-                    focusMode = focusPolicy.optString("protectionMode", "guard")
-                    focusSessionId = focusPolicy.optString("sessionId", "")
-                    isFocusActive = true
+            val selectedPackages = focusPolicy.optJSONArray("selectedPackages")
+            val protectionMode = focusPolicy.optString("protectionMode", "")
+
+            if (sessionId.isNotEmpty() && activeUntil > 0 && selectedPackages != null && protectionMode.isNotEmpty()) {
+                if (now <= activeUntil) {
+                    val selectedPackagesSet = parseJsonArray(selectedPackages)
+                    if (selectedPackagesSet.contains(packageName)) {
+                        focusMode = protectionMode
+                        focusSessionId = sessionId
+                        isFocusActive = true
+                    }
                 }
             }
         }
@@ -56,13 +66,19 @@ class FocusBlockerService : AccessibilityService() {
         var isSleepActive = false
 
         if (sleepPolicy != null) {
+            val sessionId = sleepPolicy.optString("sessionId", "")
             val activeUntil = sleepPolicy.optLong("activeUntil", 0L)
-            if (now <= activeUntil) {
-                val selectedPackages = parseJsonArray(sleepPolicy.optJSONArray("selectedPackages"))
-                if (selectedPackages.contains(packageName)) {
-                    sleepMode = sleepPolicy.optString("protectionMode", "guard")
-                    sleepSessionId = sleepPolicy.optString("sessionId", "")
-                    isSleepActive = true
+            val selectedPackages = sleepPolicy.optJSONArray("selectedPackages")
+            val protectionMode = sleepPolicy.optString("protectionMode", "")
+
+            if (sessionId.isNotEmpty() && activeUntil > 0 && selectedPackages != null && protectionMode.isNotEmpty()) {
+                if (now <= activeUntil) {
+                    val selectedPackagesSet = parseJsonArray(selectedPackages)
+                    if (selectedPackagesSet.contains(packageName)) {
+                        sleepMode = protectionMode
+                        sleepSessionId = sessionId
+                        isSleepActive = true
+                    }
                 }
             }
         }
@@ -135,7 +151,8 @@ class FocusBlockerService : AccessibilityService() {
 
         // Apply protection behavior
         if (effectiveMode == "nudge") {
-            writeNudgeEvent(prefs, packageName, now)
+            val appLabel = getAppName(packageName)
+            NudgeStore.record(this, packageName, appLabel, now, activeSessionId, activeSource)
         } else {
             // Guard or Deep: Intercept and redirect to FlowOS shield page
             writePendingTrigger(prefs, packageName, now, activeSource)
@@ -152,35 +169,17 @@ class FocusBlockerService : AccessibilityService() {
         }
     }
 
-    private fun writeNudgeEvent(prefs: android.content.SharedPreferences, packageName: String, now: Long) {
-        val editor = prefs.edit()
-        val currentEventsJson = prefs.getString("flutter.flowos_nudge_events", "[]") ?: "[]"
-        try {
-            val array = JSONArray(currentEventsJson)
-            
-            // Check if there is already an unexpired nudge event for the same package
-            for (i in 0 until array.length()) {
-                val e = array.optJSONObject(i) ?: continue
-                if (e.optString("packageName") == packageName) {
-                    val triggeredAt = e.optLong("triggeredAt", 0L)
-                    if (now - triggeredAt < 60000) {
-                        return // Skip writing duplicate nudge within 60s
-                    }
-                }
-            }
-
-            val newEvent = JSONObject().apply {
-                put("id", UUID.randomUUID().toString())
-                put("packageName", packageName)
-                put("triggeredAt", now)
-                put("source", "focus")
-                put("claimed", false)
-            }
-            array.put(newEvent)
-            editor.putString("flutter.flowos_nudge_events", array.toString())
-            editor.apply()
-        } catch (e: Exception) {}
+    private fun getAppName(packageName: String): String {
+        return try {
+            val pm = packageManager
+            val info = pm.getApplicationInfo(packageName, 0)
+            info.loadLabel(pm).toString()
+        } catch (e: Exception) {
+            packageName
+        }
     }
+
+
 
     private fun writePendingTrigger(
         prefs: android.content.SharedPreferences,

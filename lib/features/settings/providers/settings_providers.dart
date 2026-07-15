@@ -78,7 +78,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           scrollBudget: 30,
           soundEnabled: true,
           autoSync: true,
-          focusProtection: FocusProtectionLevel.softReturn,
+          focusProtection: FocusProtectionLevel.pauseAndProtect,
         ),
       ) {
     _load();
@@ -86,6 +86,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    final isOnboarded = prefs.getBool('flowos_onboarding_complete') ?? false;
     state = SettingsState(
       energyReminders: prefs.getBool(_keyEnergyReminders) ?? true,
       reportReminder: prefs.getBool(_keyReportReminder) ?? true,
@@ -96,7 +97,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       autoSync: prefs.getBool(_keyAutoSync) ?? true,
       focusProtection: FocusProtectionLevel.values.firstWhere(
         (level) => level.name == prefs.getString(_keyFocusProtection),
-        orElse: () => FocusProtectionLevel.softReturn,
+        orElse: () => isOnboarded ? FocusProtectionLevel.softReturn : FocusProtectionLevel.pauseAndProtect,
       ),
     );
   }

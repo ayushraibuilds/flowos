@@ -25,6 +25,9 @@ import '../../../features/focus/services/protection_policy_service.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../data/local/database/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../features/focus/widgets/focus_nudge_banner.dart';
+import '../../../features/focus/models/pending_trigger.dart';
+import '../../../features/focus/providers/nudge_provider.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
 /// Features:
@@ -135,6 +138,17 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       final policyService = ref.read(protectionPolicyServiceProvider);
       final trigger = await policyService.claimPendingTrigger();
       if (trigger != null && mounted) {
+        final activePolicies = await policyService.getActivePolicies();
+        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
+
+        if (effectiveMode == ProtectionMode.nudge) {
+          // Nudge must not block. Just clear and resume.
+          if (_isRunning && mounted) {
+            _resumeTimer();
+          }
+          return;
+        }
+
         if (_isRunning && !_isPaused) {
           _pauseTimer();
         }
@@ -142,9 +156,6 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
         final db = ref.read(databaseProvider);
         final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', trigger.packageName);
         final appDisplayName = protectedApp?.displayName ?? trigger.packageName;
-
-        final activePolicies = await policyService.getActivePolicies();
-        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
 
         if (context.mounted) {
           await FocusShieldOverlay.show(
@@ -176,29 +187,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
           );
         }
       }
-
-      // Check nudge events
-      final nudges = await policyService.getNudgeEvents();
-      if (nudges.isNotEmpty && mounted) {
-        for (final nudge in nudges) {
-          final db = ref.read(databaseProvider);
-          final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', nudge.packageName);
-          final appDisplayName = protectedApp?.displayName ?? nudge.packageName;
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$appDisplayName was opened. Ready to return to focus?'),
-                backgroundColor: AppColors.background2,
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-          await ref.read(deviceAttentionPlatformProvider).acknowledgeNudgeEvent(nudge.id);
-        }
-      }
     } catch (_) {}
   }
+
+
 
   void _startTimer() async {
     HapticFeedback.heavyImpact();
@@ -382,6 +374,18 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       body: SafeArea(
         child: Column(
           children: [
+            if (ref.watch(currentNudgeProvider) != null)
+              FocusNudgeBanner(
+                appLabel: ref.watch(currentNudgeProvider)!.appLabel,
+                onReturn: () {
+                  if (_isRunning && mounted) {
+                    _resumeTimer();
+                  }
+                },
+                onDismiss: () {
+                  ref.read(currentNudgeProvider.notifier).dismiss();
+                },
+              ),
             // Top bar
             Padding(
               padding: const EdgeInsets.symmetric(

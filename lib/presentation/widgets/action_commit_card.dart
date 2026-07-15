@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:uuid/uuid.dart';
@@ -11,7 +10,6 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../data/local/database/app_database.dart';
 import '../../data/local/tables/tasks_table.dart';
-import '../../features/onboarding/models/user_profile.dart';
 import '../../features/onboarding/providers/onboarding_providers.dart';
 import '../../features/reports/models/weekly_action.dart';
 import 'flow_surface.dart';
@@ -178,12 +176,7 @@ class ActionCommitCard extends ConsumerWidget {
       case WeeklyActionType.reduceOneTrigger:
         // Upgrade user profile protectionMode to firm
         final currentProfile = ref.read(userProfileProvider);
-        final updated = UserProfile(
-          goals: currentProfile.goals,
-          distractions: currentProfile.distractions,
-          protectedStartHour: currentProfile.protectedStartHour,
-          protectedEndHour: currentProfile.protectedEndHour,
-          protectedWeekdaysOnly: currentProfile.protectedWeekdaysOnly,
+        final updated = currentProfile.copyWith(
           protectionMode: 'firm',
         );
         await ref.read(userProfileProvider.notifier).updateProfile(updated);

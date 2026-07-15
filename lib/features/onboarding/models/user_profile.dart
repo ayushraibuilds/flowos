@@ -6,6 +6,12 @@ class UserProfile {
   final bool protectedWeekdaysOnly;
   final String protectionMode; // 'gentle' | 'firm'
 
+  // New M2 fields
+  final int preferredFocusMinutes;
+  final int completedOnboardingVersion;
+  final bool deviceSetupAcknowledged;
+  final bool protectedWindowConfigured;
+
   const UserProfile({
     required this.goals,
     required this.distractions,
@@ -13,6 +19,10 @@ class UserProfile {
     required this.protectedEndHour,
     required this.protectedWeekdaysOnly,
     required this.protectionMode,
+    required this.preferredFocusMinutes,
+    required this.completedOnboardingVersion,
+    required this.deviceSetupAcknowledged,
+    required this.protectedWindowConfigured,
   });
 
   factory UserProfile.defaults() {
@@ -23,6 +33,10 @@ class UserProfile {
       protectedEndHour: 11,
       protectedWeekdaysOnly: true,
       protectionMode: 'gentle',
+      preferredFocusMinutes: 25,
+      completedOnboardingVersion: 0,
+      deviceSetupAcknowledged: false,
+      protectedWindowConfigured: false,
     );
   }
 
@@ -34,6 +48,10 @@ class UserProfile {
       protectedEndHour: json['protectedEndHour'] ?? 11,
       protectedWeekdaysOnly: json['protectedWeekdaysOnly'] ?? true,
       protectionMode: json['protectionMode'] ?? 'gentle',
+      preferredFocusMinutes: json['preferredFocusMinutes'] ?? 25,
+      completedOnboardingVersion: json['completedOnboardingVersion'] ?? 0,
+      deviceSetupAcknowledged: json['deviceSetupAcknowledged'] ?? false,
+      protectedWindowConfigured: json['protectedWindowConfigured'] ?? false,
     );
   }
 
@@ -45,10 +63,41 @@ class UserProfile {
       'protectedEndHour': protectedEndHour,
       'protectedWeekdaysOnly': protectedWeekdaysOnly,
       'protectionMode': protectionMode,
+      'preferredFocusMinutes': preferredFocusMinutes,
+      'completedOnboardingVersion': completedOnboardingVersion,
+      'deviceSetupAcknowledged': deviceSetupAcknowledged,
+      'protectedWindowConfigured': protectedWindowConfigured,
     };
   }
 
+  UserProfile copyWith({
+    List<String>? goals,
+    List<String>? distractions,
+    int? protectedStartHour,
+    int? protectedEndHour,
+    bool? protectedWeekdaysOnly,
+    String? protectionMode,
+    int? preferredFocusMinutes,
+    int? completedOnboardingVersion,
+    bool? deviceSetupAcknowledged,
+    bool? protectedWindowConfigured,
+  }) {
+    return UserProfile(
+      goals: goals ?? this.goals,
+      distractions: distractions ?? this.distractions,
+      protectedStartHour: protectedStartHour ?? this.protectedStartHour,
+      protectedEndHour: protectedEndHour ?? this.protectedEndHour,
+      protectedWeekdaysOnly: protectedWeekdaysOnly ?? this.protectedWeekdaysOnly,
+      protectionMode: protectionMode ?? this.protectionMode,
+      preferredFocusMinutes: preferredFocusMinutes ?? this.preferredFocusMinutes,
+      completedOnboardingVersion: completedOnboardingVersion ?? this.completedOnboardingVersion,
+      deviceSetupAcknowledged: deviceSetupAcknowledged ?? this.deviceSetupAcknowledged,
+      protectedWindowConfigured: protectedWindowConfigured ?? this.protectedWindowConfigured,
+    );
+  }
+
   bool isInProtectedWindow([DateTime? now]) {
+    if (!protectedWindowConfigured) return false;
     final time = now ?? DateTime.now();
 
     // Check if weekdays only is enabled, and if today is a weekday

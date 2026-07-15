@@ -90,6 +90,7 @@ class ActivePolicies {
   });
 
   Map<String, dynamic> toJson() => {
+        'schemaVersion': 1,
         'focus': focus?.toJson(),
         'sleep': sleep?.toJson(),
       };

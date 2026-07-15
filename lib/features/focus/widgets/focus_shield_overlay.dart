@@ -200,8 +200,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
     // Deep mode has a 30-second reflection countdown before showing the give-up button.
     // Nudge mode has a short 10-second countdown.
     _secondsRemaining = switch (widget.protectionMode) {
-      ProtectionMode.nudge => 10,
-      ProtectionMode.guard => 20,
+      ProtectionMode.nudge || ProtectionMode.guard => 20,
       ProtectionMode.deep => 30,
     };
 
@@ -344,7 +343,34 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
 
               // Actions Block
               if (_canAction) ...[
-                if (widget.protectionMode == ProtectionMode.nudge) ...[
+                if (widget.protectionMode == ProtectionMode.guard || widget.protectionMode == ProtectionMode.nudge) ...[
+                  ElevatedButton(
+                    onPressed: _handleResumeFocus,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.emerald,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(50),
+                    ),
+                    child: const Text('Resume Focus'),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _showIntentionDialog(_selectedBreakMinutes),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                          ),
+                          child: const Text('Take a break'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _buildBreakDurationSelector(),
+                ] else if (widget.protectionMode == ProtectionMode.deep) ...[
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -356,63 +382,16 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                   ),
                   const SizedBox(height: AppSpacing.md),
                   OutlinedButton(
-                    onPressed: () => _showIntentionDialog(5),
+                    onPressed: widget.onCancelSession,
                     style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.dangerCoral,
+                      side: BorderSide(color: AppColors.dangerCoral),
                       minimumSize: const Size.fromHeight(50),
                     ),
-                    child: const Text('Continue to app (5m break)'),
-                  ),
-                ] else if (widget.protectionMode == ProtectionMode.guard) ...[
-                  ElevatedButton(
-                    onPressed: _handleResumeFocus,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.emerald,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: const Text('Resume Focus'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  _buildBreakPicker(),
-                  const SizedBox(height: AppSpacing.md),
-                  OutlinedButton(
-                    onPressed: () => _showIntentionDialog(_selectedBreakMinutes),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: Text('Take a break from ${widget.appDisplayName} ($_selectedBreakMinutes min)'),
-                  ),
-                ] else ...[
-                  // Deep Mode: No break options, only Resume or Give up
-                  ElevatedButton(
-                    onPressed: _handleResumeFocus,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.emerald,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: const Text('Resume Focus'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextButton(
-                    onPressed: _handleCancelSession,
-                    child: const Text(
-                      'Give up & End Focus Session',
-                      style: TextStyle(color: AppColors.dangerCoral),
-                    ),
+                    child: const Text('Cancel Focus Session'),
                   ),
                 ],
-              ] else ...[
-                // Disabled placeholder during countdown
-                ElevatedButton(
-                  onPressed: null,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(50),
-                  ),
-                  child: Text('Pause to reflect ($_secondsRemaining s)'),
-                ),
               ],
-              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         ),
@@ -420,22 +399,20 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
     );
   }
 
-  Widget _buildBreakPicker() {
+  Widget _buildBreakDurationSelector() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [5, 10, 15].map((m) {
+      children: ActivePolicies.guardBreakOptions.map((m) {
         final isSel = _selectedBreakMinutes == m;
         return GestureDetector(
           onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() => _selectedBreakMinutes = m);
+            setState(() {
+              _selectedBreakMinutes = m;
+            });
           },
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.sm,
-            ),
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: isSel ? AppColors.dangerCoral.withValues(alpha: 0.15) : AppColors.background2,
               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
@@ -458,9 +435,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
 
   String _getInstructionText() {
     return switch (widget.protectionMode) {
-      ProtectionMode.nudge =>
-        'Take a 10-second breath. You can choose to skip past this reminder if you must.',
-      ProtectionMode.guard =>
+      ProtectionMode.nudge || ProtectionMode.guard =>
         'Take a 20-second pause to reflect. You can request a short timed break from this specific app once the count ends.',
       ProtectionMode.deep =>
         'This is Deep Focus. You cannot bypass this shield without terminating your entire focus session.',

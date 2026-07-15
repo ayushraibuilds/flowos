@@ -25,6 +25,8 @@ import '../../../features/focus/services/protection_policy_service.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../data/local/database/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../features/focus/widgets/focus_nudge_banner.dart';
+import '../../../features/focus/models/pending_trigger.dart';
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
 /// No navigation visible. Circular timer, ambient sounds, live XP.
@@ -132,6 +134,20 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       final policyService = ref.read(protectionPolicyServiceProvider);
       final trigger = await policyService.claimPendingTrigger();
       if (trigger != null && mounted) {
+        final activePolicies = await policyService.getActivePolicies();
+        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
+
+        if (effectiveMode == ProtectionMode.nudge) {
+          // Nudge must not block. Just clear and resume.
+          if (_isRunning && mounted) {
+            setState(() {
+              _isPaused = false;
+            });
+            _runTimer();
+          }
+          return;
+        }
+
         if (_isRunning && !_isPaused) {
           _timer?.cancel();
           setState(() {
@@ -142,9 +158,6 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         final db = ref.read(databaseProvider);
         final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', trigger.packageName);
         final appDisplayName = protectedApp?.displayName ?? trigger.packageName;
-
-        final activePolicies = await policyService.getActivePolicies();
-        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
 
         if (context.mounted) {
           await FocusShieldOverlay.show(
@@ -184,29 +197,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
           );
         }
       }
-
-      // Check nudge events
-      final nudges = await policyService.getNudgeEvents();
-      if (nudges.isNotEmpty && mounted) {
-        for (final nudge in nudges) {
-          final db = ref.read(databaseProvider);
-          final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', nudge.packageName);
-          final appDisplayName = protectedApp?.displayName ?? nudge.packageName;
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$appDisplayName was opened. Ready to return to focus?'),
-                backgroundColor: AppColors.background2,
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-          await ref.read(deviceAttentionPlatformProvider).acknowledgeNudgeEvent(nudge.id);
-        }
-      }
     } catch (_) {}
   }
+
+
 
   void _startTimer() async {
     final isFlowtime = _selectedSessionType == 3;

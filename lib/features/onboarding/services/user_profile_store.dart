@@ -11,13 +11,36 @@ class UserProfileStore {
 
   UserProfile getProfile() {
     final raw = _prefs.getString(_key);
+    final onboardingComplete = _prefs.getBool('flowos_onboarding_complete') ?? false;
+
     if (raw == null) {
+      if (onboardingComplete) {
+        return UserProfile.defaults().copyWith(
+          completedOnboardingVersion: 1,
+          protectedWindowConfigured: true,
+        );
+      }
       return UserProfile.defaults();
     }
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
-      return UserProfile.fromJson(json);
+      var profile = UserProfile.fromJson(json);
+      
+      final completedVersion = json['completedOnboardingVersion'] ?? (onboardingComplete ? 1 : 0);
+      final windowConfigured = json['protectedWindowConfigured'] ?? (onboardingComplete || completedVersion == 1);
+
+      profile = profile.copyWith(
+        completedOnboardingVersion: completedVersion,
+        protectedWindowConfigured: windowConfigured,
+      );
+      return profile;
     } catch (_) {
+      if (onboardingComplete) {
+        return UserProfile.defaults().copyWith(
+          completedOnboardingVersion: 1,
+          protectedWindowConfigured: true,
+        );
+      }
       return UserProfile.defaults();
     }
   }
