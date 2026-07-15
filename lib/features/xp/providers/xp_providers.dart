@@ -9,6 +9,7 @@ import '../../../data/local/dao/energy_checkins_dao.dart';
 import '../../../data/local/dao/daily_plans_dao.dart';
 import '../../../data/local/dao/daily_reports_dao.dart';
 import '../../../data/local/dao/achievements_dao.dart';
+import '../../attention/repository/attention_data_repository.dart';
 import '../models/xp_calculator.dart';
 import '../models/streak_service.dart';
 import '../../achievements/models/achievement_checker.dart';
@@ -58,7 +59,7 @@ final achievementCheckerProvider = Provider<AchievementChecker>((ref) {
     achievementsDao: ref.watch(achievementsDaoProvider),
     xpLedgerDao: ref.watch(xpLedgerDaoProvider),
     sessionsDao: ref.watch(focusSessionsDaoProvider),
-    scrollLogsDao: ref.watch(scrollLogsDaoProvider),
+    db: ref.watch(databaseProvider),
   );
 });
 
@@ -96,7 +97,9 @@ final todayPlanProvider = StreamProvider<DailyPlan?>((ref) {
 
 /// Watch today's scroll total
 final dailyScrollTotalProvider = StreamProvider<int>((ref) {
-  return ref.watch(scrollLogsDaoProvider).watchDailyTotal();
+  return ref.watch(attentionDataRepositoryProvider)
+      .watchTodayAttention()
+      .map((day) => day.effectiveDistractingMinutes);
 });
 
 /// Watch all achievements

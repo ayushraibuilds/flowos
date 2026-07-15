@@ -68,16 +68,16 @@ class AchievementChecker {
   final XpLedgerDao _xpLedgerDao;
   // ignore: unused_field — used in flowMaster check expansion
   final FocusSessionsDao sessionsDao;
-  final ScrollLogsDao _scrollLogsDao;
+  final AppDatabase _db;
 
   AchievementChecker({
     required AchievementsDao achievementsDao,
     required XpLedgerDao xpLedgerDao,
     required this.sessionsDao,
-    required ScrollLogsDao scrollLogsDao,
+    required AppDatabase db,
   })  : _achievementsDao = achievementsDao,
         _xpLedgerDao = xpLedgerDao,
-        _scrollLogsDao = scrollLogsDao;
+        _db = db;
 
   /// Check all achievements and unlock any that are newly earned.
   /// Returns list of newly unlocked achievement keys.
@@ -89,8 +89,8 @@ class AchievementChecker {
 
     // ⚡ 1000 XP Day
     await _check(AchievementKey.thousandXPDay, () async {
-      final dailyXP = await _xpLedgerDao.getDailyXP();
-      return dailyXP >= 1000;
+      final todayXP = await _xpLedgerDao.getDailyXP();
+      return todayXP >= 1000;
     }, newlyUnlocked);
 
     // 🌌 Flow God — Level 51
@@ -105,7 +105,26 @@ class AchievementChecker {
 
     // 📵 Digital Detox — 0 scroll today
     await _check(AchievementKey.digitalDetox, () async {
-      final scrollToday = await _scrollLogsDao.getDailyTotal();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final metric = await _db.deviceDayMetricsDao.getForDay(today, 'android');
+      final hasNative = metric != null && metric.coverageState != 'notConnected';
+
+      int scrollToday = 0;
+      if (hasNative) {
+        final nativeList = await _db.deviceUsageRecordsDao.getForRange(today, today);
+        scrollToday = nativeList
+            .where((r) => r.isDistracting == true && r.source == 'android_usage')
+            .fold<int>(0, (sum, r) => sum + r.minutes);
+      } else {
+        final start = DateTime(now.year, now.month, now.day);
+        final logs = await (_db.select(_db.scrollLogs)
+              ..where((l) =>
+                  l.timestamp.isBiggerOrEqualValue(start) &
+                  l.appName.like('% [Auto]%').not()))
+            .get();
+        scrollToday = logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+      }
       return scrollToday == 0;
     }, newlyUnlocked);
 
@@ -166,7 +185,7 @@ class AchievementChecker {
       achievementsDao: db.achievementsDao,
       xpLedgerDao: db.xpLedgerDao,
       sessionsDao: db.focusSessionsDao,
-      scrollLogsDao: db.scrollLogsDao,
+      db: db,
     );
     return checker.checkAll(streakDays: streak, lifetimeXP: lifetimeXP);
   }

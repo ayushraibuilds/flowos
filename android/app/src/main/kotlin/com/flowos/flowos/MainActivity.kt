@@ -1,23 +1,30 @@
 package com.flowos.flowos
 
 import android.app.AppOpsManager
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.util.Calendar
 
 class MainActivity : FlutterActivity() {
     private val usageStatsChannel = "flowos/usage_stats"
+    private val deviceAttentionChannel = "flowos/device_attention"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        // Keep flowos/usage_stats for backward compatibility during transition
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, usageStatsChannel)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -67,6 +74,79 @@ class MainActivity : FlutterActivity() {
                         val trigger = intent?.getStringExtra("blocked_app_trigger")
                         intent?.removeExtra("blocked_app_trigger")
                         result.success(trigger)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // New consolidated flowos/device_attention channel
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, deviceAttentionChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getPermissionStates" -> {
+                        result.success(mapOf(
+                            "usageAccess" to hasUsageStatsPermission(),
+                            "accessibility" to isAccessibilityServiceEnabled(),
+                            "notificationAccess" to isNotificationServiceEnabled(),
+                            "platformSupport" to "android"
+                        ))
+                    }
+                    "openUsageAccessSettings" -> {
+                        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        result.success(null)
+                    }
+                    "openAccessibilitySettings" -> {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        result.success(null)
+                    }
+                    "openNotificationListenerSettings" -> {
+                        startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                        result.success(null)
+                    }
+                    "getLaunchableApps" -> {
+                        result.success(getLaunchableAppsList())
+                    }
+                    "loadAppIcon" -> {
+                        val pkg = call.argument<String>("packageName")
+                        if (pkg != null) {
+                            result.success(loadAppIcon(pkg))
+                        } else {
+                            result.error("bad_arguments", "Missing packageName", null)
+                        }
+                    }
+                    "getDailyUsage" -> {
+                        val start = call.argument<Long>("startMs")
+                        val end = call.argument<Long>("endMs")
+                        if (start != null && end != null) {
+                            if (!hasUsageStatsPermission()) {
+                                result.error(
+                                    "permission_denied",
+                                    "Usage Access is required to read device screen time.",
+                                    null,
+                                )
+                            } else {
+                                result.success(getDailyUsageRange(start, end))
+                            }
+                        } else {
+                            result.error("bad_arguments", "Missing startMs or endMs", null)
+                        }
+                    }
+                    "getDailyUnlockEvents" -> {
+                        val start = call.argument<Long>("startMs")
+                        val end = call.argument<Long>("endMs")
+                        if (start != null && end != null) {
+                            if (!hasUsageStatsPermission()) {
+                                result.error(
+                                    "permission_denied",
+                                    "Usage Access is required to read unlock events.",
+                                    null,
+                                )
+                            } else {
+                                result.success(getDailyUnlockEventsRange(start, end))
+                            }
+                        } else {
+                            result.error("bad_arguments", "Missing startMs or endMs", null)
+                        }
                     }
                     else -> result.notImplemented()
                 }
@@ -209,5 +289,151 @@ class MainActivity : FlutterActivity() {
             }
         }
         return false
+    }
+
+    private fun isNotificationServiceEnabled(): Boolean {
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        return flat != null && flat.contains(packageName)
+    }
+
+    private fun getLaunchableAppsList(): List<Map<String, Any?>> {
+        val pm = packageManager
+        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
+        val apps = mutableListOf<Map<String, Any?>>()
+        for (info in resolveInfos) {
+            val pkgName = info.activityInfo.packageName
+            if (pkgName == packageName) continue
+            val label = info.loadLabel(pm).toString()
+            apps.add(mapOf(
+                "packageName" to pkgName,
+                "label" to label
+            ))
+        }
+        return apps.sortedBy { (it["label"] as? String)?.lowercase() }
+    }
+
+    private fun loadAppIcon(packageName: String): ByteArray? {
+        return try {
+            val pm = packageManager
+            val icon = pm.getApplicationIcon(packageName)
+            val bitmap = if (icon is BitmapDrawable) {
+                icon.bitmap
+            } else {
+                val width = icon.intrinsicWidth.coerceAtLeast(1)
+                val height = icon.intrinsicHeight.coerceAtLeast(1)
+                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bmp)
+                icon.setBounds(0, 0, canvas.width, canvas.height)
+                icon.draw(canvas)
+                bmp
+            }
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            stream.toByteArray()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun getDailyUsageRange(startMs: Long, endMs: Long): List<Map<String, Any>> {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val statsList = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY,
+            startMs,
+            endMs
+        ) ?: return emptyList()
+
+        val aggregated = mutableMapOf<String, Long>()
+        for (stats in statsList) {
+            val foregroundTimeMs = stats.totalTimeInForeground
+            if (foregroundTimeMs <= 0) continue
+
+            val entryCal = Calendar.getInstance().apply {
+                timeInMillis = stats.firstTimeStamp
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val dateStr = String.format(
+                "%04d-%02d-%02d",
+                entryCal.get(Calendar.YEAR),
+                entryCal.get(Calendar.MONTH) + 1,
+                entryCal.get(Calendar.DAY_OF_MONTH)
+            )
+            val key = "${dateStr}_${stats.packageName}"
+            aggregated[key] = (aggregated[key] ?: 0L) + foregroundTimeMs
+        }
+
+        val result = mutableListOf<Map<String, Any>>()
+        for ((key, durationMs) in aggregated) {
+            val minutes = durationMs / 60_000L
+            if (minutes <= 0) continue
+
+            val parts = key.split("_", limit = 2)
+            if (parts.size == 2) {
+                result.add(mapOf(
+                    "date" to parts[0],
+                    "packageName" to parts[1],
+                    "label" to getAppName(parts[1]),
+                    "minutes" to minutes.toInt()
+                ))
+            }
+        }
+        return result
+    }
+
+    private fun getDailyUnlockEventsRange(startMs: Long, endMs: Long): List<Map<String, Any>> {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val events = usageStatsManager.queryEvents(startMs, endMs) ?: return emptyList()
+        
+        val dailyUnlocks = mutableMapOf<String, MutableSet<Long>>()
+        val event = UsageEvents.Event()
+        
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            val isKeyguardHidden = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                event.eventType == UsageEvents.Event.KEYGUARD_HIDDEN
+            } else {
+                event.eventType == 18
+            }
+            
+            if (isKeyguardHidden) {
+                val timestamp = event.timeStamp
+                val cal = Calendar.getInstance().apply {
+                    timeInMillis = timestamp
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val dateStr = String.format(
+                    "%04d-%02d-%02d",
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH) + 1,
+                    cal.get(Calendar.DAY_OF_MONTH)
+                )
+                
+                if (!dailyUnlocks.containsKey(dateStr)) {
+                    dailyUnlocks[dateStr] = mutableSetOf()
+                }
+                val isDuplicate = dailyUnlocks[dateStr]?.any { Math.abs(it - timestamp) < 2000L } ?: false
+                if (!isDuplicate) {
+                    dailyUnlocks[dateStr]?.add(timestamp)
+                }
+            }
+        }
+        
+        val result = mutableListOf<Map<String, Any>>()
+        for ((dateStr, timestamps) in dailyUnlocks) {
+            result.add(mapOf(
+                "date" to dateStr,
+                "count" to timestamps.size
+            ))
+        }
+        return result
     }
 }

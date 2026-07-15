@@ -14,6 +14,7 @@ import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/reports/models/weekly_action.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/reports/services/daily_action_engine.dart';
 import '../../widgets/action_commit_card.dart';
 
@@ -71,7 +72,9 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
     _tasksCompleted = await db.tasksDao.countCompletedToday();
     final mits = await db.tasksDao.getMITs();
     _mitsCompleted = mits.where((t) => t.isCompleted).length;
-    _scrollMinutes = await db.scrollLogsDao.getDailyTotal();
+    final attentionRepo = ref.read(attentionDataRepositoryProvider);
+    final todayAttention = await attentionRepo.getAttentionDay(DateTime.now());
+    _scrollMinutes = todayAttention.effectiveDistractingMinutes;
     _xpToday = await db.xpLedgerDao.getDailyXP();
     final lifetimeXP = await db.xpLedgerDao.getLifetimeXP();
     final level = XpConstants.levelFromXP(lifetimeXP);
@@ -103,6 +106,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
       intentionCompleted: _intentionCompleted,
       shutdownCompleted: plan?.shutdownCompleted ?? false,
       energyCheckIns: 0,
+      attentionCoverage: todayAttention.coverage,
     );
     _grade = DailyScoreCalculator.gradeFromScore(_dailyScore);
 

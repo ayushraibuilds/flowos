@@ -1,4 +1,5 @@
 import '../../../core/constants/xp_constants.dart';
+import '../../attention/repository/attention_data_repository.dart';
 
 /// Daily Score Calculator — the "honest mirror."
 /// Computes a 0-100 score that resets every day. No lifetime impact.
@@ -16,15 +17,27 @@ class DailyScoreCalculator {
     required bool intentionCompleted,
     required bool shutdownCompleted,
     required int energyCheckIns, // 0-3
+    DataCoverage attentionCoverage = DataCoverage.complete,
   }) {
     final focusScore = _focusScore(focusMinutes);
     final mitScore = _mitScore(mitsCompleted);
-    final attentionScore = _attentionScore(scrollMinutes, scrollBudget);
     final ritualScore = _ritualScore(
       intentionCompleted: intentionCompleted,
       shutdownCompleted: shutdownCompleted,
       energyCheckIns: energyCheckIns,
     );
+
+    if (attentionCoverage == DataCoverage.notConnected ||
+        attentionCoverage == DataCoverage.unsupported) {
+      // Omit attention pillar, normalize remaining weights (Focus 0.35, MIT 0.30, Ritual 0.15)
+      // Normalized: Focus = 0.35 / 0.8 = 0.4375, MIT = 0.30 / 0.8 = 0.375, Ritual = 0.15 / 0.8 = 0.1875
+      final raw = (focusScore * 0.4375) +
+          (mitScore * 0.375) +
+          (ritualScore * 0.1875);
+      return raw.round().clamp(0, 100);
+    }
+
+    final attentionScore = _attentionScore(scrollMinutes, scrollBudget);
 
     final raw = (focusScore * XpConstants.focusWeight) +
         (mitScore * XpConstants.mitWeight) +

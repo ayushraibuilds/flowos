@@ -10,6 +10,9 @@ class DeviceUsageRecords extends Table {
   TextColumn get packageName => text()(); // Package name (Android) or token (iOS)
   TextColumn get label => text().nullable()(); // App display name or category
   IntColumn get minutes => integer()(); // Aggregate foreground minutes
+  TextColumn get source => text().withDefault(const Constant('android_usage'))();
+  TextColumn get category => text().nullable()();
+  BoolColumn get isDistracting => boolean().withDefault(const Constant(false))();
   DateTimeColumn get syncTime => dateTime().withDefault(currentDateAndTime)(); // Log sync timestamp
 
   @override

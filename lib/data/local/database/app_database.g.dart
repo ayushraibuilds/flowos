@@ -5328,6 +5328,42 @@ class $DeviceUsageRecordsTable extends DeviceUsageRecords
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('android_usage'),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDistractingMeta = const VerificationMeta(
+    'isDistracting',
+  );
+  @override
+  late final GeneratedColumn<bool> isDistracting = GeneratedColumn<bool>(
+    'is_distracting',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_distracting" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _syncTimeMeta = const VerificationMeta(
     'syncTime',
   );
@@ -5348,6 +5384,9 @@ class $DeviceUsageRecordsTable extends DeviceUsageRecords
     packageName,
     label,
     minutes,
+    source,
+    category,
+    isDistracting,
     syncTime,
   ];
   @override
@@ -5408,6 +5447,27 @@ class $DeviceUsageRecordsTable extends DeviceUsageRecords
     } else if (isInserting) {
       context.missing(_minutesMeta);
     }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('is_distracting')) {
+      context.handle(
+        _isDistractingMeta,
+        isDistracting.isAcceptableOrUnknown(
+          data['is_distracting']!,
+          _isDistractingMeta,
+        ),
+      );
+    }
     if (data.containsKey('sync_time')) {
       context.handle(
         _syncTimeMeta,
@@ -5447,6 +5507,18 @@ class $DeviceUsageRecordsTable extends DeviceUsageRecords
         DriftSqlType.int,
         data['${effectivePrefix}minutes'],
       )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      ),
+      isDistracting: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_distracting'],
+      )!,
       syncTime: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}sync_time'],
@@ -5468,6 +5540,9 @@ class DeviceUsageRecord extends DataClass
   final String packageName;
   final String? label;
   final int minutes;
+  final String source;
+  final String? category;
+  final bool isDistracting;
   final DateTime syncTime;
   const DeviceUsageRecord({
     required this.id,
@@ -5476,6 +5551,9 @@ class DeviceUsageRecord extends DataClass
     required this.packageName,
     this.label,
     required this.minutes,
+    required this.source,
+    this.category,
+    required this.isDistracting,
     required this.syncTime,
   });
   @override
@@ -5489,6 +5567,11 @@ class DeviceUsageRecord extends DataClass
       map['label'] = Variable<String>(label);
     }
     map['minutes'] = Variable<int>(minutes);
+    map['source'] = Variable<String>(source);
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
+    map['is_distracting'] = Variable<bool>(isDistracting);
     map['sync_time'] = Variable<DateTime>(syncTime);
     return map;
   }
@@ -5503,6 +5586,11 @@ class DeviceUsageRecord extends DataClass
           ? const Value.absent()
           : Value(label),
       minutes: Value(minutes),
+      source: Value(source),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
+      isDistracting: Value(isDistracting),
       syncTime: Value(syncTime),
     );
   }
@@ -5519,6 +5607,9 @@ class DeviceUsageRecord extends DataClass
       packageName: serializer.fromJson<String>(json['packageName']),
       label: serializer.fromJson<String?>(json['label']),
       minutes: serializer.fromJson<int>(json['minutes']),
+      source: serializer.fromJson<String>(json['source']),
+      category: serializer.fromJson<String?>(json['category']),
+      isDistracting: serializer.fromJson<bool>(json['isDistracting']),
       syncTime: serializer.fromJson<DateTime>(json['syncTime']),
     );
   }
@@ -5532,6 +5623,9 @@ class DeviceUsageRecord extends DataClass
       'packageName': serializer.toJson<String>(packageName),
       'label': serializer.toJson<String?>(label),
       'minutes': serializer.toJson<int>(minutes),
+      'source': serializer.toJson<String>(source),
+      'category': serializer.toJson<String?>(category),
+      'isDistracting': serializer.toJson<bool>(isDistracting),
       'syncTime': serializer.toJson<DateTime>(syncTime),
     };
   }
@@ -5543,6 +5637,9 @@ class DeviceUsageRecord extends DataClass
     String? packageName,
     Value<String?> label = const Value.absent(),
     int? minutes,
+    String? source,
+    Value<String?> category = const Value.absent(),
+    bool? isDistracting,
     DateTime? syncTime,
   }) => DeviceUsageRecord(
     id: id ?? this.id,
@@ -5551,6 +5648,9 @@ class DeviceUsageRecord extends DataClass
     packageName: packageName ?? this.packageName,
     label: label.present ? label.value : this.label,
     minutes: minutes ?? this.minutes,
+    source: source ?? this.source,
+    category: category.present ? category.value : this.category,
+    isDistracting: isDistracting ?? this.isDistracting,
     syncTime: syncTime ?? this.syncTime,
   );
   DeviceUsageRecord copyWithCompanion(DeviceUsageRecordsCompanion data) {
@@ -5563,6 +5663,11 @@ class DeviceUsageRecord extends DataClass
           : this.packageName,
       label: data.label.present ? data.label.value : this.label,
       minutes: data.minutes.present ? data.minutes.value : this.minutes,
+      source: data.source.present ? data.source.value : this.source,
+      category: data.category.present ? data.category.value : this.category,
+      isDistracting: data.isDistracting.present
+          ? data.isDistracting.value
+          : this.isDistracting,
       syncTime: data.syncTime.present ? data.syncTime.value : this.syncTime,
     );
   }
@@ -5576,14 +5681,27 @@ class DeviceUsageRecord extends DataClass
           ..write('packageName: $packageName, ')
           ..write('label: $label, ')
           ..write('minutes: $minutes, ')
+          ..write('source: $source, ')
+          ..write('category: $category, ')
+          ..write('isDistracting: $isDistracting, ')
           ..write('syncTime: $syncTime')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, date, platform, packageName, label, minutes, syncTime);
+  int get hashCode => Object.hash(
+    id,
+    date,
+    platform,
+    packageName,
+    label,
+    minutes,
+    source,
+    category,
+    isDistracting,
+    syncTime,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5594,6 +5712,9 @@ class DeviceUsageRecord extends DataClass
           other.packageName == this.packageName &&
           other.label == this.label &&
           other.minutes == this.minutes &&
+          other.source == this.source &&
+          other.category == this.category &&
+          other.isDistracting == this.isDistracting &&
           other.syncTime == this.syncTime);
 }
 
@@ -5604,6 +5725,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
   final Value<String> packageName;
   final Value<String?> label;
   final Value<int> minutes;
+  final Value<String> source;
+  final Value<String?> category;
+  final Value<bool> isDistracting;
   final Value<DateTime> syncTime;
   final Value<int> rowid;
   const DeviceUsageRecordsCompanion({
@@ -5613,6 +5737,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
     this.packageName = const Value.absent(),
     this.label = const Value.absent(),
     this.minutes = const Value.absent(),
+    this.source = const Value.absent(),
+    this.category = const Value.absent(),
+    this.isDistracting = const Value.absent(),
     this.syncTime = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -5623,6 +5750,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
     required String packageName,
     this.label = const Value.absent(),
     required int minutes,
+    this.source = const Value.absent(),
+    this.category = const Value.absent(),
+    this.isDistracting = const Value.absent(),
     this.syncTime = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -5637,6 +5767,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
     Expression<String>? packageName,
     Expression<String>? label,
     Expression<int>? minutes,
+    Expression<String>? source,
+    Expression<String>? category,
+    Expression<bool>? isDistracting,
     Expression<DateTime>? syncTime,
     Expression<int>? rowid,
   }) {
@@ -5647,6 +5780,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
       if (packageName != null) 'package_name': packageName,
       if (label != null) 'label': label,
       if (minutes != null) 'minutes': minutes,
+      if (source != null) 'source': source,
+      if (category != null) 'category': category,
+      if (isDistracting != null) 'is_distracting': isDistracting,
       if (syncTime != null) 'sync_time': syncTime,
       if (rowid != null) 'rowid': rowid,
     });
@@ -5659,6 +5795,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
     Value<String>? packageName,
     Value<String?>? label,
     Value<int>? minutes,
+    Value<String>? source,
+    Value<String?>? category,
+    Value<bool>? isDistracting,
     Value<DateTime>? syncTime,
     Value<int>? rowid,
   }) {
@@ -5669,6 +5808,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
       packageName: packageName ?? this.packageName,
       label: label ?? this.label,
       minutes: minutes ?? this.minutes,
+      source: source ?? this.source,
+      category: category ?? this.category,
+      isDistracting: isDistracting ?? this.isDistracting,
       syncTime: syncTime ?? this.syncTime,
       rowid: rowid ?? this.rowid,
     );
@@ -5695,6 +5837,15 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
     if (minutes.present) {
       map['minutes'] = Variable<int>(minutes.value);
     }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (isDistracting.present) {
+      map['is_distracting'] = Variable<bool>(isDistracting.value);
+    }
     if (syncTime.present) {
       map['sync_time'] = Variable<DateTime>(syncTime.value);
     }
@@ -5713,6 +5864,9 @@ class DeviceUsageRecordsCompanion extends UpdateCompanion<DeviceUsageRecord> {
           ..write('packageName: $packageName, ')
           ..write('label: $label, ')
           ..write('minutes: $minutes, ')
+          ..write('source: $source, ')
+          ..write('category: $category, ')
+          ..write('isDistracting: $isDistracting, ')
           ..write('syncTime: $syncTime, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -6293,6 +6447,1076 @@ class UnlockAttemptsCompanion extends UpdateCompanion<UnlockAttempt> {
   }
 }
 
+class $ProtectedAppsTable extends ProtectedApps
+    with TableInfo<$ProtectedAppsTable, ProtectedApp> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProtectedAppsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _appRefMeta = const VerificationMeta('appRef');
+  @override
+  late final GeneratedColumn<String> appRef = GeneratedColumn<String>(
+    'app_ref',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _protectsFocusMeta = const VerificationMeta(
+    'protectsFocus',
+  );
+  @override
+  late final GeneratedColumn<bool> protectsFocus = GeneratedColumn<bool>(
+    'protects_focus',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("protects_focus" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _protectsSleepMeta = const VerificationMeta(
+    'protectsSleep',
+  );
+  @override
+  late final GeneratedColumn<bool> protectsSleep = GeneratedColumn<bool>(
+    'protects_sleep',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("protects_sleep" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isEssentialMeta = const VerificationMeta(
+    'isEssential',
+  );
+  @override
+  late final GeneratedColumn<bool> isEssential = GeneratedColumn<bool>(
+    'is_essential',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_essential" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    platform,
+    appRef,
+    displayName,
+    category,
+    protectsFocus,
+    protectsSleep,
+    isEssential,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'protected_apps';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProtectedApp> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('app_ref')) {
+      context.handle(
+        _appRefMeta,
+        appRef.isAcceptableOrUnknown(data['app_ref']!, _appRefMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_appRefMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('protects_focus')) {
+      context.handle(
+        _protectsFocusMeta,
+        protectsFocus.isAcceptableOrUnknown(
+          data['protects_focus']!,
+          _protectsFocusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('protects_sleep')) {
+      context.handle(
+        _protectsSleepMeta,
+        protectsSleep.isAcceptableOrUnknown(
+          data['protects_sleep']!,
+          _protectsSleepMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_essential')) {
+      context.handle(
+        _isEssentialMeta,
+        isEssential.isAcceptableOrUnknown(
+          data['is_essential']!,
+          _isEssentialMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProtectedApp map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProtectedApp(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      appRef: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app_ref'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      ),
+      protectsFocus: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}protects_focus'],
+      )!,
+      protectsSleep: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}protects_sleep'],
+      )!,
+      isEssential: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_essential'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ProtectedAppsTable createAlias(String alias) {
+    return $ProtectedAppsTable(attachedDatabase, alias);
+  }
+}
+
+class ProtectedApp extends DataClass implements Insertable<ProtectedApp> {
+  final String id;
+  final String platform;
+  final String appRef;
+  final String displayName;
+  final String? category;
+  final bool protectsFocus;
+  final bool protectsSleep;
+  final bool isEssential;
+  final DateTime createdAt;
+  const ProtectedApp({
+    required this.id,
+    required this.platform,
+    required this.appRef,
+    required this.displayName,
+    this.category,
+    required this.protectsFocus,
+    required this.protectsSleep,
+    required this.isEssential,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['platform'] = Variable<String>(platform);
+    map['app_ref'] = Variable<String>(appRef);
+    map['display_name'] = Variable<String>(displayName);
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
+    map['protects_focus'] = Variable<bool>(protectsFocus);
+    map['protects_sleep'] = Variable<bool>(protectsSleep);
+    map['is_essential'] = Variable<bool>(isEssential);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ProtectedAppsCompanion toCompanion(bool nullToAbsent) {
+    return ProtectedAppsCompanion(
+      id: Value(id),
+      platform: Value(platform),
+      appRef: Value(appRef),
+      displayName: Value(displayName),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
+      protectsFocus: Value(protectsFocus),
+      protectsSleep: Value(protectsSleep),
+      isEssential: Value(isEssential),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ProtectedApp.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProtectedApp(
+      id: serializer.fromJson<String>(json['id']),
+      platform: serializer.fromJson<String>(json['platform']),
+      appRef: serializer.fromJson<String>(json['appRef']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      category: serializer.fromJson<String?>(json['category']),
+      protectsFocus: serializer.fromJson<bool>(json['protectsFocus']),
+      protectsSleep: serializer.fromJson<bool>(json['protectsSleep']),
+      isEssential: serializer.fromJson<bool>(json['isEssential']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'platform': serializer.toJson<String>(platform),
+      'appRef': serializer.toJson<String>(appRef),
+      'displayName': serializer.toJson<String>(displayName),
+      'category': serializer.toJson<String?>(category),
+      'protectsFocus': serializer.toJson<bool>(protectsFocus),
+      'protectsSleep': serializer.toJson<bool>(protectsSleep),
+      'isEssential': serializer.toJson<bool>(isEssential),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ProtectedApp copyWith({
+    String? id,
+    String? platform,
+    String? appRef,
+    String? displayName,
+    Value<String?> category = const Value.absent(),
+    bool? protectsFocus,
+    bool? protectsSleep,
+    bool? isEssential,
+    DateTime? createdAt,
+  }) => ProtectedApp(
+    id: id ?? this.id,
+    platform: platform ?? this.platform,
+    appRef: appRef ?? this.appRef,
+    displayName: displayName ?? this.displayName,
+    category: category.present ? category.value : this.category,
+    protectsFocus: protectsFocus ?? this.protectsFocus,
+    protectsSleep: protectsSleep ?? this.protectsSleep,
+    isEssential: isEssential ?? this.isEssential,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ProtectedApp copyWithCompanion(ProtectedAppsCompanion data) {
+    return ProtectedApp(
+      id: data.id.present ? data.id.value : this.id,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      appRef: data.appRef.present ? data.appRef.value : this.appRef,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      category: data.category.present ? data.category.value : this.category,
+      protectsFocus: data.protectsFocus.present
+          ? data.protectsFocus.value
+          : this.protectsFocus,
+      protectsSleep: data.protectsSleep.present
+          ? data.protectsSleep.value
+          : this.protectsSleep,
+      isEssential: data.isEssential.present
+          ? data.isEssential.value
+          : this.isEssential,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProtectedApp(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('appRef: $appRef, ')
+          ..write('displayName: $displayName, ')
+          ..write('category: $category, ')
+          ..write('protectsFocus: $protectsFocus, ')
+          ..write('protectsSleep: $protectsSleep, ')
+          ..write('isEssential: $isEssential, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    platform,
+    appRef,
+    displayName,
+    category,
+    protectsFocus,
+    protectsSleep,
+    isEssential,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProtectedApp &&
+          other.id == this.id &&
+          other.platform == this.platform &&
+          other.appRef == this.appRef &&
+          other.displayName == this.displayName &&
+          other.category == this.category &&
+          other.protectsFocus == this.protectsFocus &&
+          other.protectsSleep == this.protectsSleep &&
+          other.isEssential == this.isEssential &&
+          other.createdAt == this.createdAt);
+}
+
+class ProtectedAppsCompanion extends UpdateCompanion<ProtectedApp> {
+  final Value<String> id;
+  final Value<String> platform;
+  final Value<String> appRef;
+  final Value<String> displayName;
+  final Value<String?> category;
+  final Value<bool> protectsFocus;
+  final Value<bool> protectsSleep;
+  final Value<bool> isEssential;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const ProtectedAppsCompanion({
+    this.id = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.appRef = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.category = const Value.absent(),
+    this.protectsFocus = const Value.absent(),
+    this.protectsSleep = const Value.absent(),
+    this.isEssential = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProtectedAppsCompanion.insert({
+    required String id,
+    required String platform,
+    required String appRef,
+    required String displayName,
+    this.category = const Value.absent(),
+    this.protectsFocus = const Value.absent(),
+    this.protectsSleep = const Value.absent(),
+    this.isEssential = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       platform = Value(platform),
+       appRef = Value(appRef),
+       displayName = Value(displayName);
+  static Insertable<ProtectedApp> custom({
+    Expression<String>? id,
+    Expression<String>? platform,
+    Expression<String>? appRef,
+    Expression<String>? displayName,
+    Expression<String>? category,
+    Expression<bool>? protectsFocus,
+    Expression<bool>? protectsSleep,
+    Expression<bool>? isEssential,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (platform != null) 'platform': platform,
+      if (appRef != null) 'app_ref': appRef,
+      if (displayName != null) 'display_name': displayName,
+      if (category != null) 'category': category,
+      if (protectsFocus != null) 'protects_focus': protectsFocus,
+      if (protectsSleep != null) 'protects_sleep': protectsSleep,
+      if (isEssential != null) 'is_essential': isEssential,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProtectedAppsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? platform,
+    Value<String>? appRef,
+    Value<String>? displayName,
+    Value<String?>? category,
+    Value<bool>? protectsFocus,
+    Value<bool>? protectsSleep,
+    Value<bool>? isEssential,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return ProtectedAppsCompanion(
+      id: id ?? this.id,
+      platform: platform ?? this.platform,
+      appRef: appRef ?? this.appRef,
+      displayName: displayName ?? this.displayName,
+      category: category ?? this.category,
+      protectsFocus: protectsFocus ?? this.protectsFocus,
+      protectsSleep: protectsSleep ?? this.protectsSleep,
+      isEssential: isEssential ?? this.isEssential,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (appRef.present) {
+      map['app_ref'] = Variable<String>(appRef.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (protectsFocus.present) {
+      map['protects_focus'] = Variable<bool>(protectsFocus.value);
+    }
+    if (protectsSleep.present) {
+      map['protects_sleep'] = Variable<bool>(protectsSleep.value);
+    }
+    if (isEssential.present) {
+      map['is_essential'] = Variable<bool>(isEssential.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProtectedAppsCompanion(')
+          ..write('id: $id, ')
+          ..write('platform: $platform, ')
+          ..write('appRef: $appRef, ')
+          ..write('displayName: $displayName, ')
+          ..write('category: $category, ')
+          ..write('protectsFocus: $protectsFocus, ')
+          ..write('protectsSleep: $protectsSleep, ')
+          ..write('isEssential: $isEssential, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DeviceDayMetricsTable extends DeviceDayMetrics
+    with TableInfo<$DeviceDayMetricsTable, DeviceDayMetric> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeviceDayMetricsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<DateTime> day = GeneratedColumn<DateTime>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _unlockCountMeta = const VerificationMeta(
+    'unlockCount',
+  );
+  @override
+  late final GeneratedColumn<int> unlockCount = GeneratedColumn<int>(
+    'unlock_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _screenWakeCountMeta = const VerificationMeta(
+    'screenWakeCount',
+  );
+  @override
+  late final GeneratedColumn<int> screenWakeCount = GeneratedColumn<int>(
+    'screen_wake_count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _coverageStateMeta = const VerificationMeta(
+    'coverageState',
+  );
+  @override
+  late final GeneratedColumn<String> coverageState = GeneratedColumn<String>(
+    'coverage_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _usageSyncedAtMeta = const VerificationMeta(
+    'usageSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> usageSyncedAt =
+      GeneratedColumn<DateTime>(
+        'usage_synced_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    day,
+    platform,
+    unlockCount,
+    screenWakeCount,
+    coverageState,
+    usageSyncedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'device_day_metrics';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeviceDayMetric> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('unlock_count')) {
+      context.handle(
+        _unlockCountMeta,
+        unlockCount.isAcceptableOrUnknown(
+          data['unlock_count']!,
+          _unlockCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('screen_wake_count')) {
+      context.handle(
+        _screenWakeCountMeta,
+        screenWakeCount.isAcceptableOrUnknown(
+          data['screen_wake_count']!,
+          _screenWakeCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('coverage_state')) {
+      context.handle(
+        _coverageStateMeta,
+        coverageState.isAcceptableOrUnknown(
+          data['coverage_state']!,
+          _coverageStateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_coverageStateMeta);
+    }
+    if (data.containsKey('usage_synced_at')) {
+      context.handle(
+        _usageSyncedAtMeta,
+        usageSyncedAt.isAcceptableOrUnknown(
+          data['usage_synced_at']!,
+          _usageSyncedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeviceDayMetric map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeviceDayMetric(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}day'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      unlockCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}unlock_count'],
+      ),
+      screenWakeCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}screen_wake_count'],
+      ),
+      coverageState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coverage_state'],
+      )!,
+      usageSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}usage_synced_at'],
+      ),
+    );
+  }
+
+  @override
+  $DeviceDayMetricsTable createAlias(String alias) {
+    return $DeviceDayMetricsTable(attachedDatabase, alias);
+  }
+}
+
+class DeviceDayMetric extends DataClass implements Insertable<DeviceDayMetric> {
+  final String id;
+  final DateTime day;
+  final String platform;
+  final int? unlockCount;
+  final int? screenWakeCount;
+  final String coverageState;
+  final DateTime? usageSyncedAt;
+  const DeviceDayMetric({
+    required this.id,
+    required this.day,
+    required this.platform,
+    this.unlockCount,
+    this.screenWakeCount,
+    required this.coverageState,
+    this.usageSyncedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['day'] = Variable<DateTime>(day);
+    map['platform'] = Variable<String>(platform);
+    if (!nullToAbsent || unlockCount != null) {
+      map['unlock_count'] = Variable<int>(unlockCount);
+    }
+    if (!nullToAbsent || screenWakeCount != null) {
+      map['screen_wake_count'] = Variable<int>(screenWakeCount);
+    }
+    map['coverage_state'] = Variable<String>(coverageState);
+    if (!nullToAbsent || usageSyncedAt != null) {
+      map['usage_synced_at'] = Variable<DateTime>(usageSyncedAt);
+    }
+    return map;
+  }
+
+  DeviceDayMetricsCompanion toCompanion(bool nullToAbsent) {
+    return DeviceDayMetricsCompanion(
+      id: Value(id),
+      day: Value(day),
+      platform: Value(platform),
+      unlockCount: unlockCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unlockCount),
+      screenWakeCount: screenWakeCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(screenWakeCount),
+      coverageState: Value(coverageState),
+      usageSyncedAt: usageSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(usageSyncedAt),
+    );
+  }
+
+  factory DeviceDayMetric.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeviceDayMetric(
+      id: serializer.fromJson<String>(json['id']),
+      day: serializer.fromJson<DateTime>(json['day']),
+      platform: serializer.fromJson<String>(json['platform']),
+      unlockCount: serializer.fromJson<int?>(json['unlockCount']),
+      screenWakeCount: serializer.fromJson<int?>(json['screenWakeCount']),
+      coverageState: serializer.fromJson<String>(json['coverageState']),
+      usageSyncedAt: serializer.fromJson<DateTime?>(json['usageSyncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'day': serializer.toJson<DateTime>(day),
+      'platform': serializer.toJson<String>(platform),
+      'unlockCount': serializer.toJson<int?>(unlockCount),
+      'screenWakeCount': serializer.toJson<int?>(screenWakeCount),
+      'coverageState': serializer.toJson<String>(coverageState),
+      'usageSyncedAt': serializer.toJson<DateTime?>(usageSyncedAt),
+    };
+  }
+
+  DeviceDayMetric copyWith({
+    String? id,
+    DateTime? day,
+    String? platform,
+    Value<int?> unlockCount = const Value.absent(),
+    Value<int?> screenWakeCount = const Value.absent(),
+    String? coverageState,
+    Value<DateTime?> usageSyncedAt = const Value.absent(),
+  }) => DeviceDayMetric(
+    id: id ?? this.id,
+    day: day ?? this.day,
+    platform: platform ?? this.platform,
+    unlockCount: unlockCount.present ? unlockCount.value : this.unlockCount,
+    screenWakeCount: screenWakeCount.present
+        ? screenWakeCount.value
+        : this.screenWakeCount,
+    coverageState: coverageState ?? this.coverageState,
+    usageSyncedAt: usageSyncedAt.present
+        ? usageSyncedAt.value
+        : this.usageSyncedAt,
+  );
+  DeviceDayMetric copyWithCompanion(DeviceDayMetricsCompanion data) {
+    return DeviceDayMetric(
+      id: data.id.present ? data.id.value : this.id,
+      day: data.day.present ? data.day.value : this.day,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      unlockCount: data.unlockCount.present
+          ? data.unlockCount.value
+          : this.unlockCount,
+      screenWakeCount: data.screenWakeCount.present
+          ? data.screenWakeCount.value
+          : this.screenWakeCount,
+      coverageState: data.coverageState.present
+          ? data.coverageState.value
+          : this.coverageState,
+      usageSyncedAt: data.usageSyncedAt.present
+          ? data.usageSyncedAt.value
+          : this.usageSyncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeviceDayMetric(')
+          ..write('id: $id, ')
+          ..write('day: $day, ')
+          ..write('platform: $platform, ')
+          ..write('unlockCount: $unlockCount, ')
+          ..write('screenWakeCount: $screenWakeCount, ')
+          ..write('coverageState: $coverageState, ')
+          ..write('usageSyncedAt: $usageSyncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    day,
+    platform,
+    unlockCount,
+    screenWakeCount,
+    coverageState,
+    usageSyncedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeviceDayMetric &&
+          other.id == this.id &&
+          other.day == this.day &&
+          other.platform == this.platform &&
+          other.unlockCount == this.unlockCount &&
+          other.screenWakeCount == this.screenWakeCount &&
+          other.coverageState == this.coverageState &&
+          other.usageSyncedAt == this.usageSyncedAt);
+}
+
+class DeviceDayMetricsCompanion extends UpdateCompanion<DeviceDayMetric> {
+  final Value<String> id;
+  final Value<DateTime> day;
+  final Value<String> platform;
+  final Value<int?> unlockCount;
+  final Value<int?> screenWakeCount;
+  final Value<String> coverageState;
+  final Value<DateTime?> usageSyncedAt;
+  final Value<int> rowid;
+  const DeviceDayMetricsCompanion({
+    this.id = const Value.absent(),
+    this.day = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.unlockCount = const Value.absent(),
+    this.screenWakeCount = const Value.absent(),
+    this.coverageState = const Value.absent(),
+    this.usageSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DeviceDayMetricsCompanion.insert({
+    required String id,
+    required DateTime day,
+    required String platform,
+    this.unlockCount = const Value.absent(),
+    this.screenWakeCount = const Value.absent(),
+    required String coverageState,
+    this.usageSyncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       day = Value(day),
+       platform = Value(platform),
+       coverageState = Value(coverageState);
+  static Insertable<DeviceDayMetric> custom({
+    Expression<String>? id,
+    Expression<DateTime>? day,
+    Expression<String>? platform,
+    Expression<int>? unlockCount,
+    Expression<int>? screenWakeCount,
+    Expression<String>? coverageState,
+    Expression<DateTime>? usageSyncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (day != null) 'day': day,
+      if (platform != null) 'platform': platform,
+      if (unlockCount != null) 'unlock_count': unlockCount,
+      if (screenWakeCount != null) 'screen_wake_count': screenWakeCount,
+      if (coverageState != null) 'coverage_state': coverageState,
+      if (usageSyncedAt != null) 'usage_synced_at': usageSyncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DeviceDayMetricsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? day,
+    Value<String>? platform,
+    Value<int?>? unlockCount,
+    Value<int?>? screenWakeCount,
+    Value<String>? coverageState,
+    Value<DateTime?>? usageSyncedAt,
+    Value<int>? rowid,
+  }) {
+    return DeviceDayMetricsCompanion(
+      id: id ?? this.id,
+      day: day ?? this.day,
+      platform: platform ?? this.platform,
+      unlockCount: unlockCount ?? this.unlockCount,
+      screenWakeCount: screenWakeCount ?? this.screenWakeCount,
+      coverageState: coverageState ?? this.coverageState,
+      usageSyncedAt: usageSyncedAt ?? this.usageSyncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (day.present) {
+      map['day'] = Variable<DateTime>(day.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (unlockCount.present) {
+      map['unlock_count'] = Variable<int>(unlockCount.value);
+    }
+    if (screenWakeCount.present) {
+      map['screen_wake_count'] = Variable<int>(screenWakeCount.value);
+    }
+    if (coverageState.present) {
+      map['coverage_state'] = Variable<String>(coverageState.value);
+    }
+    if (usageSyncedAt.present) {
+      map['usage_synced_at'] = Variable<DateTime>(usageSyncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeviceDayMetricsCompanion(')
+          ..write('id: $id, ')
+          ..write('day: $day, ')
+          ..write('platform: $platform, ')
+          ..write('unlockCount: $unlockCount, ')
+          ..write('screenWakeCount: $screenWakeCount, ')
+          ..write('coverageState: $coverageState, ')
+          ..write('usageSyncedAt: $usageSyncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6310,6 +7534,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DeviceUsageRecordsTable deviceUsageRecords =
       $DeviceUsageRecordsTable(this);
   late final $UnlockAttemptsTable unlockAttempts = $UnlockAttemptsTable(this);
+  late final $ProtectedAppsTable protectedApps = $ProtectedAppsTable(this);
+  late final $DeviceDayMetricsTable deviceDayMetrics = $DeviceDayMetricsTable(
+    this,
+  );
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final FocusSessionsDao focusSessionsDao = FocusSessionsDao(
     this as AppDatabase,
@@ -6334,6 +7562,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final UnlockAttemptsDao unlockAttemptsDao = UnlockAttemptsDao(
     this as AppDatabase,
   );
+  late final ProtectedAppsDao protectedAppsDao = ProtectedAppsDao(
+    this as AppDatabase,
+  );
+  late final DeviceDayMetricsDao deviceDayMetricsDao = DeviceDayMetricsDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6350,6 +7584,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dailyPlans,
     deviceUsageRecords,
     unlockAttempts,
+    protectedApps,
+    deviceDayMetrics,
   ];
 }
 
@@ -8950,6 +10186,9 @@ typedef $$DeviceUsageRecordsTableCreateCompanionBuilder =
       required String packageName,
       Value<String?> label,
       required int minutes,
+      Value<String> source,
+      Value<String?> category,
+      Value<bool> isDistracting,
       Value<DateTime> syncTime,
       Value<int> rowid,
     });
@@ -8961,6 +10200,9 @@ typedef $$DeviceUsageRecordsTableUpdateCompanionBuilder =
       Value<String> packageName,
       Value<String?> label,
       Value<int> minutes,
+      Value<String> source,
+      Value<String?> category,
+      Value<bool> isDistracting,
       Value<DateTime> syncTime,
       Value<int> rowid,
     });
@@ -9001,6 +10243,21 @@ class $$DeviceUsageRecordsTableFilterComposer
 
   ColumnFilters<int> get minutes => $composableBuilder(
     column: $table.minutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDistracting => $composableBuilder(
+    column: $table.isDistracting,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9049,6 +10306,21 @@ class $$DeviceUsageRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDistracting => $composableBuilder(
+    column: $table.isDistracting,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get syncTime => $composableBuilder(
     column: $table.syncTime,
     builder: (column) => ColumnOrderings(column),
@@ -9083,6 +10355,17 @@ class $$DeviceUsageRecordsTableAnnotationComposer
 
   GeneratedColumn<int> get minutes =>
       $composableBuilder(column: $table.minutes, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDistracting => $composableBuilder(
+    column: $table.isDistracting,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get syncTime =>
       $composableBuilder(column: $table.syncTime, builder: (column) => column);
@@ -9134,6 +10417,9 @@ class $$DeviceUsageRecordsTableTableManager
                 Value<String> packageName = const Value.absent(),
                 Value<String?> label = const Value.absent(),
                 Value<int> minutes = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String?> category = const Value.absent(),
+                Value<bool> isDistracting = const Value.absent(),
                 Value<DateTime> syncTime = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DeviceUsageRecordsCompanion(
@@ -9143,6 +10429,9 @@ class $$DeviceUsageRecordsTableTableManager
                 packageName: packageName,
                 label: label,
                 minutes: minutes,
+                source: source,
+                category: category,
+                isDistracting: isDistracting,
                 syncTime: syncTime,
                 rowid: rowid,
               ),
@@ -9154,6 +10443,9 @@ class $$DeviceUsageRecordsTableTableManager
                 required String packageName,
                 Value<String?> label = const Value.absent(),
                 required int minutes,
+                Value<String> source = const Value.absent(),
+                Value<String?> category = const Value.absent(),
+                Value<bool> isDistracting = const Value.absent(),
                 Value<DateTime> syncTime = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DeviceUsageRecordsCompanion.insert(
@@ -9163,6 +10455,9 @@ class $$DeviceUsageRecordsTableTableManager
                 packageName: packageName,
                 label: label,
                 minutes: minutes,
+                source: source,
+                category: category,
+                isDistracting: isDistracting,
                 syncTime: syncTime,
                 rowid: rowid,
               ),
@@ -9477,6 +10772,542 @@ typedef $$UnlockAttemptsTableProcessedTableManager =
       UnlockAttempt,
       PrefetchHooks Function()
     >;
+typedef $$ProtectedAppsTableCreateCompanionBuilder =
+    ProtectedAppsCompanion Function({
+      required String id,
+      required String platform,
+      required String appRef,
+      required String displayName,
+      Value<String?> category,
+      Value<bool> protectsFocus,
+      Value<bool> protectsSleep,
+      Value<bool> isEssential,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+typedef $$ProtectedAppsTableUpdateCompanionBuilder =
+    ProtectedAppsCompanion Function({
+      Value<String> id,
+      Value<String> platform,
+      Value<String> appRef,
+      Value<String> displayName,
+      Value<String?> category,
+      Value<bool> protectsFocus,
+      Value<bool> protectsSleep,
+      Value<bool> isEssential,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$ProtectedAppsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProtectedAppsTable> {
+  $$ProtectedAppsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get appRef => $composableBuilder(
+    column: $table.appRef,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get protectsFocus => $composableBuilder(
+    column: $table.protectsFocus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get protectsSleep => $composableBuilder(
+    column: $table.protectsSleep,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEssential => $composableBuilder(
+    column: $table.isEssential,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProtectedAppsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProtectedAppsTable> {
+  $$ProtectedAppsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get appRef => $composableBuilder(
+    column: $table.appRef,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get protectsFocus => $composableBuilder(
+    column: $table.protectsFocus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get protectsSleep => $composableBuilder(
+    column: $table.protectsSleep,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isEssential => $composableBuilder(
+    column: $table.isEssential,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProtectedAppsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProtectedAppsTable> {
+  $$ProtectedAppsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get appRef =>
+      $composableBuilder(column: $table.appRef, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<bool> get protectsFocus => $composableBuilder(
+    column: $table.protectsFocus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get protectsSleep => $composableBuilder(
+    column: $table.protectsSleep,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isEssential => $composableBuilder(
+    column: $table.isEssential,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ProtectedAppsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProtectedAppsTable,
+          ProtectedApp,
+          $$ProtectedAppsTableFilterComposer,
+          $$ProtectedAppsTableOrderingComposer,
+          $$ProtectedAppsTableAnnotationComposer,
+          $$ProtectedAppsTableCreateCompanionBuilder,
+          $$ProtectedAppsTableUpdateCompanionBuilder,
+          (
+            ProtectedApp,
+            BaseReferences<_$AppDatabase, $ProtectedAppsTable, ProtectedApp>,
+          ),
+          ProtectedApp,
+          PrefetchHooks Function()
+        > {
+  $$ProtectedAppsTableTableManager(_$AppDatabase db, $ProtectedAppsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProtectedAppsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProtectedAppsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProtectedAppsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> appRef = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String?> category = const Value.absent(),
+                Value<bool> protectsFocus = const Value.absent(),
+                Value<bool> protectsSleep = const Value.absent(),
+                Value<bool> isEssential = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProtectedAppsCompanion(
+                id: id,
+                platform: platform,
+                appRef: appRef,
+                displayName: displayName,
+                category: category,
+                protectsFocus: protectsFocus,
+                protectsSleep: protectsSleep,
+                isEssential: isEssential,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String platform,
+                required String appRef,
+                required String displayName,
+                Value<String?> category = const Value.absent(),
+                Value<bool> protectsFocus = const Value.absent(),
+                Value<bool> protectsSleep = const Value.absent(),
+                Value<bool> isEssential = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProtectedAppsCompanion.insert(
+                id: id,
+                platform: platform,
+                appRef: appRef,
+                displayName: displayName,
+                category: category,
+                protectsFocus: protectsFocus,
+                protectsSleep: protectsSleep,
+                isEssential: isEssential,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProtectedAppsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProtectedAppsTable,
+      ProtectedApp,
+      $$ProtectedAppsTableFilterComposer,
+      $$ProtectedAppsTableOrderingComposer,
+      $$ProtectedAppsTableAnnotationComposer,
+      $$ProtectedAppsTableCreateCompanionBuilder,
+      $$ProtectedAppsTableUpdateCompanionBuilder,
+      (
+        ProtectedApp,
+        BaseReferences<_$AppDatabase, $ProtectedAppsTable, ProtectedApp>,
+      ),
+      ProtectedApp,
+      PrefetchHooks Function()
+    >;
+typedef $$DeviceDayMetricsTableCreateCompanionBuilder =
+    DeviceDayMetricsCompanion Function({
+      required String id,
+      required DateTime day,
+      required String platform,
+      Value<int?> unlockCount,
+      Value<int?> screenWakeCount,
+      required String coverageState,
+      Value<DateTime?> usageSyncedAt,
+      Value<int> rowid,
+    });
+typedef $$DeviceDayMetricsTableUpdateCompanionBuilder =
+    DeviceDayMetricsCompanion Function({
+      Value<String> id,
+      Value<DateTime> day,
+      Value<String> platform,
+      Value<int?> unlockCount,
+      Value<int?> screenWakeCount,
+      Value<String> coverageState,
+      Value<DateTime?> usageSyncedAt,
+      Value<int> rowid,
+    });
+
+class $$DeviceDayMetricsTableFilterComposer
+    extends Composer<_$AppDatabase, $DeviceDayMetricsTable> {
+  $$DeviceDayMetricsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get unlockCount => $composableBuilder(
+    column: $table.unlockCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get screenWakeCount => $composableBuilder(
+    column: $table.screenWakeCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverageState => $composableBuilder(
+    column: $table.coverageState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get usageSyncedAt => $composableBuilder(
+    column: $table.usageSyncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DeviceDayMetricsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DeviceDayMetricsTable> {
+  $$DeviceDayMetricsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get unlockCount => $composableBuilder(
+    column: $table.unlockCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get screenWakeCount => $composableBuilder(
+    column: $table.screenWakeCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get coverageState => $composableBuilder(
+    column: $table.coverageState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get usageSyncedAt => $composableBuilder(
+    column: $table.usageSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DeviceDayMetricsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DeviceDayMetricsTable> {
+  $$DeviceDayMetricsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<int> get unlockCount => $composableBuilder(
+    column: $table.unlockCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get screenWakeCount => $composableBuilder(
+    column: $table.screenWakeCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverageState => $composableBuilder(
+    column: $table.coverageState,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get usageSyncedAt => $composableBuilder(
+    column: $table.usageSyncedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$DeviceDayMetricsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DeviceDayMetricsTable,
+          DeviceDayMetric,
+          $$DeviceDayMetricsTableFilterComposer,
+          $$DeviceDayMetricsTableOrderingComposer,
+          $$DeviceDayMetricsTableAnnotationComposer,
+          $$DeviceDayMetricsTableCreateCompanionBuilder,
+          $$DeviceDayMetricsTableUpdateCompanionBuilder,
+          (
+            DeviceDayMetric,
+            BaseReferences<
+              _$AppDatabase,
+              $DeviceDayMetricsTable,
+              DeviceDayMetric
+            >,
+          ),
+          DeviceDayMetric,
+          PrefetchHooks Function()
+        > {
+  $$DeviceDayMetricsTableTableManager(
+    _$AppDatabase db,
+    $DeviceDayMetricsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeviceDayMetricsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeviceDayMetricsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeviceDayMetricsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> day = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<int?> unlockCount = const Value.absent(),
+                Value<int?> screenWakeCount = const Value.absent(),
+                Value<String> coverageState = const Value.absent(),
+                Value<DateTime?> usageSyncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeviceDayMetricsCompanion(
+                id: id,
+                day: day,
+                platform: platform,
+                unlockCount: unlockCount,
+                screenWakeCount: screenWakeCount,
+                coverageState: coverageState,
+                usageSyncedAt: usageSyncedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime day,
+                required String platform,
+                Value<int?> unlockCount = const Value.absent(),
+                Value<int?> screenWakeCount = const Value.absent(),
+                required String coverageState,
+                Value<DateTime?> usageSyncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DeviceDayMetricsCompanion.insert(
+                id: id,
+                day: day,
+                platform: platform,
+                unlockCount: unlockCount,
+                screenWakeCount: screenWakeCount,
+                coverageState: coverageState,
+                usageSyncedAt: usageSyncedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DeviceDayMetricsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DeviceDayMetricsTable,
+      DeviceDayMetric,
+      $$DeviceDayMetricsTableFilterComposer,
+      $$DeviceDayMetricsTableOrderingComposer,
+      $$DeviceDayMetricsTableAnnotationComposer,
+      $$DeviceDayMetricsTableCreateCompanionBuilder,
+      $$DeviceDayMetricsTableUpdateCompanionBuilder,
+      (
+        DeviceDayMetric,
+        BaseReferences<_$AppDatabase, $DeviceDayMetricsTable, DeviceDayMetric>,
+      ),
+      DeviceDayMetric,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9503,4 +11334,8 @@ class $AppDatabaseManager {
       $$DeviceUsageRecordsTableTableManager(_db, _db.deviceUsageRecords);
   $$UnlockAttemptsTableTableManager get unlockAttempts =>
       $$UnlockAttemptsTableTableManager(_db, _db.unlockAttempts);
+  $$ProtectedAppsTableTableManager get protectedApps =>
+      $$ProtectedAppsTableTableManager(_db, _db.protectedApps);
+  $$DeviceDayMetricsTableTableManager get deviceDayMetrics =>
+      $$DeviceDayMetricsTableTableManager(_db, _db.deviceDayMetrics);
 }

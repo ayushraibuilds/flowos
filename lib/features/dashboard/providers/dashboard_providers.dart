@@ -4,6 +4,7 @@ import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../settings/providers/settings_providers.dart';
+import '../../attention/repository/attention_data_repository.dart';
 
 /// Riverpod providers for dashboard data — bridges home screen + report to DAOs.
 
@@ -21,8 +22,9 @@ final dailyXpProvider = StreamProvider<int>((ref) {
 
 /// Watch today's scroll total.
 final dailyScrollProvider = StreamProvider<int>((ref) {
-  final db = ref.watch(databaseProvider);
-  return db.scrollLogsDao.watchDailyTotal();
+  return ref.watch(attentionDataRepositoryProvider)
+      .watchTodayAttention()
+      .map((day) => day.effectiveDistractingMinutes);
 });
 
 /// Watch today's focus sessions.
@@ -55,11 +57,13 @@ final hasFocusHistoryProvider = StreamProvider<bool>((ref) {
 final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   final db = ref.watch(databaseProvider);
   final settings = ref.watch(settingsProvider);
+  final attentionRepo = ref.watch(attentionDataRepositoryProvider);
 
   final focusMinutes = await db.focusSessionsDao.totalFocusMinutesToday();
   final mits = await db.tasksDao.getMITs();
   final mitsCompleted = mits.where((t) => t.isCompleted).length;
-  final scrollMinutes = await db.scrollLogsDao.getDailyTotal();
+  final todayAttention = await attentionRepo.getAttentionDay(DateTime.now());
+  final scrollMinutes = todayAttention.effectiveDistractingMinutes;
   final plan = await db.dailyPlansDao.getToday();
 
   final energyCheckIns = await db.energyCheckInsDao.countToday();
@@ -73,6 +77,7 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
     intentionCompleted: plan?.intentionCompleted ?? false,
     shutdownCompleted: plan?.shutdownCompleted ?? false,
     energyCheckIns: energyCheckIns,
+    attentionCoverage: todayAttention.coverage,
   );
 
   return DashboardScore(
@@ -85,6 +90,7 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
     scrollMinutes: scrollMinutes,
     scrollBudget: budget,
     intentionCompleted: plan?.intentionCompleted ?? false,
+    coverage: todayAttention.coverage,
   );
 });
 
@@ -99,6 +105,7 @@ class DashboardScore {
   final int scrollMinutes;
   final int scrollBudget;
   final bool intentionCompleted;
+  final DataCoverage coverage;
 
   const DashboardScore({
     required this.score,
@@ -109,5 +116,6 @@ class DashboardScore {
     required this.scrollMinutes,
     required this.scrollBudget,
     required this.intentionCompleted,
+    required this.coverage,
   });
 }

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../data/local/database/app_database.dart';
 import '../models/garden_day.dart';
+import '../../attention/repository/attention_data_repository.dart';
 
 /// Builds garden scenes from the activity the person has already chosen to do.
 /// There are no streak penalties, decay mechanics, or garden-destruction paths.
@@ -36,23 +37,40 @@ class GardenService {
     final deviceUsageRecords = await (_db.select(_db.deviceUsageRecords)..where(
           (r) =>
               r.date.isBiggerOrEqualValue(start) &
-              r.date.isSmallerThanValue(end),
+              r.date.isSmallerThanValue(end) &
+              r.source.equals('android_usage'),
         ))
         .get();
-    final deviceUsageMinutes = deviceUsageRecords.fold<int>(0, (sum, r) => sum + r.minutes);
+
+    final metrics = await (_db.select(_db.deviceDayMetrics)..where(
+          (t) =>
+              t.day.isBiggerOrEqualValue(start) &
+              t.day.isSmallerThanValue(end),
+        ))
+        .get();
+
+    final hasNative = metrics.isNotEmpty && metrics.first.coverageState != 'notConnected';
+
+    final nativeDistractingMinutes = deviceUsageRecords
+        .where((r) => r.isDistracting == true)
+        .fold<int>(0, (sum, r) => sum + r.minutes);
 
     final focusMinutes = focusSessions.fold<int>(
       0,
       (total, session) => total + session.actualMinutes,
     );
-    final manualScrollMinutes = logs.fold<int>(
-      0,
-      (total, log) => total + log.durationMinutes,
-    );
-    // Combine native device usage minutes with manual scroll logs
-    final scrollMinutes = deviceUsageMinutes > 0 ? deviceUsageMinutes : manualScrollMinutes;
+    final manualScrollMinutes = logs
+        .where((log) => !log.appName.contains('[Auto]'))
+        .fold<int>(
+          0,
+          (total, log) => total + log.durationMinutes,
+        );
 
-    final recoveryCount = logs.where((log) => log.recoveryActionTaken).length;
+    final scrollMinutes = hasNative ? nativeDistractingMinutes : manualScrollMinutes;
+
+    final recoveryCount = logs
+        .where((log) => !log.appName.contains('[Auto]') && log.recoveryActionTaken)
+        .length;
     final budget = plan?.scrollBudgetMinutes ?? 30;
     final objects = <GardenObject>[];
 

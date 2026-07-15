@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../xp/models/daily_score_calculator.dart';
+import '../../attention/repository/attention_data_repository.dart';
 
 class HistoryAggregator {
   static Future<List<DailyMetric>> getDailyMetrics(AppDatabase db, DateTime start, DateTime end) async {
@@ -36,7 +37,15 @@ class HistoryAggregator {
     final deviceUsageRecords = await (db.select(db.deviceUsageRecords)
           ..where((r) =>
               r.date.isBiggerOrEqualValue(start) &
-              r.date.isSmallerThanValue(end)))
+              r.date.isSmallerThanValue(end) &
+              r.source.equals('android_usage')))
+        .get();
+
+    // 7. Fetch device day metrics in range
+    final dayMetrics = await (db.select(db.deviceDayMetrics)
+          ..where((t) =>
+              t.day.isBiggerOrEqualValue(start) &
+              t.day.isSmallerThanValue(end)))
         .get();
 
     final List<DailyMetric> metrics = [];
@@ -74,16 +83,18 @@ class HistoryAggregator {
           t.completedAt!.isBefore(dayEnd));
       final dayMits = dayCompletedTasks.where((t) => t.isMIT).length;
 
-      // Filter scroll logs
+      // Filter manual scroll logs (excluding auto logs)
       final dayScrollLogs = scrollLogs.where((l) =>
           l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          l.timestamp.isBefore(dayEnd));
+          l.timestamp.isBefore(dayEnd) &&
+          !l.appName.contains('[Auto]'));
       final dayScrollMinutes = dayScrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
 
       // Filter device usage records
       final dayDeviceUsageRecords = deviceUsageRecords.where((r) =>
           r.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          r.date.isBefore(dayEnd));
+          r.date.isBefore(dayEnd) &&
+          r.isDistracting == true);
       final dayDeviceUsageMinutes = dayDeviceUsageRecords.fold<int>(0, (sum, r) => sum + r.minutes);
 
       // Filter energy check-ins
@@ -92,10 +103,18 @@ class HistoryAggregator {
           e.date.isBefore(dayEnd));
       final dayEnergyCount = dayEnergyCheckins.length;
 
-      // Use device usage minutes if available, fallback to manual scroll minutes
-      final effectiveDistractionMinutes = dayDeviceUsageMinutes > 0
-          ? dayDeviceUsageMinutes
-          : dayScrollMinutes;
+      // Find metric for coverage determination
+      DeviceDayMetric? metric;
+      for (final m in dayMetrics) {
+        if (m.day.year == day.year && m.day.month == day.month && m.day.day == day.day) {
+          metric = m;
+          break;
+        }
+      }
+
+      final hasNative = metric != null && metric.coverageState != 'notConnected';
+      final effectiveDistractionMinutes = hasNative ? dayDeviceUsageMinutes : dayScrollMinutes;
+      final coverage = hasNative ? DataCoverage.complete : DataCoverage.manualOnly;
 
       final score = DailyScoreCalculator.calculate(
         focusMinutes: dayFocusMinutes,
@@ -105,6 +124,7 @@ class HistoryAggregator {
         intentionCompleted: hasIntention,
         shutdownCompleted: hasShutdown,
         energyCheckIns: dayEnergyCount,
+        attentionCoverage: coverage,
       );
 
       // Check if there was any actual activity on this day

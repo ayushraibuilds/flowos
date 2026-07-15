@@ -4,6 +4,7 @@ import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/energy_checkins_table.dart';
 import '../../settings/providers/settings_providers.dart';
 import '../services/history_aggregator.dart';
+import '../../attention/repository/attention_data_repository.dart';
 
 // Helper to convert task quality score letter to a numerical value (0-100)
 int _qualityScoreValue(String score) {
@@ -228,7 +229,10 @@ final insightsAppBreakdownProvider = FutureProvider<List<({String label, String 
   final end = DateTime.now();
   final start = end.subtract(const Duration(days: 7));
   final records = await (db.select(db.deviceUsageRecords)
-        ..where((r) => r.date.isBiggerOrEqualValue(start) & r.date.isSmallerThanValue(end)))
+        ..where((r) =>
+            r.date.isBiggerOrEqualValue(start) &
+            r.date.isSmallerThanValue(end) &
+            r.source.equals('android_usage')))
       .get();
   
   final Map<String, ({String label, int minutes})> grouped = {};
@@ -293,17 +297,8 @@ final insightsAttentionBudgetProvider = FutureProvider<({
   final plan = await db.dailyPlansDao.getToday();
   final budget = plan?.scrollBudgetMinutes ?? settings.scrollBudget;
   
-  final now = DateTime.now();
-  final start = DateTime(now.year, now.month, now.day);
-  final end = start.add(const Duration(days: 1));
-  
-  final logs = await (db.select(db.scrollLogs)..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.timestamp.isSmallerThanValue(end))).get();
-  final manualScroll = logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
-  
-  final deviceRecords = await (db.select(db.deviceUsageRecords)..where((r) => r.date.isBiggerOrEqualValue(start) & r.date.isSmallerThanValue(end))).get();
-  final deviceScroll = deviceRecords.fold<int>(0, (sum, r) => sum + r.minutes);
-  
-  final totalScroll = deviceScroll > 0 ? deviceScroll : manualScroll;
+  final attentionDay = await ref.read(attentionDataRepositoryProvider).getAttentionDay(DateTime.now());
+  final totalScroll = attentionDay.effectiveDistractingMinutes;
   final fraction = budget > 0 ? totalScroll / budget : 0.0;
   
   return (

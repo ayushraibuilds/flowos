@@ -2,33 +2,51 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/native.dart';
 import 'package:flowos/data/local/database/app_database.dart';
-import 'package:flowos/features/attention/services/usage_stats_service.dart';
+import 'package:flowos/features/attention/repository/attention_data_repository.dart';
+
+class FakeDeviceAttentionPlatform extends DeviceAttentionPlatform {
+  bool hasUsage = false;
+  
+  @override
+  Future<PermissionStates> getPermissionStates() async {
+    return PermissionStates(
+      usageAccess: hasUsage,
+      accessibility: false,
+      notificationAccess: false,
+      platformSupport: 'android',
+    );
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late AppDatabase db;
-  late UsageStatsService service;
+  late AttentionDataRepository repository;
+  late FakeDeviceAttentionPlatform platform;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    service = UsageStatsService(db);
+    platform = FakeDeviceAttentionPlatform();
+    repository = AttentionDataRepository(db, platform);
   });
 
   tearDown(() async {
     await db.close();
   });
 
-  group('UsageStatsService Tests', () {
-    test('syncUsageStats never fabricates device usage off Android', () async {
-      final result = await service.syncUsageStats();
-
-      expect(result.status, UsageSyncStatus.unsupported);
-      expect(await db.scrollLogsDao.getTodayLogs(), isEmpty);
+  group('AttentionDataRepository Tests', () {
+    test('syncUsage does not sync when permission is denied', () async {
+      platform.hasUsage = false;
+      await repository.syncUsage(days: 1);
+      
+      final today = DateTime.now();
+      final dayData = await repository.getAttentionDay(today);
+      expect(dayData.coverage, DataCoverage.notConnected);
     });
 
-    test('deleteAllAutoLogsForToday preserves manual logs', () async {
+    test('manual scroll logs exclude auto logs', () async {
       await db.scrollLogsDao.insertLog(
         ScrollLogsCompanion.insert(
           id: 'manual',
@@ -46,16 +64,10 @@ void main() {
         ),
       );
 
-      final start = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
-      );
-      await db.scrollLogsDao.deleteAllAutoLogsForToday(start);
-
-      final logs = await db.scrollLogsDao.getTodayLogs();
-      expect(logs, hasLength(1));
-      expect(logs.single.appName, 'Quick Log');
+      final today = DateTime.now();
+      final dayData = await repository.getAttentionDay(today);
+      expect(dayData.manualScrollMinutes, 10);
+      expect(dayData.effectiveDistractingMinutes, 10);
     });
   });
 }

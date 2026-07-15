@@ -28,6 +28,10 @@ import '../tables/device_usage_records_table.dart';
 import '../dao/device_usage_records_dao.dart';
 import '../tables/unlock_attempts_table.dart';
 import '../dao/unlock_attempts_dao.dart';
+import '../tables/protected_apps_table.dart';
+import '../dao/protected_apps_dao.dart';
+import '../tables/device_day_metrics_table.dart';
+import '../dao/device_day_metrics_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -46,6 +50,8 @@ part 'app_database.g.dart';
     DailyPlans,
     DeviceUsageRecords,
     UnlockAttempts,
+    ProtectedApps,
+    DeviceDayMetrics,
   ],
   daos: [
     TasksDao,
@@ -59,6 +65,8 @@ part 'app_database.g.dart';
     AttentionCostsDao,
     DeviceUsageRecordsDao,
     UnlockAttemptsDao,
+    ProtectedAppsDao,
+    DeviceDayMetricsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -68,7 +76,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -88,6 +96,16 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         await m.createTable(unlockAttempts);
       }
+      if (from < 5) {
+        await m.createTable(deviceDayMetrics);
+        await m.createTable(protectedApps);
+        await m.addColumn(deviceUsageRecords, deviceUsageRecords.source);
+        await m.addColumn(deviceUsageRecords, deviceUsageRecords.category);
+        await m.addColumn(deviceUsageRecords, deviceUsageRecords.isDistracting);
+        // Note: Drift will automatically apply default values on columns,
+        // but we also perform a manual backfill to populate any existing rows:
+        await customStatement("UPDATE device_usage_records SET source = 'android_usage'");
+      }
     },
   );
 
@@ -106,6 +124,8 @@ class AppDatabase extends _$AppDatabase {
         batch.deleteWhere(attentionCosts, (_) => const Constant(true));
         batch.deleteWhere(deviceUsageRecords, (_) => const Constant(true));
         batch.deleteWhere(unlockAttempts, (_) => const Constant(true));
+        batch.deleteWhere(protectedApps, (_) => const Constant(true));
+        batch.deleteWhere(deviceDayMetrics, (_) => const Constant(true));
       });
     });
   }

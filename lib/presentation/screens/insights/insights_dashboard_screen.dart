@@ -8,7 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/insights/providers/insights_providers.dart';
 import '../../../features/rhythm/providers/rhythm_providers.dart';
 import '../../widgets/rhythm_recommendation_card.dart';
-import '../../../features/usage/services/device_usage_service.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
 
 /// Insights Dashboard — data visualization for productivity patterns.
 ///
@@ -32,7 +32,7 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(deviceUsageServiceProvider).syncUsageLogs(days: 7);
+      ref.read(attentionDataRepositoryProvider).syncUsage(days: 7);
     });
   }
 

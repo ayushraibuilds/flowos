@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../widgets/flow_surface.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
 
 /// Permission Center Screen — manage and check all system permission states in one hub.
-class PermissionCenterScreen extends StatefulWidget {
+class PermissionCenterScreen extends ConsumerStatefulWidget {
   const PermissionCenterScreen({super.key});
 
   @override
-  State<PermissionCenterScreen> createState() => _PermissionCenterScreenState();
+  ConsumerState<PermissionCenterScreen> createState() => _PermissionCenterScreenState();
 }
 
-class _PermissionCenterScreenState extends State<PermissionCenterScreen> with WidgetsBindingObserver {
+class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen> with WidgetsBindingObserver {
   bool _audioEnabled = true; // Always active by default
   bool _usageStatsEnabled = false;
   bool _accessibilityEnabled = false;
@@ -39,24 +41,24 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen> with Wi
   }
 
   Future<void> _checkAllPermissions() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      final bool usage = await channel.invokeMethod<bool>('checkUsagePermission') ?? false;
-      final bool access = await channel.invokeMethod<bool>('checkAccessibilityPermission') ?? false;
+      final states = await ref.read(deviceAttentionPlatformProvider).getPermissionStates();
       if (mounted) {
         setState(() {
-          _usageStatsEnabled = usage;
-          _accessibilityEnabled = access;
+          _usageStatsEnabled = states.usageAccess;
+          _accessibilityEnabled = states.accessibility;
         });
       }
     } catch (_) {}
   }
 
-  Future<void> _requestPermission(String method) async {
-    const channel = MethodChannel('flowos/usage_stats');
-    try {
-      await channel.invokeMethod(method);
-    } catch (_) {}
+  Future<void> _requestPermission(String type) async {
+    final platform = ref.read(deviceAttentionPlatformProvider);
+    if (type == 'usage') {
+      await platform.openUsageAccessSettings();
+    } else if (type == 'accessibility') {
+      await platform.openAccessibilitySettings();
+    }
   }
 
   @override
@@ -103,7 +105,7 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen> with Wi
             why: 'Used to read device foreground screen time to calculate daily budgets and insights.',
             limitation: 'Cannot access app package contents or usage outside launcher names.',
             actionLabel: _usageStatsEnabled ? 'Configure Settings' : 'Grant Permission',
-            onPressed: () => _requestPermission('requestUsagePermission'),
+            onPressed: () => _requestPermission('usage'),
           ),
           const SizedBox(height: AppSpacing.lg),
 
@@ -114,7 +116,7 @@ class _PermissionCenterScreenState extends State<PermissionCenterScreen> with Wi
             why: 'Used to intercept foreground distraction apps during focus sessions to show the shield overlay.',
             limitation: 'Cannot prevent disabling this service or uninstalling the app.',
             actionLabel: _accessibilityEnabled ? 'Configure Settings' : 'Grant Permission',
-            onPressed: () => _requestPermission('requestAccessibilityPermission'),
+            onPressed: () => _requestPermission('accessibility'),
           ),
           const SizedBox(height: AppSpacing.lg),
 

@@ -11,6 +11,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/onboarding/models/user_profile.dart';
 import '../../../features/onboarding/providers/onboarding_providers.dart';
 import '../../navigation/app_router.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -73,30 +74,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _checkPermissions() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      final bool usage = await channel.invokeMethod<bool>('checkUsagePermission') ?? false;
-      final bool access = await channel.invokeMethod<bool>('checkAccessibilityPermission') ?? false;
+      final states = await ref.read(deviceAttentionPlatformProvider).getPermissionStates();
       if (mounted) {
         setState(() {
-          _usagePermissionActive = usage;
-          _accessibilityPermissionActive = access;
+          _usagePermissionActive = states.usageAccess;
+          _accessibilityPermissionActive = states.accessibility;
         });
       }
     } catch (_) {}
   }
 
   Future<void> _requestUsagePermission() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      await channel.invokeMethod('requestUsagePermission');
+      await ref.read(deviceAttentionPlatformProvider).openUsageAccessSettings();
     } catch (_) {}
   }
 
   Future<void> _requestAccessibilityPermission() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      await channel.invokeMethod('requestAccessibilityPermission');
+      await ref.read(deviceAttentionPlatformProvider).openAccessibilitySettings();
     } catch (_) {}
   }
 

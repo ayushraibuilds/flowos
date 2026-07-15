@@ -11,6 +11,7 @@ import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/onboarding/providers/onboarding_providers.dart';
 import '../../../features/reports/models/weekly_action.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/reports/services/weekly_action_engine.dart';
 import '../../widgets/action_commit_card.dart';
 
@@ -59,14 +60,14 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     final totalFocusMinutes = sessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
     final totalFocusHours = double.parse((totalFocusMinutes / 60.0).toStringAsFixed(1));
 
-    // Fetch scroll minutes in range
-    final scrollLogs = await (db.select(db.scrollLogs)
+    // Fetch recovery actions from manual scroll logs in range
+    final manualScrollLogs = await (db.select(db.scrollLogs)
           ..where((l) =>
               l.timestamp.isBiggerOrEqualValue(weekStart) &
-              l.timestamp.isSmallerThanValue(weekEnd)))
+              l.timestamp.isSmallerThanValue(weekEnd) &
+              l.appName.like('% [Auto]').not()))
         .get();
-    final scrollTotalMinutes = scrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
-    final recoveryActions = scrollLogs.where((l) => l.recoveryActionTaken).length;
+    final recoveryActions = manualScrollLogs.where((l) => l.recoveryActionTaken).length;
 
     // Fetch XP earned in range
     final xpEntries = await (db.select(db.xpLedgerEntries)
@@ -84,6 +85,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     int mitsCompleted = 0;
     int mitsTotal = 0;
     int streakDays = 0;
+    int scrollTotalMinutes = 0;
+
+    final attentionRepo = ref.read(attentionDataRepositoryProvider);
 
     for (int i = 6; i >= 0; i--) {
       final day = todayStart.subtract(Duration(days: i));
@@ -108,10 +112,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       mitsCompleted += dayMits;
       mitsTotal += 3;
 
-      final dayScrollLogs = scrollLogs.where((l) =>
-          l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          l.timestamp.isBefore(dayEnd));
-      final dayScrollMinutes = dayScrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+      final attentionDay = await attentionRepo.getAttentionDay(day);
+      final dayScrollMinutes = attentionDay.effectiveDistractingMinutes;
+      scrollTotalMinutes += dayScrollMinutes;
 
       final dayEnergyCheckins = energyCheckins.where((e) =>
           e.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
@@ -126,6 +129,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         intentionCompleted: hasIntention,
         shutdownCompleted: hasShutdown,
         energyCheckIns: dayEnergyCount,
+        attentionCoverage: attentionDay.coverage,
       );
       dailyScores.add(score);
     }
@@ -172,7 +176,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     final profile = ref.read(userProfileProvider);
     final weeklyAction = WeeklyActionEngine.generateWeeklyAction(
       sessions: sessions,
-      scrollLogs: scrollLogs,
+      scrollLogs: manualScrollLogs,
       incompleteTasks: incompleteTasks,
       profile: profile,
     );

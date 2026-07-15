@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,16 +10,68 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/local/database/app_database.dart';
-import '../services/usage_stats_service.dart';
+import '../repository/attention_data_repository.dart';
 
-/// Provider to stream today's scroll logs.
-final todayScrollLogsProvider = StreamProvider<List<ScrollLog>>((ref) {
+class AttentionRadarData {
+  final int totalMinutes;
+  final Map<String, int> appBreakdown;
+  final DataCoverage coverage;
+
+  const AttentionRadarData({
+    required this.totalMinutes,
+    required this.appBreakdown,
+    required this.coverage,
+  });
+}
+
+final attentionRadarDataProvider = StreamProvider<AttentionRadarData>((ref) {
+  final repo = ref.watch(attentionDataRepositoryProvider);
   final db = ref.watch(databaseProvider);
   final now = DateTime.now();
-  final start = DateTime(now.year, now.month, now.day);
-  return (db.select(
-    db.scrollLogs,
-  )..where((l) => l.timestamp.isBiggerOrEqualValue(start))).watch();
+  final today = DateTime(now.year, now.month, now.day);
+
+  final controller = StreamController<AttentionRadarData>();
+
+  void update() async {
+    try {
+      final day = await repo.getAttentionDay(today);
+      final map = <String, int>{};
+      
+      if (day.coverage == DataCoverage.complete) {
+        final records = await db.deviceUsageRecordsDao.getForRange(today, today);
+        for (final r in records) {
+          if (r.isDistracting == true && r.source == 'android_usage') {
+            final name = r.label ?? r.packageName;
+            map[name] = (map[name] ?? 0) + r.minutes;
+          }
+        }
+      } else {
+        final logs = await db.scrollLogsDao.getTodayLogs();
+        for (final l in logs) {
+          if (!l.appName.contains('[Auto]')) {
+            map[l.appName] = (map[l.appName] ?? 0) + l.durationMinutes;
+          }
+        }
+      }
+
+      if (!controller.isClosed) {
+        controller.add(AttentionRadarData(
+          totalMinutes: day.effectiveDistractingMinutes,
+          appBreakdown: map,
+          coverage: day.coverage,
+        ));
+      }
+    } catch (_) {}
+  }
+
+  final sub1Trigger = repo.watchTodayAttention().listen((_) => update());
+
+  controller.onCancel = () {
+    sub1Trigger.cancel();
+  };
+
+  update();
+  return controller.stream;
 });
 
 /// Attention Radar Card — displaying auto-tracked scroll metrics,
@@ -30,21 +83,12 @@ class AttentionRadarCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scrollLogsAsync = ref.watch(todayScrollLogsProvider);
-    final usageService = ref.watch(usageStatsServiceProvider);
+    final radarDataAsync = ref.watch(attentionRadarDataProvider);
 
-    return scrollLogsAsync.maybeWhen(
-      data: (logs) {
-        // Separate totals by app
-        final map = <String, int>{};
-        int totalMinutes = 0;
-
-        for (final log in logs) {
-          // Normalize app name, removing "[Auto]" flag for clean UI display
-          final cleanName = log.appName.replaceAll(' [Auto]', '').trim();
-          map[cleanName] = (map[cleanName] ?? 0) + log.durationMinutes;
-          totalMinutes += log.durationMinutes;
-        }
+    return radarDataAsync.maybeWhen(
+      data: (data) {
+        final totalMinutes = data.totalMinutes;
+        final map = data.appBreakdown;
 
         final ratio = budgetMinutes > 0
             ? (totalMinutes / budgetMinutes).clamp(0.0, 1.0)
@@ -106,40 +150,31 @@ class AttentionRadarCard extends ConsumerWidget {
                       ),
                       onPressed: () async {
                         HapticFeedback.lightImpact();
-                        final result = await usageService.syncUsageStats();
-                        if (!context.mounted) return;
-
-                        switch (result.status) {
-                          case UsageSyncStatus.synced:
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Screen time synced.'),
+                        final repo = ref.read(attentionDataRepositoryProvider);
+                        final platform = ref.read(deviceAttentionPlatformProvider);
+                        
+                        final states = await platform.getPermissionStates();
+                        if (!states.usageAccess) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Allow Usage Access to sync real screen time.',
                               ),
-                            );
-                          case UsageSyncStatus.permissionRequired:
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  'Allow Usage Access to sync real screen time.',
-                                ),
-                                action: SnackBarAction(
-                                  label: 'Open Settings',
-                                  onPressed: usageService.requestPermission,
-                                ),
+                              action: SnackBarAction(
+                                label: 'Open Settings',
+                                onPressed: platform.openUsageAccessSettings,
                               ),
-                            );
-                          case UsageSyncStatus.failed:
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  result.message ??
-                                      'Screen time could not be synced.',
-                                ),
-                                backgroundColor: AppColors.dangerCoral,
-                              ),
-                            );
-                          case UsageSyncStatus.unsupported:
-                            break;
+                            ),
+                          );
+                        } else {
+                          await repo.syncUsage(days: 1);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Screen time synced.'),
+                            ),
+                          );
                         }
                       },
                       icon: Icon(
