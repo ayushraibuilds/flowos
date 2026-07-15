@@ -1,23 +1,21 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../features/insights/providers/insights_providers.dart';
-import '../../../features/rhythm/providers/rhythm_providers.dart';
-import '../../widgets/rhythm_recommendation_card.dart';
-import '../../../features/attention/repository/attention_data_repository.dart';
+import '../../../features/insights/widgets/score_ring_widget.dart';
+import '../../../features/insights/widgets/calendar_heatmap_widget.dart';
+import '../../../features/insights/widgets/focus_session_timeline.dart';
+import '../../../features/insights/widgets/pillar_detail_card.dart';
+import '../../../features/xp/models/daily_score_calculator.dart';
+import '../../../features/insights/services/history_aggregator.dart';
+import '../../../features/xp/services/daily_score_snapshot_service.dart';
+import '../../../features/dashboard/providers/dashboard_providers.dart';
 
-/// Insights Dashboard — data visualization for productivity patterns.
-///
-/// Charts:
-/// - Time-of-day focus quality heatmap
-/// - Day-of-week productivity bar chart
-/// - Scroll vs Focus weekly trend
-/// - Energy vs Output correlation
-/// - Energy Forecast (predicted peak windows)
 class InsightsDashboardScreen extends ConsumerStatefulWidget {
   const InsightsDashboardScreen({super.key});
 
@@ -26,834 +24,550 @@ class InsightsDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScreen> {
-  final List<String> _dismissedSuggestions = [];
+  ScorePillar? _selectedPillar;
+  bool _interruptionExpanded = false;
 
   @override
   void initState() {
     super.initState();
+    // Pre-sync usage when entering insights
     Future.microtask(() {
-      ref.read(attentionDataRepositoryProvider).syncUsage(days: 7);
+      ref.read(dailyScoreSnapshotServiceProvider).initialize();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final scoresAsync = ref.watch(insightsWeekdayScoresProvider);
+    final period = ref.watch(insightPeriodProvider);
+    final scoreAsync = ref.watch(insightScoreProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background0,
       appBar: AppBar(
-        title: Text('Insights',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          'Insights',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_rounded),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: AppSpacing.lg),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: AppSpacing.md),
+              // Segmented Period Selector
+              _buildPeriodSelector(),
+              const SizedBox(height: AppSpacing.xl),
 
-            // ─── Attention Budget Progress Card ────────────
-            _buildAttentionBudget(ref),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // ─── Local Suggestions ─────────────────────────
-            scoresAsync.when(
-              data: (data) => _buildSuggestions(ref, data.activeDaysCount),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-
-            ref.watch(rhythmRecommendationProvider).when(
-                  data: (rec) {
-                    if (rec == null) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-                      child: RhythmRecommendationCard(recommendation: rec),
-                    );
-                  },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+              // Score Header / Ring / Average
+              scoreAsync.when(
+                loading: () => const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40.0),
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
+                error: (err, _) => Center(child: Text('Error loading insights: $err')),
+                data: (data) => _buildScoreSection(data),
+              ),
 
-            // ─── Energy Forecast ───────────────────────────
-            _sectionTitle('⚡ Energy Forecast'),
-            _sectionSubtitle('Your predicted peak windows today'),
-            const SizedBox(height: AppSpacing.md),
-            _buildEnergyForecast(ref),
-            const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.xxl),
 
-            // ─── Day of Week ───────────────────────────────
-            _sectionTitle('📊 Daily Score by Weekday'),
-            _sectionSubtitle('Average score for each day'),
-            const SizedBox(height: AppSpacing.md),
-            _buildDayOfWeekChart(ref),
-            const SizedBox(height: AppSpacing.xxl),
+              // Detail Section (Conditional on selected tab)
+              if (period == InsightPeriod.today) ...[
+                _buildTodayDetails(),
+              ] else if (period == InsightPeriod.week) ...[
+                _buildWeeklyDetails(),
+              ] else ...[
+                _buildMonthlyDetails(),
+              ],
 
-            // ─── Focus Quality Heatmap ─────────────────────
-            _sectionTitle('🔥 Focus Quality by Hour'),
-            _sectionSubtitle('When you do your best work'),
-            const SizedBox(height: AppSpacing.md),
-            _buildHourlyHeatmap(ref),
-            const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.xxl),
 
-            // ─── Scroll vs Focus ───────────────────────────
-            _sectionTitle('📈 Daily Focus vs Distracting-use Trend'),
-            _sectionSubtitle('Attention allocation trend'),
-            const SizedBox(height: AppSpacing.md),
-            _buildScrollVsFocusChart(ref),
-            const SizedBox(height: AppSpacing.xxl),
+              // Interruption Section (Android-only, collapsible)
+              _buildCollapsibleInterruptionSection(),
 
-            // ─── App breakdown ─────────────────────────────
-            _sectionTitle('📱 App & Category Breakdown'),
-            _sectionSubtitle('Time spent on distraction watchlist (7 days)'),
-            const SizedBox(height: AppSpacing.md),
-            _buildCategoryAppBreakdown(ref),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // ─── Task Completion Funnel ────────────────────
-            _sectionTitle('🎯 Task Completion Funnel'),
-            _sectionSubtitle('Created → Started → Completed'),
-            const SizedBox(height: AppSpacing.md),
-            _buildCompletionFunnel(ref),
-            const SizedBox(height: AppSpacing.xxl),
-
-            // ─── Overrides & Recoveries ────────────────────
-            _sectionTitle('🛡️ Overrides & Recovery Actions'),
-            _sectionSubtitle('Session protection triggers and mindful pauses'),
-            const SizedBox(height: AppSpacing.md),
-            _buildOverridesAndRecovery(ref),
-            const SizedBox(height: AppSpacing.xl),
-
-            Center(
-              child: Text(
-                'Based on local data only · private',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.textTertiary,
+              const SizedBox(height: AppSpacing.xl),
+              Center(
+                child: Text(
+                  'Based on local data only · Private',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
-          ],
+              const SizedBox(height: AppSpacing.xxxl),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
-    );
-  }
-
-  Widget _sectionSubtitle(String text) {
-    return Text(
-      text,
-      style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
-    );
-  }
-
-  // ─── Energy Forecast ─────────────────────────────────────
-
-  Widget _buildEnergyForecast(WidgetRef ref) {
-    final forecastAsync = ref.watch(insightsEnergyForecastProvider);
-
-    return forecastAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        if (!data.hasEnoughData) {
-          return _EmptyInsightCard(
-            message: 'Log energy for a week to unlock your peak windows.',
-            progressLabel: 'Logged check-ins',
-            progressValue: (data.totalCount / 7.0).clamp(0.0, 1.0),
-          );
-        }
-
-        final peaks = data.peaks;
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            border: Border.all(
-              color: AppColors.emerald.withValues(alpha: 0.2),
-            ),
+  Widget _buildPeriodSelector() {
+    final period = ref.watch(insightPeriodProvider);
+    return Center(
+      child: SegmentedButton<InsightPeriod>(
+        segments: const [
+          ButtonSegment<InsightPeriod>(
+            value: InsightPeriod.today,
+            label: Text('Today'),
           ),
-          child: Column(
-            children: peaks.map((peak) {
-              final barWidth = (peak.level / 5.0).clamp(0.0, 1.0);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        '${peak.start} – ${peak.end}',
-                        style: AppTypography.monoSmall.copyWith(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            peak.label,
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(3),
-                            child: LinearProgressIndicator(
-                              value: barWidth,
-                              minHeight: 6,
-                              backgroundColor: AppColors.background0,
-                              valueColor:
-                                  AlwaysStoppedAnimation(AppColors.emerald),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Text(
-                      peak.level.toStringAsFixed(1),
-                      style: AppTypography.monoSmall.copyWith(
-                        color: AppColors.emerald,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+          ButtonSegment<InsightPeriod>(
+            value: InsightPeriod.week,
+            label: Text('7 Days'),
           ),
-        );
-      },
-    );
-  }
-
-  // ─── Day of Week Chart ────────────────────────────────────
-
-  Widget _buildDayOfWeekChart(WidgetRef ref) {
-    final scoresAsync = ref.watch(insightsWeekdayScoresProvider);
-    final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-    return scoresAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        if (!data.hasEnoughData) {
-          return _EmptyInsightCard(
-            message: 'Keep using FlowOS for a week to see weekday patterns.',
-            progressLabel: 'Scored active days',
-            progressValue: (data.activeDaysCount / 7.0).clamp(0.0, 1.0),
-          );
-        }
-
-        final scores = data.scores;
-        return Container(
-          height: 200,
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+          ButtonSegment<InsightPeriod>(
+            value: InsightPeriod.month,
+            label: Text('30 Days'),
           ),
-          child: BarChart(
-            BarChartData(
-              alignment: BarChartAlignment.spaceAround,
-              maxY: 100,
-              minY: 0,
-              barTouchData: BarTouchData(
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipColor: (_) => AppColors.background0,
-                  getTooltipItem: (group, gi, rod, ri) {
-                    return BarTooltipItem(
-                      '${rod.toY.round()}',
-                      AppTypography.monoSmall.copyWith(
-                        color: AppColors.emerald,
-                        fontSize: 12,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      final i = value.toInt();
-                      if (i < 0 || i >= days.length) return const Text('');
-                      return Text(
-                        days[i],
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textTertiary,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              barGroups: List.generate(scores.length, (i) {
-                return BarChartGroupData(
-                  x: i,
-                  barRods: [
-                    BarChartRodData(
-                      toY: scores[i].toDouble(),
-                      color: AppColors.emerald.withValues(
-                        alpha: 0.4 + (scores[i] / 100 * 0.6),
-                      ),
-                      width: 20,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        topRight: Radius.circular(4),
-                      ),
-                    ),
-                  ],
-                );
-              }),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // ─── Hourly Heatmap ──────────────────────────────────────
-
-  Widget _buildHourlyHeatmap(WidgetRef ref) {
-    final heatmapAsync = ref.watch(insightsHourlyHeatmapProvider);
-
-    return heatmapAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        if (!data.hasEnoughData) {
-          return _EmptyInsightCard(
-            message: 'Complete more focus sessions to map your best hours.',
-            progressLabel: 'Focus sessions',
-            progressValue: (data.completedSessionsCount / 10.0).clamp(0.0, 1.0),
-          );
-        }
-
-        final hourlyScores = data.hourlyScores;
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-          ),
-          child: Column(
-            children: [
-              Wrap(
-                spacing: 3,
-                runSpacing: 3,
-                children: List.generate(18, (i) {
-                  final hour = i + 6;
-                  final score = hourlyScores[hour];
-                  final opacity = (score / 100).clamp(0.05, 1.0);
-                  return Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: score > 0
-                          ? AppColors.emerald.withValues(alpha: opacity)
-                          : AppColors.background0,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${hour > 12 ? hour - 12 : hour}${hour >= 12 ? 'p' : 'a'}',
-                        style: AppTypography.caption.copyWith(
-                          color: score > 50
-                              ? AppColors.textInverse
-                              : AppColors.textTertiary,
-                          fontSize: 9,
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _legendDot(AppColors.background0, 'Low'),
-                  const SizedBox(width: AppSpacing.lg),
-                  _legendDot(AppColors.emerald.withValues(alpha: 0.4), 'Medium'),
-                  const SizedBox(width: AppSpacing.lg),
-                  _legendDot(AppColors.emerald, 'Peak'),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _legendDot(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
+        ],
+        selected: {period},
+        onSelectionChanged: (Set<InsightPeriod> newSelection) {
+          setState(() {
+            _selectedPillar = null; // Clear pillar detail card when switching tabs
+          });
+          ref.read(insightPeriodProvider.notifier).state = newSelection.first;
+        },
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: AppColors.emerald.withValues(alpha: 0.15),
+          selectedForegroundColor: AppColors.emerald,
+          backgroundColor: AppColors.background2,
+          foregroundColor: AppColors.textSecondary,
+          side: BorderSide.none,
         ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: AppColors.textTertiary,
-            fontSize: 10,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  // ─── Scroll vs Focus ──────────────────────────────────────
+  Widget _buildScoreSection(dynamic data) {
+    if (data is DashboardScore) {
+      // Convert DashboardScore to DailyScoreResult
+      final result = DailyScoreResult(
+        score: data.score,
+        grade: data.grade,
+        message: data.message,
+        isIncomplete: data.isIncomplete,
+        availableWeight: data.availableWeight,
+        coverageLabel: data.coverageLabel,
+        scoringVersion: data.scoringVersion,
+        focusPoints: data.focusPoints,
+        intentPoints: data.intentPoints,
+        attentionPoints: data.attentionPoints,
+        carePoints: data.carePoints,
+      );
 
-  Widget _buildScrollVsFocusChart(WidgetRef ref) {
-    final scrollVsFocusAsync = ref.watch(insightsScrollVsFocusProvider);
-
-    return scrollVsFocusAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        if (!data.hasEnoughData) {
-          return _EmptyInsightCard(
-            message: 'Log focus or scroll to see attention trends.',
-            progressLabel: 'Days tracked',
-            progressValue: 0.0,
-          );
-        }
-
-        final focusData = data.focusData;
-        final scrollData = data.scrollData;
-
-        // Find max value dynamically to scale chart properly
-        double maxFocus = focusData.isEmpty ? 0 : focusData.reduce((a, b) => a > b ? a : b).toDouble();
-        double maxScroll = scrollData.isEmpty ? 0 : scrollData.reduce((a, b) => a > b ? a : b).toDouble();
-        double absoluteMax = maxFocus > maxScroll ? maxFocus : maxScroll;
-        if (absoluteMax < 60) absoluteMax = 60;
-
-        return Container(
-          height: 200,
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-          ),
-          child: LineChart(
-            LineChartData(
-              minY: 0,
-              maxY: absoluteMax + 10,
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: AppColors.textTertiary.withValues(alpha: 0.1),
-                  strokeWidth: 1,
-                ),
-              ),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                      final i = value.toInt();
-                      if (i < 0 || i >= days.length) return const Text('');
-                      return Text(
-                        days[i],
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textTertiary,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              lineBarsData: [
-                // Focus line
-                LineChartBarData(
-                  spots: List.generate(focusData.length,
-                      (i) => FlSpot(i.toDouble(), focusData[i].toDouble())),
-                  isCurved: true,
-                  color: AppColors.emerald,
-                  barWidth: 2,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: AppColors.emerald.withValues(alpha: 0.08),
-                  ),
-                ),
-                // Scroll line
-                LineChartBarData(
-                  spots: List.generate(scrollData.length,
-                      (i) => FlSpot(i.toDouble(), scrollData[i].toDouble())),
-                  isCurved: true,
-                  color: AppColors.dangerCoral,
-                  barWidth: 2,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: AppColors.dangerCoral.withValues(alpha: 0.08),
-                  ),
-                ),
-              ],
+      return Column(
+        children: [
+          Center(
+            child: ScoreRingWidget(
+              result: result,
+              selectedPillar: _selectedPillar,
+              onPillarTapped: (pillar) {
+                setState(() {
+                  if (_selectedPillar == pillar) {
+                    _selectedPillar = null;
+                  } else {
+                    _selectedPillar = pillar;
+                  }
+                });
+              },
             ),
           ),
-        );
-      },
-    );
+          if (_selectedPillar != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            PillarDetailCard(pillar: _selectedPillar!, result: result),
+          ] else ...[
+            const SizedBox(height: AppSpacing.md),
+            Center(
+              child: Text(
+                result.message,
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ],
+      );
+    } else if (data is WeeklyAggregate) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.background2,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Weekly Average Score',
+              style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${data.averageScore}',
+              style: AppTypography.display.copyWith(
+                color: AppColors.emerald,
+                fontSize: 64,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Based on ${data.scoredDaysCount} of ${data.totalDays} scored days',
+              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+            ),
+          ],
+        ),
+      );
+    } else if (data is MonthlyAggregate) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.background2,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Monthly Average Score',
+              style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${data.averageScore}',
+              style: AppTypography.display.copyWith(
+                color: AppColors.emerald,
+                fontSize: 64,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Based on ${data.scoredDaysCount} of ${data.totalDays} scored days',
+              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+            ),
+          ],
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
-  // ─── Completion Funnel ────────────────────────────────────
-
-  Widget _buildCompletionFunnel(WidgetRef ref) {
-    final funnelAsync = ref.watch(insightsCompletionFunnelProvider);
-
-    return funnelAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        final stages = [
-          (label: 'Created', count: data.created, color: AppColors.textTertiary),
-          (label: 'Started', count: data.started, color: AppColors.focusBlue),
-          (label: 'Completed', count: data.completed, color: AppColors.emerald),
-        ];
-        final maxCount = stages.first.count;
-
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-          ),
-          child: Column(
-            children: stages.map((stage) {
-              final ratio = maxCount > 0 ? stage.count / maxCount : 0.0;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 80,
-                      child: Text(
-                        stage.label,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: ratio,
-                          minHeight: 20,
-                          backgroundColor: AppColors.background0,
-                          valueColor: AlwaysStoppedAnimation(stage.color),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Text(
-                      '${stage.count}',
-                      style: AppTypography.monoSmall.copyWith(
-                        color: stage.color,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSuggestions(WidgetRef ref, int activeDaysCount) {
-    if (activeDaysCount < 7) return const SizedBox.shrink();
-    
-    final List<({String id, String text})> available = [
-      (id: 'best_window', text: 'Based on your peaks, your best focus window is 9–11 AM.'),
-      (id: 'recovery', text: 'Try a recovery pause after 15 minutes of social/distraction use.'),
-      (id: 'rhythm', text: 'Focus session quality is higher on weekdays. Keep up the rhythm!'),
-    ].where((s) => !_dismissedSuggestions.contains(s.id)).toList();
-
-    if (available.isEmpty) return const SizedBox.shrink();
+  Widget _buildTodayDetails() {
+    final timelineAsync = ref.watch(insightFocusTimelineProvider);
+    final appsAsync = ref.watch(insightAppImpactProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionTitle('💡 Local Suggestions'),
-        _sectionSubtitle('Privacy-first behavioral cues'),
-        const SizedBox(height: AppSpacing.md),
-        ...available.map((s) => Container(
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.md,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.background2,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                border: Border.all(
-                  color: AppColors.emerald.withValues(alpha: 0.1),
+        // Focus timeline
+        timelineAsync.when(
+          loading: () => const SizedBox(height: 60),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (sessions) => FocusSessionTimeline(sessions: sessions),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // App distraction impact list
+        Text('App Impact', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        const SizedBox(height: AppSpacing.sm),
+        appsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (apps) {
+            if (apps.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.background2,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.lightbulb_outline_rounded, color: AppColors.emerald),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text(
-                      s.text,
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                child: Center(
+                  child: Text(
+                    'No distraction apps used today.',
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: apps.map((app) {
+                final overBudget = app.minutes > app.budget;
+                return Card(
+                  color: AppColors.background2,
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: ListTile(
+                    title: Text(app.label, style: TextStyle(color: AppColors.textPrimary)),
+                    subtitle: Text('Budget: ${app.budget}m', style: TextStyle(color: AppColors.textTertiary)),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${app.minutes} min',
+                          style: TextStyle(
+                            color: overBudget ? AppColors.warningAmber : AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (overBudget)
+                          Text(
+                            '+${app.minutes - app.budget}m reclaimable',
+                            style: const TextStyle(color: AppColors.warningAmber, fontSize: 10),
+                          ),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    color: AppColors.textTertiary,
-                    onPressed: () {
-                      setState(() {
-                        _dismissedSuggestions.add(s.id);
-                      });
-                    },
-                  ),
-                ],
-              ),
-            )),
-        const SizedBox(height: AppSpacing.xxl),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildAttentionBudget(WidgetRef ref) {
-    final budgetAsync = ref.watch(insightsAttentionBudgetProvider);
+  Widget _buildWeeklyDetails() {
+    final scoreAsync = ref.watch(insightScoreProvider);
+    final appsAsync = ref.watch(insightAppImpactProvider);
 
-    return budgetAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        final remaining = (data.scrollBudget - data.scrollMinutes).clamp(0, 9999);
-        final fraction = data.progressFraction;
-        
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.03),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Attention Budget',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.bold,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        scoreAsync.maybeWhen(
+          data: (data) {
+            if (data is! WeeklyAggregate) return const SizedBox.shrink();
+            
+            // Weekly Score Terrain (overlaid focus & distraction trend chart)
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Score Terrain', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  height: 180,
+                  child: LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: false),
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (val, _) {
+                              final idx = val.toInt();
+                              if (idx < 0 || idx >= data.days.length) return const SizedBox.shrink();
+                              return Text(
+                                DateFormat('E').format(data.days[idx].date),
+                                style: const TextStyle(fontSize: 10, color: AppColors.textTertiary),
+                              );
+                            },
+                          ),
+                        ),
+                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [
+                        // Focus line
+                        LineChartBarData(
+                          spots: List.generate(data.days.length, (i) {
+                            return FlSpot(i.toDouble(), data.days[i].score.toDouble());
+                          }),
+                          isCurved: true,
+                          color: AppColors.emerald,
+                          barWidth: 3,
+                          dotData: const FlDotData(show: true),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    '${data.scrollMinutes} / ${data.scrollBudget} min',
-                    style: AppTypography.monoSmall.copyWith(
-                      color: fraction >= 1.0 ? AppColors.dangerCoral : AppColors.textPrimary,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                if (data.hasReclaimableData) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.background2,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      border: Border.all(color: AppColors.warningAmber.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text('⚠️ ', style: TextStyle(fontSize: 18)),
+                            Text(
+                              'Reclaimable Attention Time',
+                              style: AppTypography.monoSmall.copyWith(
+                                color: AppColors.warningAmber,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          '${data.reclaimableMinutes} minutes spent over your budget limit on distracting apps this week.',
+                          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                        ),
+                        if (data.topReclaimableApp != null) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Highest sink app: ${data.topReclaimableApp}',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: fraction,
-                  minHeight: 8,
-                  backgroundColor: AppColors.background0,
-                  valueColor: AlwaysStoppedAnimation(
-                    fraction >= 1.0 ? AppColors.dangerCoral : AppColors.emerald,
+              ],
+            );
+          },
+          orElse: () => const SizedBox.shrink(),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+
+        // distracting app list in 7 days
+        Text('Watchlist App Usage', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        const SizedBox(height: AppSpacing.sm),
+        appsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (apps) {
+            if (apps.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.background2,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                ),
+                child: Center(
+                  child: Text(
+                    'No distraction apps used this week.',
+                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                fraction >= 1.0
-                    ? 'Attention budget exceeded for today!'
-                    : '$remaining min remaining today.',
-                style: AppTypography.caption.copyWith(
-                  color: fraction >= 1.0 ? AppColors.dangerCoral : AppColors.textTertiary,
+              );
+            }
+            return Column(
+              children: apps.map((app) => Card(
+                color: AppColors.background2,
+                elevation: 0,
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ListTile(
+                  title: Text(app.label, style: TextStyle(color: AppColors.textPrimary)),
+                  trailing: Text(
+                    '${app.minutes} min',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              )).toList(),
+            );
+          },
+        ),
+      ],
     );
   }
 
-  Widget _buildCategoryAppBreakdown(WidgetRef ref) {
-    final breakdownAsync = ref.watch(insightsAppBreakdownProvider);
+  Widget _buildMonthlyDetails() {
+    final heatmapAsync = ref.watch(insightCalendarHeatmapProvider);
+    final scoreAsync = ref.watch(insightScoreProvider);
 
-    return breakdownAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (list) {
-        if (list.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.background2,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            ),
-            child: Center(
-              child: Text(
-                'No app distraction records found for the last 7 days.',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
-              ),
-            ),
-          );
-        }
-
-        return Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: AppColors.background2,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 30-day dynamic calendar heatmap (with 6-row capability)
+        heatmapAsync.when(
+          loading: () => const SizedBox(height: 120),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (metrics) => CalendarHeatmapWidget(
+            monthStart: DateTime.now().subtract(const Duration(days: 29)),
+            metrics: metrics,
           ),
-          child: Column(
-            children: list.map((item) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        scoreAsync.maybeWhen(
+          data: (data) {
+            if (data is! MonthlyAggregate) return const SizedBox.shrink();
+
+            return Column(
+              children: [
+                _buildSummaryRow('Total Focus Blocks Completed', '${data.totalFocusMinutes} min'),
+                if (data.hasReclaimableData)
+                  _buildSummaryRow('Reclaimable Distraction Time', '${data.totalReclaimableMinutes} min'),
+              ],
+            );
+          },
+          orElse: () => const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
+          Text(value, style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollapsibleInterruptionSection() {
+    final interruptionAsync = ref.watch(insightInterruptionProvider);
+
+    return interruptionAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (data) {
+        if (!data.isAvailable) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _interruptionExpanded = !_interruptionExpanded;
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_android_rounded, size: 16, color: AppColors.textSecondary),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          item.label.isNotEmpty ? item.label : item.packageName,
-                          style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
-                        ),
-                      ],
-                    ),
                     Text(
-                      '${item.minutes}m',
-                      style: AppTypography.monoSmall.copyWith(color: AppColors.textSecondary),
+                      '📱 Interruption Analytics',
+                      style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                    ),
+                    Icon(
+                      _interruptionExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                      color: AppColors.textSecondary,
                     ),
                   ],
                 ),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildOverridesAndRecovery(WidgetRef ref) {
-    final dataAsync = ref.watch(insightsOverridesAndRecoveryProvider);
-
-    return dataAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (data) {
-        return Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: AppColors.background2,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Protection Overrides',
-                          style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${data.overridesCount}',
-                          style: AppTypography.h1.copyWith(color: AppColors.dangerCoral),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(width: 1, height: 40, color: AppColors.background0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Recovery Actions',
-                          style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${data.recoveryCount}',
-                          style: AppTypography.h1.copyWith(color: AppColors.emerald),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
-            if (data.recentRecoveries.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
+            if (_interruptionExpanded) ...[
+              const SizedBox(height: AppSpacing.xs),
               Container(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
@@ -863,30 +577,60 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _buildSummaryRow('Total Phone Unlocks', '${data.totalUnlocks} unlocks'),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Recent Recovery Actions',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                      'Notifications by App',
+                      style: AppTypography.monoSmall.copyWith(
+                        color: AppColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    ...data.recentRecoveries.take(3).map((r) => Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${r.type} break',
-                                style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
-                              ),
-                              Text(
-                                'from ${r.app} (${r.minutes}m)',
-                                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
-                              ),
-                            ],
+                    const SizedBox(height: AppSpacing.sm),
+                    if (data.notificationCounts.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                          child: Text(
+                            'No notifications recorded.',
+                            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
                           ),
-                        )),
+                        ),
+                      )
+                    else
+                      Column(
+                        children: data.notificationCounts.map((notif) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    notif.appName,
+                                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ),
+                                Text(
+                                  '${notif.count}',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    Divider(height: AppSpacing.lg, color: AppColors.background1),
+                    Text(
+                      'Interruption data is based on counts only. FlowOS never reads notification content.',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -894,85 +638,6 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           ],
         );
       },
-    );
-  }
-}
-
-class _EmptyInsightCard extends StatelessWidget {
-  const _EmptyInsightCard({
-    required this.message,
-    required this.progressLabel,
-    required this.progressValue,
-  });
-
-  final String message;
-  final String progressLabel;
-  final double progressValue;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.background2,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.03),
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            '📊',
-            style: TextStyle(fontSize: 32),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: AppTypography.body.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          if (progressValue > 0.0) ...[
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  progressLabel,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-                Text(
-                  '${(progressValue * 100).round()}%',
-                  style: AppTypography.monoSmall.copyWith(
-                    color: AppColors.emerald,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progressValue,
-                minHeight: 4,
-                backgroundColor: AppColors.background0,
-                valueColor: AlwaysStoppedAnimation(AppColors.emerald),
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.sm),
-        ],
-      ),
     );
   }
 }

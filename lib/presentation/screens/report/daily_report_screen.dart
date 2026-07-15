@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 import 'dart:convert';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' hide Column;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -102,17 +102,33 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
 
     // Calculate score
     _coverage = todayAttention.coverage;
-    _dailyScore = DailyScoreCalculator.calculate(
+    final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+    final energyCheckIns = await db.energyCheckInsDao.countToday();
+    
+    final todayLogs = await (db.select(db.scrollLogs)
+          ..where((l) =>
+              l.timestamp.isBiggerOrEqualValue(todayStart) &
+              l.timestamp.isSmallerThanValue(todayEnd)))
+        .get();
+    final recoveryActions = todayLogs
+        .where((l) => !l.appName.contains('[Auto]') && l.recoveryActionTaken)
+        .length;
+
+    final scoreResult = DailyScoreCalculator.calculate(
       focusMinutes: _focusMinutes,
       mitsCompleted: _mitsCompleted,
       scrollMinutes: _scrollMinutes,
       scrollBudget: _scrollBudget,
       intentionCompleted: _intentionCompleted,
       shutdownCompleted: plan?.shutdownCompleted ?? false,
-      energyCheckIns: 0,
+      energyCheckIns: energyCheckIns,
+      recoveryActions: recoveryActions,
       attentionCoverage: todayAttention.coverage,
     );
-    _grade = DailyScoreCalculator.gradeFromScore(_dailyScore);
+
+    _dailyScore = scoreResult.score;
+    _grade = scoreResult.grade ?? '—';
 
     // Try AI insight with real data
     final aiService = AiService();

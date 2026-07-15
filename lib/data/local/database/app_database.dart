@@ -37,6 +37,8 @@ import '../dao/sleep_schedules_dao.dart';
 import '../tables/notification_daily_counts_table.dart';
 import '../tables/processed_notification_batches_table.dart';
 import '../dao/notification_daily_counts_dao.dart';
+import '../tables/daily_scores_table.dart';
+import '../dao/daily_scores_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -60,6 +62,7 @@ part 'app_database.g.dart';
     SleepSchedules,
     NotificationDailyCounts,
     ProcessedNotificationBatches,
+    DailyScores,
   ],
   daos: [
     TasksDao,
@@ -77,6 +80,7 @@ part 'app_database.g.dart';
     DeviceDayMetricsDao,
     SleepSchedulesDao,
     NotificationDailyCountsDao,
+    DailyScoresDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -86,7 +90,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -127,6 +131,49 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(deviceDayMetrics, deviceDayMetrics.unlockCoverage);
         await m.addColumn(deviceDayMetrics, deviceDayMetrics.notificationCoverage);
       }
+      if (from < 8) {
+        await m.createTable(dailyScores);
+        await m.addColumn(focusSessions, focusSessions.gardenSeedKind);
+        await m.addColumn(focusSessions, focusSessions.gardenVariant);
+        await m.addColumn(focusSessions, focusSessions.gardenSeedEmoji);
+
+        // Sync-aware V1 backfill of legacy scores
+        await customStatement('''
+          INSERT OR IGNORE INTO daily_scores (
+            day, score, grade, is_incomplete, available_weight, scoring_version,
+            focus_points, intent_points, attention_points, care_points, computed_at
+          )
+          SELECT 
+            r1.date,
+            r1.daily_score,
+            CASE 
+              WHEN r1.coverage_state = 'complete' THEN
+                CASE 
+                  WHEN r1.daily_score >= 90 THEN 'A+'
+                  WHEN r1.daily_score >= 80 THEN 'A'
+                  WHEN r1.daily_score >= 70 THEN 'B'
+                  WHEN r1.daily_score >= 55 THEN 'C'
+                  WHEN r1.daily_score >= 40 THEN 'D'
+                  ELSE 'F'
+                END
+              ELSE NULL
+            END,
+            CASE WHEN r1.coverage_state = 'complete' THEN 0 ELSE 1 END,
+            CASE WHEN r1.coverage_state = 'complete' THEN 1.0 ELSE 0.75 END,
+            1,
+            0.0,
+            0.0,
+            NULL,
+            0.0,
+            r1.generated_at
+          FROM daily_reports r1
+          WHERE r1.generated_at = (
+            SELECT MAX(r2.generated_at)
+            FROM daily_reports r2
+            WHERE r2.date = r1.date
+          )
+        ''');
+      }
     },
   );
 
@@ -150,6 +197,7 @@ class AppDatabase extends _$AppDatabase {
         batch.deleteWhere(sleepSchedules, (_) => const Constant(true));
         batch.deleteWhere(notificationDailyCounts, (_) => const Constant(true));
         batch.deleteWhere(processedNotificationBatches, (_) => const Constant(true));
+        batch.deleteWhere(dailyScores, (_) => const Constant(true));
       });
     });
   }

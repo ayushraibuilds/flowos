@@ -1,15 +1,58 @@
 import '../../../core/constants/xp_constants.dart';
 import '../../attention/repository/attention_data_repository.dart';
 
-/// Daily Score Calculator — the "honest mirror."
-/// Computes a 0-100 score that resets every day. No lifetime impact.
-///
-/// Formula:
-///   (focusScore × 0.35) + (mitScore × 0.30) +
-///   (attentionScore × 0.20) + (ritualScore × 0.15)
+/// Rich daily score result carrying scores, status, and breakdown.
+class DailyScoreResult {
+  final int score;
+  final String? grade; // null when incomplete
+  final String message;
+  final bool isIncomplete;
+  final double availableWeight; // 1.0 when complete, 0.75 when Attention is omitted
+  final String coverageLabel;
+  final int scoringVersion;
+
+  // Pillar points contributions (weighted)
+  final double focusPoints;
+  final double intentPoints;
+  final double? attentionPoints; // null when omitted
+  final double carePoints;
+
+  const DailyScoreResult({
+    required this.score,
+    required this.grade,
+    required this.message,
+    required this.isIncomplete,
+    required this.availableWeight,
+    required this.coverageLabel,
+    required this.scoringVersion,
+    required this.focusPoints,
+    required this.intentPoints,
+    required this.attentionPoints,
+    required this.carePoints,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'score': score,
+      'grade': grade,
+      'message': message,
+      'isIncomplete': isIncomplete,
+      'availableWeight': availableWeight,
+      'coverageLabel': coverageLabel,
+      'scoringVersion': scoringVersion,
+      'focusPoints': focusPoints,
+      'intentPoints': intentPoints,
+      'attentionPoints': attentionPoints,
+      'carePoints': carePoints,
+    };
+  }
+}
+
+/// Daily Score Calculator — V2 Scoring Engine (the "honest mirror").
+/// Computes a 0-100 score based on focus sessions, tasks/MITs, distractions, and recovery/care.
 class DailyScoreCalculator {
-  /// Calculate the full daily score.
-  static int calculate({
+  /// Calculate the full daily score V2.
+  static DailyScoreResult calculate({
     required int focusMinutes,
     required int mitsCompleted, // 0-3
     required int scrollMinutes,
@@ -17,34 +60,68 @@ class DailyScoreCalculator {
     required bool intentionCompleted,
     required bool shutdownCompleted,
     required int energyCheckIns, // 0-3
-    DataCoverage attentionCoverage = DataCoverage.complete,
+    required int recoveryActions, // scroll log recovery count
+    required DataCoverage attentionCoverage,
   }) {
-    final focusScore = _focusScore(focusMinutes);
-    final mitScore = _mitScore(mitsCompleted);
-    final ritualScore = _ritualScore(
-      intentionCompleted: intentionCompleted,
-      shutdownCompleted: shutdownCompleted,
-      energyCheckIns: energyCheckIns,
-    );
+    final double focusScore = _focusScore(focusMinutes);
+    final double mitScore = (mitsCompleted / 3.0 * 100.0).clamp(0.0, 100.0);
+    final double intentionScore = intentionCompleted ? 100.0 : 0.0;
+    
+    // Care subweights: exactly 1/3 each
+    final double recoveryScore = recoveryActions == 0 ? 0.0 : (recoveryActions == 1 ? 50.0 : 100.0);
+    final double ritualShutdownScore = shutdownCompleted ? 100.0 : 0.0;
+    final double energyScore = (energyCheckIns / 3.0 * 100.0).clamp(0.0, 100.0);
+    final double careScore = (recoveryScore + ritualShutdownScore + energyScore) / 3.0;
 
-    if (attentionCoverage == DataCoverage.notConnected ||
-        attentionCoverage == DataCoverage.unsupported) {
-      // Omit attention pillar, normalize remaining weights (Focus 0.35, MIT 0.30, Ritual 0.15)
-      // Normalized: Focus = 0.35 / 0.8 = 0.4375, MIT = 0.30 / 0.8 = 0.375, Ritual = 0.15 / 0.8 = 0.1875
-      final raw = (focusScore * 0.4375) +
-          (mitScore * 0.375) +
-          (ritualScore * 0.1875);
-      return raw.round().clamp(0, 100);
+    final double focusPoints = focusScore * XpConstants.focusWeight;
+    final double intentPoints = (mitScore * 0.8 + intentionScore * 0.2) * XpConstants.intentWeight;
+    final double carePoints = careScore * XpConstants.careWeight;
+
+    // Check if attention data is incomplete or legacy manual-only
+    final bool incompleteAttention = attentionCoverage != DataCoverage.complete;
+
+    if (incompleteAttention) {
+      // Omit Attention pillar (0.25 weight) and normalize the remaining 0.75 weight (Focus 0.35, Intent 0.25, Care 0.15)
+      final double rawSum = focusPoints + intentPoints + carePoints;
+      final double availableWeight = 0.75;
+      final int normalizedScore = (rawSum / availableWeight).round().clamp(0, 100);
+
+      return DailyScoreResult(
+        score: normalizedScore,
+        grade: null, // No letter grade for incomplete days
+        message: "Coverage incomplete. Keep building your daily rhythm.",
+        isIncomplete: true,
+        availableWeight: availableWeight,
+        coverageLabel: "Incomplete — attention data unavailable",
+        scoringVersion: XpConstants.currentScoringVersion,
+        focusPoints: focusPoints,
+        intentPoints: intentPoints,
+        attentionPoints: null,
+        carePoints: carePoints,
+      );
     }
 
-    final attentionScore = _attentionScore(scrollMinutes, scrollBudget);
+    // Complete coverage: calculate Attention
+    final double attentionScore = _attentionScore(scrollMinutes, scrollBudget);
+    final double attentionPoints = attentionScore * XpConstants.attentionWeight;
 
-    final raw = (focusScore * XpConstants.focusWeight) +
-        (mitScore * XpConstants.mitWeight) +
-        (attentionScore * XpConstants.attentionWeight) +
-        (ritualScore * XpConstants.ritualWeight);
+    final double rawSum = focusPoints + intentPoints + attentionPoints + carePoints;
+    final int finalScore = rawSum.round().clamp(0, 100);
+    final String grade = gradeFromScore(finalScore);
 
-    return raw.round().clamp(0, 100);
+    return DailyScoreResult(
+      score: finalScore,
+      grade: grade,
+      message: messageForGrade(grade),
+      isIncomplete: false,
+      availableWeight: 1.0,
+      coverageLabel: "Complete",
+      scoringVersion: XpConstants.currentScoringVersion,
+      focusPoints: focusPoints,
+      intentPoints: intentPoints,
+      attentionPoints: attentionPoints,
+      carePoints: carePoints,
+    );
   }
 
   /// Focus score (0-100): based on total focus minutes.
@@ -52,14 +129,9 @@ class DailyScoreCalculator {
   static double _focusScore(int minutes) {
     if (minutes <= 0) return 0;
     if (minutes >= 180) return 100;
-    if (minutes >= 120) return 85 + (15 * (minutes - 120) / 60);
-    if (minutes >= 60) return 60 + (25 * (minutes - 60) / 60);
-    return (60 * minutes / 60);
-  }
-
-  /// MIT score (0-100): 0/3=0, 1/3=33, 2/3=67, 3/3=100
-  static double _mitScore(int completed) {
-    return (completed / 3 * 100).clamp(0, 100);
+    if (minutes >= 120) return 85 + (15.0 * (minutes - 120) / 60.0);
+    if (minutes >= 60) return 60 + (25.0 * (minutes - 60) / 60.0);
+    return (60.0 * minutes / 60.0);
   }
 
   /// Attention score (0-100): how well you stayed within scroll budget.
@@ -67,30 +139,17 @@ class DailyScoreCalculator {
   static double _attentionScore(int scrollMinutes, int budget) {
     if (budget <= 0) {
       // No budget set — full score if no scrolling, else scale
-      return scrollMinutes == 0 ? 100 : (100 - scrollMinutes * 2.0).clamp(0, 100);
+      return scrollMinutes == 0 ? 100.0 : (100.0 - scrollMinutes * 2.0).clamp(0.0, 100.0);
     }
 
-    if (scrollMinutes <= 0) return 100;
+    if (scrollMinutes <= 0) return 100.0;
     if (scrollMinutes <= budget) {
       // Within budget: 100 → 60
-      return 100 - (40 * scrollMinutes / budget);
+      return 100.0 - (40.0 * scrollMinutes / budget);
     }
     // Over budget: 60 → 0
-    final overRatio = (scrollMinutes - budget) / budget;
-    return (60 - 60 * overRatio).clamp(0, 100);
-  }
-
-  /// Ritual score (0-100): morning intention + shutdown + energy check-ins
-  static double _ritualScore({
-    required bool intentionCompleted,
-    required bool shutdownCompleted,
-    required int energyCheckIns,
-  }) {
-    double score = 0;
-    if (intentionCompleted) score += 35;
-    if (shutdownCompleted) score += 35;
-    score += (energyCheckIns / 3 * 30).clamp(0, 30);
-    return score.clamp(0, 100);
+    final double overRatio = (scrollMinutes - budget) / budget;
+    return (60.0 - 60.0 * overRatio).clamp(0.0, 100.0);
   }
 
   /// Get letter grade from score

@@ -30,6 +30,11 @@ class FocusSessions extends Table {
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
 
+  // Garden seed persistence (Milestone 5)
+  TextColumn get gardenSeedKind => text().nullable()();
+  IntColumn get gardenVariant => integer().nullable()();
+  TextColumn get gardenSeedEmoji => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

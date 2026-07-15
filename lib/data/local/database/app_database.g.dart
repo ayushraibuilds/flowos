@@ -1202,6 +1202,39 @@ class $FocusSessionsTable extends FocusSessions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _gardenSeedKindMeta = const VerificationMeta(
+    'gardenSeedKind',
+  );
+  @override
+  late final GeneratedColumn<String> gardenSeedKind = GeneratedColumn<String>(
+    'garden_seed_kind',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gardenVariantMeta = const VerificationMeta(
+    'gardenVariant',
+  );
+  @override
+  late final GeneratedColumn<int> gardenVariant = GeneratedColumn<int>(
+    'garden_variant',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gardenSeedEmojiMeta = const VerificationMeta(
+    'gardenSeedEmoji',
+  );
+  @override
+  late final GeneratedColumn<String> gardenSeedEmoji = GeneratedColumn<String>(
+    'garden_seed_emoji',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1218,6 +1251,9 @@ class $FocusSessionsTable extends FocusSessions
     qualityScore,
     startedAt,
     completedAt,
+    gardenSeedKind,
+    gardenVariant,
+    gardenSeedEmoji,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1336,6 +1372,33 @@ class $FocusSessionsTable extends FocusSessions
         ),
       );
     }
+    if (data.containsKey('garden_seed_kind')) {
+      context.handle(
+        _gardenSeedKindMeta,
+        gardenSeedKind.isAcceptableOrUnknown(
+          data['garden_seed_kind']!,
+          _gardenSeedKindMeta,
+        ),
+      );
+    }
+    if (data.containsKey('garden_variant')) {
+      context.handle(
+        _gardenVariantMeta,
+        gardenVariant.isAcceptableOrUnknown(
+          data['garden_variant']!,
+          _gardenVariantMeta,
+        ),
+      );
+    }
+    if (data.containsKey('garden_seed_emoji')) {
+      context.handle(
+        _gardenSeedEmojiMeta,
+        gardenSeedEmoji.isAcceptableOrUnknown(
+          data['garden_seed_emoji']!,
+          _gardenSeedEmojiMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1403,6 +1466,18 @@ class $FocusSessionsTable extends FocusSessions
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
       ),
+      gardenSeedKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}garden_seed_kind'],
+      ),
+      gardenVariant: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}garden_variant'],
+      ),
+      gardenSeedEmoji: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}garden_seed_emoji'],
+      ),
     );
   }
 
@@ -1432,6 +1507,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
   final String qualityScore;
   final DateTime startedAt;
   final DateTime? completedAt;
+  final String? gardenSeedKind;
+  final int? gardenVariant;
+  final String? gardenSeedEmoji;
   const FocusSession({
     required this.id,
     this.taskId,
@@ -1447,6 +1525,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     required this.qualityScore,
     required this.startedAt,
     this.completedAt,
+    this.gardenSeedKind,
+    this.gardenVariant,
+    this.gardenSeedEmoji,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1479,6 +1560,15 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
     }
+    if (!nullToAbsent || gardenSeedKind != null) {
+      map['garden_seed_kind'] = Variable<String>(gardenSeedKind);
+    }
+    if (!nullToAbsent || gardenVariant != null) {
+      map['garden_variant'] = Variable<int>(gardenVariant);
+    }
+    if (!nullToAbsent || gardenSeedEmoji != null) {
+      map['garden_seed_emoji'] = Variable<String>(gardenSeedEmoji);
+    }
     return map;
   }
 
@@ -1508,6 +1598,15 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
+      gardenSeedKind: gardenSeedKind == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gardenSeedKind),
+      gardenVariant: gardenVariant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gardenVariant),
+      gardenSeedEmoji: gardenSeedEmoji == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gardenSeedEmoji),
     );
   }
 
@@ -1533,6 +1632,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       qualityScore: serializer.fromJson<String>(json['qualityScore']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      gardenSeedKind: serializer.fromJson<String?>(json['gardenSeedKind']),
+      gardenVariant: serializer.fromJson<int?>(json['gardenVariant']),
+      gardenSeedEmoji: serializer.fromJson<String?>(json['gardenSeedEmoji']),
     );
   }
   @override
@@ -1555,6 +1657,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       'qualityScore': serializer.toJson<String>(qualityScore),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'gardenSeedKind': serializer.toJson<String?>(gardenSeedKind),
+      'gardenVariant': serializer.toJson<int?>(gardenVariant),
+      'gardenSeedEmoji': serializer.toJson<String?>(gardenSeedEmoji),
     };
   }
 
@@ -1573,6 +1678,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     String? qualityScore,
     DateTime? startedAt,
     Value<DateTime?> completedAt = const Value.absent(),
+    Value<String?> gardenSeedKind = const Value.absent(),
+    Value<int?> gardenVariant = const Value.absent(),
+    Value<String?> gardenSeedEmoji = const Value.absent(),
   }) => FocusSession(
     id: id ?? this.id,
     taskId: taskId.present ? taskId.value : this.taskId,
@@ -1588,6 +1696,15 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     qualityScore: qualityScore ?? this.qualityScore,
     startedAt: startedAt ?? this.startedAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    gardenSeedKind: gardenSeedKind.present
+        ? gardenSeedKind.value
+        : this.gardenSeedKind,
+    gardenVariant: gardenVariant.present
+        ? gardenVariant.value
+        : this.gardenVariant,
+    gardenSeedEmoji: gardenSeedEmoji.present
+        ? gardenSeedEmoji.value
+        : this.gardenSeedEmoji,
   );
   FocusSession copyWithCompanion(FocusSessionsCompanion data) {
     return FocusSession(
@@ -1625,6 +1742,15 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
+      gardenSeedKind: data.gardenSeedKind.present
+          ? data.gardenSeedKind.value
+          : this.gardenSeedKind,
+      gardenVariant: data.gardenVariant.present
+          ? data.gardenVariant.value
+          : this.gardenVariant,
+      gardenSeedEmoji: data.gardenSeedEmoji.present
+          ? data.gardenSeedEmoji.value
+          : this.gardenSeedEmoji,
     );
   }
 
@@ -1644,7 +1770,10 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           ..write('xpEarned: $xpEarned, ')
           ..write('qualityScore: $qualityScore, ')
           ..write('startedAt: $startedAt, ')
-          ..write('completedAt: $completedAt')
+          ..write('completedAt: $completedAt, ')
+          ..write('gardenSeedKind: $gardenSeedKind, ')
+          ..write('gardenVariant: $gardenVariant, ')
+          ..write('gardenSeedEmoji: $gardenSeedEmoji')
           ..write(')'))
         .toString();
   }
@@ -1665,6 +1794,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     qualityScore,
     startedAt,
     completedAt,
+    gardenSeedKind,
+    gardenVariant,
+    gardenSeedEmoji,
   );
   @override
   bool operator ==(Object other) =>
@@ -1683,7 +1815,10 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           other.xpEarned == this.xpEarned &&
           other.qualityScore == this.qualityScore &&
           other.startedAt == this.startedAt &&
-          other.completedAt == this.completedAt);
+          other.completedAt == this.completedAt &&
+          other.gardenSeedKind == this.gardenSeedKind &&
+          other.gardenVariant == this.gardenVariant &&
+          other.gardenSeedEmoji == this.gardenSeedEmoji);
 }
 
 class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
@@ -1701,6 +1836,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
   final Value<String> qualityScore;
   final Value<DateTime> startedAt;
   final Value<DateTime?> completedAt;
+  final Value<String?> gardenSeedKind;
+  final Value<int?> gardenVariant;
+  final Value<String?> gardenSeedEmoji;
   final Value<int> rowid;
   const FocusSessionsCompanion({
     this.id = const Value.absent(),
@@ -1717,6 +1855,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     this.qualityScore = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
+    this.gardenSeedKind = const Value.absent(),
+    this.gardenVariant = const Value.absent(),
+    this.gardenSeedEmoji = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FocusSessionsCompanion.insert({
@@ -1734,6 +1875,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     this.qualityScore = const Value.absent(),
     required DateTime startedAt,
     this.completedAt = const Value.absent(),
+    this.gardenSeedKind = const Value.absent(),
+    this.gardenVariant = const Value.absent(),
+    this.gardenSeedEmoji = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        sessionType = Value(sessionType),
@@ -1754,6 +1898,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     Expression<String>? qualityScore,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? completedAt,
+    Expression<String>? gardenSeedKind,
+    Expression<int>? gardenVariant,
+    Expression<String>? gardenSeedEmoji,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1772,6 +1919,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
       if (qualityScore != null) 'quality_score': qualityScore,
       if (startedAt != null) 'started_at': startedAt,
       if (completedAt != null) 'completed_at': completedAt,
+      if (gardenSeedKind != null) 'garden_seed_kind': gardenSeedKind,
+      if (gardenVariant != null) 'garden_variant': gardenVariant,
+      if (gardenSeedEmoji != null) 'garden_seed_emoji': gardenSeedEmoji,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1791,6 +1941,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     Value<String>? qualityScore,
     Value<DateTime>? startedAt,
     Value<DateTime?>? completedAt,
+    Value<String?>? gardenSeedKind,
+    Value<int?>? gardenVariant,
+    Value<String?>? gardenSeedEmoji,
     Value<int>? rowid,
   }) {
     return FocusSessionsCompanion(
@@ -1808,6 +1961,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
       qualityScore: qualityScore ?? this.qualityScore,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+      gardenSeedKind: gardenSeedKind ?? this.gardenSeedKind,
+      gardenVariant: gardenVariant ?? this.gardenVariant,
+      gardenSeedEmoji: gardenSeedEmoji ?? this.gardenSeedEmoji,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1859,6 +2015,15 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
+    if (gardenSeedKind.present) {
+      map['garden_seed_kind'] = Variable<String>(gardenSeedKind.value);
+    }
+    if (gardenVariant.present) {
+      map['garden_variant'] = Variable<int>(gardenVariant.value);
+    }
+    if (gardenSeedEmoji.present) {
+      map['garden_seed_emoji'] = Variable<String>(gardenSeedEmoji.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1882,6 +2047,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
           ..write('qualityScore: $qualityScore, ')
           ..write('startedAt: $startedAt, ')
           ..write('completedAt: $completedAt, ')
+          ..write('gardenSeedKind: $gardenSeedKind, ')
+          ..write('gardenVariant: $gardenVariant, ')
+          ..write('gardenSeedEmoji: $gardenSeedEmoji, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8894,6 +9062,700 @@ class ProcessedNotificationBatchesCompanion
   }
 }
 
+class $DailyScoresTable extends DailyScores
+    with TableInfo<$DailyScoresTable, DailyScore> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyScoresTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dayMeta = const VerificationMeta('day');
+  @override
+  late final GeneratedColumn<DateTime> day = GeneratedColumn<DateTime>(
+    'day',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<int> score = GeneratedColumn<int>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _gradeMeta = const VerificationMeta('grade');
+  @override
+  late final GeneratedColumn<String> grade = GeneratedColumn<String>(
+    'grade',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isIncompleteMeta = const VerificationMeta(
+    'isIncomplete',
+  );
+  @override
+  late final GeneratedColumn<bool> isIncomplete = GeneratedColumn<bool>(
+    'is_incomplete',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_incomplete" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _availableWeightMeta = const VerificationMeta(
+    'availableWeight',
+  );
+  @override
+  late final GeneratedColumn<double> availableWeight = GeneratedColumn<double>(
+    'available_weight',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoringVersionMeta = const VerificationMeta(
+    'scoringVersion',
+  );
+  @override
+  late final GeneratedColumn<int> scoringVersion = GeneratedColumn<int>(
+    'scoring_version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _focusPointsMeta = const VerificationMeta(
+    'focusPoints',
+  );
+  @override
+  late final GeneratedColumn<double> focusPoints = GeneratedColumn<double>(
+    'focus_points',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _intentPointsMeta = const VerificationMeta(
+    'intentPoints',
+  );
+  @override
+  late final GeneratedColumn<double> intentPoints = GeneratedColumn<double>(
+    'intent_points',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _attentionPointsMeta = const VerificationMeta(
+    'attentionPoints',
+  );
+  @override
+  late final GeneratedColumn<double> attentionPoints = GeneratedColumn<double>(
+    'attention_points',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _carePointsMeta = const VerificationMeta(
+    'carePoints',
+  );
+  @override
+  late final GeneratedColumn<double> carePoints = GeneratedColumn<double>(
+    'care_points',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _computedAtMeta = const VerificationMeta(
+    'computedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> computedAt = GeneratedColumn<DateTime>(
+    'computed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    day,
+    score,
+    grade,
+    isIncomplete,
+    availableWeight,
+    scoringVersion,
+    focusPoints,
+    intentPoints,
+    attentionPoints,
+    carePoints,
+    computedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_scores';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyScore> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('day')) {
+      context.handle(
+        _dayMeta,
+        day.isAcceptableOrUnknown(data['day']!, _dayMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    if (data.containsKey('grade')) {
+      context.handle(
+        _gradeMeta,
+        grade.isAcceptableOrUnknown(data['grade']!, _gradeMeta),
+      );
+    }
+    if (data.containsKey('is_incomplete')) {
+      context.handle(
+        _isIncompleteMeta,
+        isIncomplete.isAcceptableOrUnknown(
+          data['is_incomplete']!,
+          _isIncompleteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_isIncompleteMeta);
+    }
+    if (data.containsKey('available_weight')) {
+      context.handle(
+        _availableWeightMeta,
+        availableWeight.isAcceptableOrUnknown(
+          data['available_weight']!,
+          _availableWeightMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_availableWeightMeta);
+    }
+    if (data.containsKey('scoring_version')) {
+      context.handle(
+        _scoringVersionMeta,
+        scoringVersion.isAcceptableOrUnknown(
+          data['scoring_version']!,
+          _scoringVersionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_scoringVersionMeta);
+    }
+    if (data.containsKey('focus_points')) {
+      context.handle(
+        _focusPointsMeta,
+        focusPoints.isAcceptableOrUnknown(
+          data['focus_points']!,
+          _focusPointsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_focusPointsMeta);
+    }
+    if (data.containsKey('intent_points')) {
+      context.handle(
+        _intentPointsMeta,
+        intentPoints.isAcceptableOrUnknown(
+          data['intent_points']!,
+          _intentPointsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_intentPointsMeta);
+    }
+    if (data.containsKey('attention_points')) {
+      context.handle(
+        _attentionPointsMeta,
+        attentionPoints.isAcceptableOrUnknown(
+          data['attention_points']!,
+          _attentionPointsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('care_points')) {
+      context.handle(
+        _carePointsMeta,
+        carePoints.isAcceptableOrUnknown(data['care_points']!, _carePointsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_carePointsMeta);
+    }
+    if (data.containsKey('computed_at')) {
+      context.handle(
+        _computedAtMeta,
+        computedAt.isAcceptableOrUnknown(data['computed_at']!, _computedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {day};
+  @override
+  DailyScore map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyScore(
+      day: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}day'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}score'],
+      )!,
+      grade: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}grade'],
+      ),
+      isIncomplete: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_incomplete'],
+      )!,
+      availableWeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}available_weight'],
+      )!,
+      scoringVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scoring_version'],
+      )!,
+      focusPoints: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}focus_points'],
+      )!,
+      intentPoints: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}intent_points'],
+      )!,
+      attentionPoints: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}attention_points'],
+      ),
+      carePoints: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}care_points'],
+      )!,
+      computedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}computed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DailyScoresTable createAlias(String alias) {
+    return $DailyScoresTable(attachedDatabase, alias);
+  }
+}
+
+class DailyScore extends DataClass implements Insertable<DailyScore> {
+  final DateTime day;
+  final int score;
+  final String? grade;
+  final bool isIncomplete;
+  final double availableWeight;
+  final int scoringVersion;
+  final double focusPoints;
+  final double intentPoints;
+  final double? attentionPoints;
+  final double carePoints;
+  final DateTime computedAt;
+  const DailyScore({
+    required this.day,
+    required this.score,
+    this.grade,
+    required this.isIncomplete,
+    required this.availableWeight,
+    required this.scoringVersion,
+    required this.focusPoints,
+    required this.intentPoints,
+    this.attentionPoints,
+    required this.carePoints,
+    required this.computedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['day'] = Variable<DateTime>(day);
+    map['score'] = Variable<int>(score);
+    if (!nullToAbsent || grade != null) {
+      map['grade'] = Variable<String>(grade);
+    }
+    map['is_incomplete'] = Variable<bool>(isIncomplete);
+    map['available_weight'] = Variable<double>(availableWeight);
+    map['scoring_version'] = Variable<int>(scoringVersion);
+    map['focus_points'] = Variable<double>(focusPoints);
+    map['intent_points'] = Variable<double>(intentPoints);
+    if (!nullToAbsent || attentionPoints != null) {
+      map['attention_points'] = Variable<double>(attentionPoints);
+    }
+    map['care_points'] = Variable<double>(carePoints);
+    map['computed_at'] = Variable<DateTime>(computedAt);
+    return map;
+  }
+
+  DailyScoresCompanion toCompanion(bool nullToAbsent) {
+    return DailyScoresCompanion(
+      day: Value(day),
+      score: Value(score),
+      grade: grade == null && nullToAbsent
+          ? const Value.absent()
+          : Value(grade),
+      isIncomplete: Value(isIncomplete),
+      availableWeight: Value(availableWeight),
+      scoringVersion: Value(scoringVersion),
+      focusPoints: Value(focusPoints),
+      intentPoints: Value(intentPoints),
+      attentionPoints: attentionPoints == null && nullToAbsent
+          ? const Value.absent()
+          : Value(attentionPoints),
+      carePoints: Value(carePoints),
+      computedAt: Value(computedAt),
+    );
+  }
+
+  factory DailyScore.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyScore(
+      day: serializer.fromJson<DateTime>(json['day']),
+      score: serializer.fromJson<int>(json['score']),
+      grade: serializer.fromJson<String?>(json['grade']),
+      isIncomplete: serializer.fromJson<bool>(json['isIncomplete']),
+      availableWeight: serializer.fromJson<double>(json['availableWeight']),
+      scoringVersion: serializer.fromJson<int>(json['scoringVersion']),
+      focusPoints: serializer.fromJson<double>(json['focusPoints']),
+      intentPoints: serializer.fromJson<double>(json['intentPoints']),
+      attentionPoints: serializer.fromJson<double?>(json['attentionPoints']),
+      carePoints: serializer.fromJson<double>(json['carePoints']),
+      computedAt: serializer.fromJson<DateTime>(json['computedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'day': serializer.toJson<DateTime>(day),
+      'score': serializer.toJson<int>(score),
+      'grade': serializer.toJson<String?>(grade),
+      'isIncomplete': serializer.toJson<bool>(isIncomplete),
+      'availableWeight': serializer.toJson<double>(availableWeight),
+      'scoringVersion': serializer.toJson<int>(scoringVersion),
+      'focusPoints': serializer.toJson<double>(focusPoints),
+      'intentPoints': serializer.toJson<double>(intentPoints),
+      'attentionPoints': serializer.toJson<double?>(attentionPoints),
+      'carePoints': serializer.toJson<double>(carePoints),
+      'computedAt': serializer.toJson<DateTime>(computedAt),
+    };
+  }
+
+  DailyScore copyWith({
+    DateTime? day,
+    int? score,
+    Value<String?> grade = const Value.absent(),
+    bool? isIncomplete,
+    double? availableWeight,
+    int? scoringVersion,
+    double? focusPoints,
+    double? intentPoints,
+    Value<double?> attentionPoints = const Value.absent(),
+    double? carePoints,
+    DateTime? computedAt,
+  }) => DailyScore(
+    day: day ?? this.day,
+    score: score ?? this.score,
+    grade: grade.present ? grade.value : this.grade,
+    isIncomplete: isIncomplete ?? this.isIncomplete,
+    availableWeight: availableWeight ?? this.availableWeight,
+    scoringVersion: scoringVersion ?? this.scoringVersion,
+    focusPoints: focusPoints ?? this.focusPoints,
+    intentPoints: intentPoints ?? this.intentPoints,
+    attentionPoints: attentionPoints.present
+        ? attentionPoints.value
+        : this.attentionPoints,
+    carePoints: carePoints ?? this.carePoints,
+    computedAt: computedAt ?? this.computedAt,
+  );
+  DailyScore copyWithCompanion(DailyScoresCompanion data) {
+    return DailyScore(
+      day: data.day.present ? data.day.value : this.day,
+      score: data.score.present ? data.score.value : this.score,
+      grade: data.grade.present ? data.grade.value : this.grade,
+      isIncomplete: data.isIncomplete.present
+          ? data.isIncomplete.value
+          : this.isIncomplete,
+      availableWeight: data.availableWeight.present
+          ? data.availableWeight.value
+          : this.availableWeight,
+      scoringVersion: data.scoringVersion.present
+          ? data.scoringVersion.value
+          : this.scoringVersion,
+      focusPoints: data.focusPoints.present
+          ? data.focusPoints.value
+          : this.focusPoints,
+      intentPoints: data.intentPoints.present
+          ? data.intentPoints.value
+          : this.intentPoints,
+      attentionPoints: data.attentionPoints.present
+          ? data.attentionPoints.value
+          : this.attentionPoints,
+      carePoints: data.carePoints.present
+          ? data.carePoints.value
+          : this.carePoints,
+      computedAt: data.computedAt.present
+          ? data.computedAt.value
+          : this.computedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyScore(')
+          ..write('day: $day, ')
+          ..write('score: $score, ')
+          ..write('grade: $grade, ')
+          ..write('isIncomplete: $isIncomplete, ')
+          ..write('availableWeight: $availableWeight, ')
+          ..write('scoringVersion: $scoringVersion, ')
+          ..write('focusPoints: $focusPoints, ')
+          ..write('intentPoints: $intentPoints, ')
+          ..write('attentionPoints: $attentionPoints, ')
+          ..write('carePoints: $carePoints, ')
+          ..write('computedAt: $computedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    day,
+    score,
+    grade,
+    isIncomplete,
+    availableWeight,
+    scoringVersion,
+    focusPoints,
+    intentPoints,
+    attentionPoints,
+    carePoints,
+    computedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyScore &&
+          other.day == this.day &&
+          other.score == this.score &&
+          other.grade == this.grade &&
+          other.isIncomplete == this.isIncomplete &&
+          other.availableWeight == this.availableWeight &&
+          other.scoringVersion == this.scoringVersion &&
+          other.focusPoints == this.focusPoints &&
+          other.intentPoints == this.intentPoints &&
+          other.attentionPoints == this.attentionPoints &&
+          other.carePoints == this.carePoints &&
+          other.computedAt == this.computedAt);
+}
+
+class DailyScoresCompanion extends UpdateCompanion<DailyScore> {
+  final Value<DateTime> day;
+  final Value<int> score;
+  final Value<String?> grade;
+  final Value<bool> isIncomplete;
+  final Value<double> availableWeight;
+  final Value<int> scoringVersion;
+  final Value<double> focusPoints;
+  final Value<double> intentPoints;
+  final Value<double?> attentionPoints;
+  final Value<double> carePoints;
+  final Value<DateTime> computedAt;
+  final Value<int> rowid;
+  const DailyScoresCompanion({
+    this.day = const Value.absent(),
+    this.score = const Value.absent(),
+    this.grade = const Value.absent(),
+    this.isIncomplete = const Value.absent(),
+    this.availableWeight = const Value.absent(),
+    this.scoringVersion = const Value.absent(),
+    this.focusPoints = const Value.absent(),
+    this.intentPoints = const Value.absent(),
+    this.attentionPoints = const Value.absent(),
+    this.carePoints = const Value.absent(),
+    this.computedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailyScoresCompanion.insert({
+    required DateTime day,
+    required int score,
+    this.grade = const Value.absent(),
+    required bool isIncomplete,
+    required double availableWeight,
+    required int scoringVersion,
+    required double focusPoints,
+    required double intentPoints,
+    this.attentionPoints = const Value.absent(),
+    required double carePoints,
+    this.computedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : day = Value(day),
+       score = Value(score),
+       isIncomplete = Value(isIncomplete),
+       availableWeight = Value(availableWeight),
+       scoringVersion = Value(scoringVersion),
+       focusPoints = Value(focusPoints),
+       intentPoints = Value(intentPoints),
+       carePoints = Value(carePoints);
+  static Insertable<DailyScore> custom({
+    Expression<DateTime>? day,
+    Expression<int>? score,
+    Expression<String>? grade,
+    Expression<bool>? isIncomplete,
+    Expression<double>? availableWeight,
+    Expression<int>? scoringVersion,
+    Expression<double>? focusPoints,
+    Expression<double>? intentPoints,
+    Expression<double>? attentionPoints,
+    Expression<double>? carePoints,
+    Expression<DateTime>? computedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (day != null) 'day': day,
+      if (score != null) 'score': score,
+      if (grade != null) 'grade': grade,
+      if (isIncomplete != null) 'is_incomplete': isIncomplete,
+      if (availableWeight != null) 'available_weight': availableWeight,
+      if (scoringVersion != null) 'scoring_version': scoringVersion,
+      if (focusPoints != null) 'focus_points': focusPoints,
+      if (intentPoints != null) 'intent_points': intentPoints,
+      if (attentionPoints != null) 'attention_points': attentionPoints,
+      if (carePoints != null) 'care_points': carePoints,
+      if (computedAt != null) 'computed_at': computedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailyScoresCompanion copyWith({
+    Value<DateTime>? day,
+    Value<int>? score,
+    Value<String?>? grade,
+    Value<bool>? isIncomplete,
+    Value<double>? availableWeight,
+    Value<int>? scoringVersion,
+    Value<double>? focusPoints,
+    Value<double>? intentPoints,
+    Value<double?>? attentionPoints,
+    Value<double>? carePoints,
+    Value<DateTime>? computedAt,
+    Value<int>? rowid,
+  }) {
+    return DailyScoresCompanion(
+      day: day ?? this.day,
+      score: score ?? this.score,
+      grade: grade ?? this.grade,
+      isIncomplete: isIncomplete ?? this.isIncomplete,
+      availableWeight: availableWeight ?? this.availableWeight,
+      scoringVersion: scoringVersion ?? this.scoringVersion,
+      focusPoints: focusPoints ?? this.focusPoints,
+      intentPoints: intentPoints ?? this.intentPoints,
+      attentionPoints: attentionPoints ?? this.attentionPoints,
+      carePoints: carePoints ?? this.carePoints,
+      computedAt: computedAt ?? this.computedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (day.present) {
+      map['day'] = Variable<DateTime>(day.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<int>(score.value);
+    }
+    if (grade.present) {
+      map['grade'] = Variable<String>(grade.value);
+    }
+    if (isIncomplete.present) {
+      map['is_incomplete'] = Variable<bool>(isIncomplete.value);
+    }
+    if (availableWeight.present) {
+      map['available_weight'] = Variable<double>(availableWeight.value);
+    }
+    if (scoringVersion.present) {
+      map['scoring_version'] = Variable<int>(scoringVersion.value);
+    }
+    if (focusPoints.present) {
+      map['focus_points'] = Variable<double>(focusPoints.value);
+    }
+    if (intentPoints.present) {
+      map['intent_points'] = Variable<double>(intentPoints.value);
+    }
+    if (attentionPoints.present) {
+      map['attention_points'] = Variable<double>(attentionPoints.value);
+    }
+    if (carePoints.present) {
+      map['care_points'] = Variable<double>(carePoints.value);
+    }
+    if (computedAt.present) {
+      map['computed_at'] = Variable<DateTime>(computedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyScoresCompanion(')
+          ..write('day: $day, ')
+          ..write('score: $score, ')
+          ..write('grade: $grade, ')
+          ..write('isIncomplete: $isIncomplete, ')
+          ..write('availableWeight: $availableWeight, ')
+          ..write('scoringVersion: $scoringVersion, ')
+          ..write('focusPoints: $focusPoints, ')
+          ..write('intentPoints: $intentPoints, ')
+          ..write('attentionPoints: $attentionPoints, ')
+          ..write('carePoints: $carePoints, ')
+          ..write('computedAt: $computedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8920,6 +9782,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $NotificationDailyCountsTable(this);
   late final $ProcessedNotificationBatchesTable processedNotificationBatches =
       $ProcessedNotificationBatchesTable(this);
+  late final $DailyScoresTable dailyScores = $DailyScoresTable(this);
   late final TasksDao tasksDao = TasksDao(this as AppDatabase);
   late final FocusSessionsDao focusSessionsDao = FocusSessionsDao(
     this as AppDatabase,
@@ -8955,6 +9818,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final NotificationDailyCountsDao notificationDailyCountsDao =
       NotificationDailyCountsDao(this as AppDatabase);
+  late final DailyScoresDao dailyScoresDao = DailyScoresDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8976,6 +9842,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sleepSchedules,
     notificationDailyCounts,
     processedNotificationBatches,
+    dailyScores,
   ];
 }
 
@@ -9462,6 +10329,9 @@ typedef $$FocusSessionsTableCreateCompanionBuilder =
       Value<String> qualityScore,
       required DateTime startedAt,
       Value<DateTime?> completedAt,
+      Value<String?> gardenSeedKind,
+      Value<int?> gardenVariant,
+      Value<String?> gardenSeedEmoji,
       Value<int> rowid,
     });
 typedef $$FocusSessionsTableUpdateCompanionBuilder =
@@ -9480,6 +10350,9 @@ typedef $$FocusSessionsTableUpdateCompanionBuilder =
       Value<String> qualityScore,
       Value<DateTime> startedAt,
       Value<DateTime?> completedAt,
+      Value<String?> gardenSeedKind,
+      Value<int?> gardenVariant,
+      Value<String?> gardenSeedEmoji,
       Value<int> rowid,
     });
 
@@ -9562,6 +10435,21 @@ class $$FocusSessionsTableFilterComposer
     column: $table.completedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get gardenSeedKind => $composableBuilder(
+    column: $table.gardenSeedKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get gardenVariant => $composableBuilder(
+    column: $table.gardenVariant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gardenSeedEmoji => $composableBuilder(
+    column: $table.gardenSeedEmoji,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$FocusSessionsTableOrderingComposer
@@ -9642,6 +10530,21 @@ class $$FocusSessionsTableOrderingComposer
     column: $table.completedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get gardenSeedKind => $composableBuilder(
+    column: $table.gardenSeedKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get gardenVariant => $composableBuilder(
+    column: $table.gardenVariant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get gardenSeedEmoji => $composableBuilder(
+    column: $table.gardenSeedEmoji,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FocusSessionsTableAnnotationComposer
@@ -9715,6 +10618,21 @@ class $$FocusSessionsTableAnnotationComposer
     column: $table.completedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get gardenSeedKind => $composableBuilder(
+    column: $table.gardenSeedKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get gardenVariant => $composableBuilder(
+    column: $table.gardenVariant,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get gardenSeedEmoji => $composableBuilder(
+    column: $table.gardenSeedEmoji,
+    builder: (column) => column,
+  );
 }
 
 class $$FocusSessionsTableTableManager
@@ -9762,6 +10680,9 @@ class $$FocusSessionsTableTableManager
                 Value<String> qualityScore = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<String?> gardenSeedKind = const Value.absent(),
+                Value<int?> gardenVariant = const Value.absent(),
+                Value<String?> gardenSeedEmoji = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FocusSessionsCompanion(
                 id: id,
@@ -9778,6 +10699,9 @@ class $$FocusSessionsTableTableManager
                 qualityScore: qualityScore,
                 startedAt: startedAt,
                 completedAt: completedAt,
+                gardenSeedKind: gardenSeedKind,
+                gardenVariant: gardenVariant,
+                gardenSeedEmoji: gardenSeedEmoji,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9796,6 +10720,9 @@ class $$FocusSessionsTableTableManager
                 Value<String> qualityScore = const Value.absent(),
                 required DateTime startedAt,
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<String?> gardenSeedKind = const Value.absent(),
+                Value<int?> gardenVariant = const Value.absent(),
+                Value<String?> gardenSeedEmoji = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FocusSessionsCompanion.insert(
                 id: id,
@@ -9812,6 +10739,9 @@ class $$FocusSessionsTableTableManager
                 qualityScore: qualityScore,
                 startedAt: startedAt,
                 completedAt: completedAt,
+                gardenSeedKind: gardenSeedKind,
+                gardenVariant: gardenVariant,
+                gardenSeedEmoji: gardenSeedEmoji,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -13436,6 +14366,336 @@ typedef $$ProcessedNotificationBatchesTableProcessedTableManager =
       ProcessedNotificationBatche,
       PrefetchHooks Function()
     >;
+typedef $$DailyScoresTableCreateCompanionBuilder =
+    DailyScoresCompanion Function({
+      required DateTime day,
+      required int score,
+      Value<String?> grade,
+      required bool isIncomplete,
+      required double availableWeight,
+      required int scoringVersion,
+      required double focusPoints,
+      required double intentPoints,
+      Value<double?> attentionPoints,
+      required double carePoints,
+      Value<DateTime> computedAt,
+      Value<int> rowid,
+    });
+typedef $$DailyScoresTableUpdateCompanionBuilder =
+    DailyScoresCompanion Function({
+      Value<DateTime> day,
+      Value<int> score,
+      Value<String?> grade,
+      Value<bool> isIncomplete,
+      Value<double> availableWeight,
+      Value<int> scoringVersion,
+      Value<double> focusPoints,
+      Value<double> intentPoints,
+      Value<double?> attentionPoints,
+      Value<double> carePoints,
+      Value<DateTime> computedAt,
+      Value<int> rowid,
+    });
+
+class $$DailyScoresTableFilterComposer
+    extends Composer<_$AppDatabase, $DailyScoresTable> {
+  $$DailyScoresTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get grade => $composableBuilder(
+    column: $table.grade,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isIncomplete => $composableBuilder(
+    column: $table.isIncomplete,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get availableWeight => $composableBuilder(
+    column: $table.availableWeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get scoringVersion => $composableBuilder(
+    column: $table.scoringVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get focusPoints => $composableBuilder(
+    column: $table.focusPoints,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get intentPoints => $composableBuilder(
+    column: $table.intentPoints,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get attentionPoints => $composableBuilder(
+    column: $table.attentionPoints,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get carePoints => $composableBuilder(
+    column: $table.carePoints,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyScoresTableOrderingComposer
+    extends Composer<_$AppDatabase, $DailyScoresTable> {
+  $$DailyScoresTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get day => $composableBuilder(
+    column: $table.day,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get grade => $composableBuilder(
+    column: $table.grade,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isIncomplete => $composableBuilder(
+    column: $table.isIncomplete,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get availableWeight => $composableBuilder(
+    column: $table.availableWeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get scoringVersion => $composableBuilder(
+    column: $table.scoringVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get focusPoints => $composableBuilder(
+    column: $table.focusPoints,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get intentPoints => $composableBuilder(
+    column: $table.intentPoints,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get attentionPoints => $composableBuilder(
+    column: $table.attentionPoints,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get carePoints => $composableBuilder(
+    column: $table.carePoints,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyScoresTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DailyScoresTable> {
+  $$DailyScoresTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get day =>
+      $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<int> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+
+  GeneratedColumn<String> get grade =>
+      $composableBuilder(column: $table.grade, builder: (column) => column);
+
+  GeneratedColumn<bool> get isIncomplete => $composableBuilder(
+    column: $table.isIncomplete,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get availableWeight => $composableBuilder(
+    column: $table.availableWeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get scoringVersion => $composableBuilder(
+    column: $table.scoringVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get focusPoints => $composableBuilder(
+    column: $table.focusPoints,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get intentPoints => $composableBuilder(
+    column: $table.intentPoints,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get attentionPoints => $composableBuilder(
+    column: $table.attentionPoints,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get carePoints => $composableBuilder(
+    column: $table.carePoints,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get computedAt => $composableBuilder(
+    column: $table.computedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyScoresTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DailyScoresTable,
+          DailyScore,
+          $$DailyScoresTableFilterComposer,
+          $$DailyScoresTableOrderingComposer,
+          $$DailyScoresTableAnnotationComposer,
+          $$DailyScoresTableCreateCompanionBuilder,
+          $$DailyScoresTableUpdateCompanionBuilder,
+          (
+            DailyScore,
+            BaseReferences<_$AppDatabase, $DailyScoresTable, DailyScore>,
+          ),
+          DailyScore,
+          PrefetchHooks Function()
+        > {
+  $$DailyScoresTableTableManager(_$AppDatabase db, $DailyScoresTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyScoresTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailyScoresTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailyScoresTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<DateTime> day = const Value.absent(),
+                Value<int> score = const Value.absent(),
+                Value<String?> grade = const Value.absent(),
+                Value<bool> isIncomplete = const Value.absent(),
+                Value<double> availableWeight = const Value.absent(),
+                Value<int> scoringVersion = const Value.absent(),
+                Value<double> focusPoints = const Value.absent(),
+                Value<double> intentPoints = const Value.absent(),
+                Value<double?> attentionPoints = const Value.absent(),
+                Value<double> carePoints = const Value.absent(),
+                Value<DateTime> computedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyScoresCompanion(
+                day: day,
+                score: score,
+                grade: grade,
+                isIncomplete: isIncomplete,
+                availableWeight: availableWeight,
+                scoringVersion: scoringVersion,
+                focusPoints: focusPoints,
+                intentPoints: intentPoints,
+                attentionPoints: attentionPoints,
+                carePoints: carePoints,
+                computedAt: computedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required DateTime day,
+                required int score,
+                Value<String?> grade = const Value.absent(),
+                required bool isIncomplete,
+                required double availableWeight,
+                required int scoringVersion,
+                required double focusPoints,
+                required double intentPoints,
+                Value<double?> attentionPoints = const Value.absent(),
+                required double carePoints,
+                Value<DateTime> computedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyScoresCompanion.insert(
+                day: day,
+                score: score,
+                grade: grade,
+                isIncomplete: isIncomplete,
+                availableWeight: availableWeight,
+                scoringVersion: scoringVersion,
+                focusPoints: focusPoints,
+                intentPoints: intentPoints,
+                attentionPoints: attentionPoints,
+                carePoints: carePoints,
+                computedAt: computedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyScoresTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DailyScoresTable,
+      DailyScore,
+      $$DailyScoresTableFilterComposer,
+      $$DailyScoresTableOrderingComposer,
+      $$DailyScoresTableAnnotationComposer,
+      $$DailyScoresTableCreateCompanionBuilder,
+      $$DailyScoresTableUpdateCompanionBuilder,
+      (
+        DailyScore,
+        BaseReferences<_$AppDatabase, $DailyScoresTable, DailyScore>,
+      ),
+      DailyScore,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -13479,4 +14739,6 @@ class $AppDatabaseManager {
         _db,
         _db.processedNotificationBatches,
       );
+  $$DailyScoresTableTableManager get dailyScores =>
+      $$DailyScoresTableTableManager(_db, _db.dailyScores);
 }

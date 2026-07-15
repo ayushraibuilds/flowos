@@ -6,12 +6,7 @@ import 'package:flowos/features/attention/repository/attention_data_repository.d
 void main() {
   group('DailyScoreCalculator Coverage Tests', () {
     test('unconnected coverage omits attention and normalizes other weights', () {
-      // If coverage is notConnected:
-      // Focus minutes 180 -> focusScore = 100
-      // mitsCompleted 3 -> mitScore = 100
-      // intentionCompleted, shutdownCompleted, energyCheckIns 3 -> ritualScore = 100
-      // Normalized score = 100 * 0.4375 + 100 * 0.375 + 100 * 0.1875 = 100
-      final score = DailyScoreCalculator.calculate(
+      final result = DailyScoreCalculator.calculate(
         focusMinutes: 180,
         mitsCompleted: 3,
         scrollMinutes: 100, // ignored
@@ -19,13 +14,16 @@ void main() {
         intentionCompleted: true,
         shutdownCompleted: true,
         energyCheckIns: 3,
+        recoveryActions: 0,
         attentionCoverage: DataCoverage.notConnected,
       );
-      expect(score, 100);
+      expect(result.score, 93);
+      expect(result.isIncomplete, true);
+      expect(result.grade, isNull);
     });
 
     test('unsupported coverage omits attention and normalizes other weights', () {
-      final score = DailyScoreCalculator.calculate(
+      final result = DailyScoreCalculator.calculate(
         focusMinutes: 60, // focusScore = 60
         mitsCompleted: 1, // mitScore = 33.333333333333336
         scrollMinutes: 50, // ignored
@@ -33,14 +31,16 @@ void main() {
         intentionCompleted: false,
         shutdownCompleted: false,
         energyCheckIns: 0, // ritualScore = 0
+        recoveryActions: 0,
         attentionCoverage: DataCoverage.unsupported,
       );
-      // Expected normalized score: (60 * 0.4375) + (33.333333333333336 * 0.375) = 26.25 + 12.5 = 38.75 -> round to 39
-      expect(score, 39);
+      expect(result.score, 37);
+      expect(result.isIncomplete, true);
+      expect(result.grade, isNull);
     });
 
     test('complete coverage uses full formula with attention cost', () {
-      final score = DailyScoreCalculator.calculate(
+      final result = DailyScoreCalculator.calculate(
         focusMinutes: 180,
         mitsCompleted: 3,
         scrollMinutes: 60, // 2x budget -> attentionScore = 0
@@ -48,10 +48,12 @@ void main() {
         intentionCompleted: true,
         shutdownCompleted: true,
         energyCheckIns: 3,
+        recoveryActions: 0,
         attentionCoverage: DataCoverage.complete,
       );
-      // Expected: Focus 100 * 0.35 + MIT 100 * 0.30 + Attention 0 * 0.20 + Ritual 100 * 0.15 = 80
-      expect(score, 80);
+      expect(result.score, 70);
+      expect(result.isIncomplete, false);
+      expect(result.grade, 'B');
     });
   });
 }

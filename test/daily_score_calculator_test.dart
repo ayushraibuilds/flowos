@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flowos/features/xp/models/daily_score_calculator.dart';
+import 'package:flowos/features/attention/repository/attention_data_repository.dart';
 
 void main() {
   group('DailyScoreCalculator', () {
     group('calculate — full formula', () {
       test('perfect day = high score', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 180,
           mitsCompleted: 3,
           scrollMinutes: 0,
@@ -14,13 +15,15 @@ void main() {
           intentionCompleted: true,
           shutdownCompleted: true,
           energyCheckIns: 3,
+          recoveryActions: 2,
+          attentionCoverage: DataCoverage.complete,
         );
-        // 100*0.35 + 100*0.30 + 100*0.20 + 100*0.15 = 100
-        expect(score, 100);
+        // Focus 100*0.35 + Intent 100*0.25 + Attention 100*0.25 + Care 100*0.15 = 100
+        expect(result.score, 100);
       });
 
       test('zero effort = 0 score', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 0,
           mitsCompleted: 0,
           scrollMinutes: 60,
@@ -28,12 +31,14 @@ void main() {
           intentionCompleted: false,
           shutdownCompleted: false,
           energyCheckIns: 0,
+          recoveryActions: 0,
+          attentionCoverage: DataCoverage.complete,
         );
-        expect(score, 0);
+        expect(result.score, 0);
       });
 
       test('moderate day', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 60,
           mitsCompleted: 1,
           scrollMinutes: 15,
@@ -41,14 +46,14 @@ void main() {
           intentionCompleted: true,
           shutdownCompleted: false,
           energyCheckIns: 1,
+          recoveryActions: 1,
+          attentionCoverage: DataCoverage.complete,
         );
-        // focusScore = 60, mitScore = 33.3, attentionScore = 80, ritualScore = 45
-        // 60*0.35 + 33.3*0.30 + 80*0.20 + 45*0.15 = 21+10+16+6.75 = 53.75 ≈ 54
-        expect(score, inInclusiveRange(50, 58));
+        expect(result.score, inInclusiveRange(50, 65));
       });
 
       test('score clamped between 0 and 100', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 500,
           mitsCompleted: 10,
           scrollMinutes: 0,
@@ -56,9 +61,11 @@ void main() {
           intentionCompleted: true,
           shutdownCompleted: true,
           energyCheckIns: 10,
+          recoveryActions: 10,
+          attentionCoverage: DataCoverage.complete,
         );
-        expect(score, lessThanOrEqualTo(100));
-        expect(score, greaterThanOrEqualTo(0));
+        expect(result.score, lessThanOrEqualTo(100));
+        expect(result.score, greaterThanOrEqualTo(0));
       });
     });
 
@@ -114,7 +121,7 @@ void main() {
 
     group('edge cases', () {
       test('zero scroll budget does not divide by zero', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 60,
           mitsCompleted: 2,
           scrollMinutes: 10,
@@ -122,13 +129,15 @@ void main() {
           intentionCompleted: true,
           shutdownCompleted: true,
           energyCheckIns: 2,
+          recoveryActions: 1,
+          attentionCoverage: DataCoverage.complete,
         );
-        expect(score, isNotNull);
-        expect(score, inInclusiveRange(0, 100));
+        expect(result.score, isNotNull);
+        expect(result.score, inInclusiveRange(0, 100));
       });
 
       test('negative scroll minutes treated as 0', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 60,
           mitsCompleted: 2,
           scrollMinutes: -5,
@@ -136,12 +145,14 @@ void main() {
           intentionCompleted: true,
           shutdownCompleted: true,
           energyCheckIns: 2,
+          recoveryActions: 1,
+          attentionCoverage: DataCoverage.complete,
         );
-        expect(score, inInclusiveRange(0, 100));
+        expect(result.score, inInclusiveRange(0, 100));
       });
 
       test('very large focus minutes capped at 100', () {
-        final score = DailyScoreCalculator.calculate(
+        final result = DailyScoreCalculator.calculate(
           focusMinutes: 999,
           mitsCompleted: 0,
           scrollMinutes: 0,
@@ -149,15 +160,16 @@ void main() {
           intentionCompleted: false,
           shutdownCompleted: false,
           energyCheckIns: 0,
+          recoveryActions: 0,
+          attentionCoverage: DataCoverage.complete,
         );
-        // Only focus contributes: 100 * 0.35 + 100 * 0.20 = 55
-        expect(score, inInclusiveRange(50, 60));
+        expect(result.score, inInclusiveRange(50, 70));
       });
 
       test('more focus → higher score (monotonic)', () {
         int prevScore = -1;
         for (final mins in [0, 30, 60, 90, 120, 150, 180]) {
-          final score = DailyScoreCalculator.calculate(
+          final result = DailyScoreCalculator.calculate(
             focusMinutes: mins,
             mitsCompleted: 0,
             scrollMinutes: 0,
@@ -165,17 +177,19 @@ void main() {
             intentionCompleted: false,
             shutdownCompleted: false,
             energyCheckIns: 0,
+            recoveryActions: 0,
+            attentionCoverage: DataCoverage.complete,
           );
-          expect(score, greaterThanOrEqualTo(prevScore),
+          expect(result.score, greaterThanOrEqualTo(prevScore),
               reason: '$mins min should score >= $prevScore');
-          prevScore = score;
+          prevScore = result.score;
         }
       });
 
       test('more scroll → lower score (inversely monotonic)', () {
         int prevScore = 101;
         for (final mins in [0, 10, 20, 30, 40, 50, 60]) {
-          final score = DailyScoreCalculator.calculate(
+          final result = DailyScoreCalculator.calculate(
             focusMinutes: 60,
             mitsCompleted: 2,
             scrollMinutes: mins,
@@ -183,10 +197,12 @@ void main() {
             intentionCompleted: true,
             shutdownCompleted: true,
             energyCheckIns: 2,
+            recoveryActions: 1,
+            attentionCoverage: DataCoverage.complete,
           );
-          expect(score, lessThanOrEqualTo(prevScore),
+          expect(result.score, lessThanOrEqualTo(prevScore),
               reason: '$mins min scroll should score <= $prevScore');
-          prevScore = score;
+          prevScore = result.score;
         }
       });
     });

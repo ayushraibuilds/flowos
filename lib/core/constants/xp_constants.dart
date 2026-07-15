@@ -124,7 +124,9 @@ abstract final class XpConstants {
 
   /// Daily score weights
   static const double focusWeight = 0.35;
-  static const double mitWeight = 0.30;
-  static const double attentionWeight = 0.20;
-  static const double ritualWeight = 0.15;
+  static const double intentWeight = 0.25;
+  static const double attentionWeight = 0.25;
+  static const double careWeight = 0.15;
+
+  static const int currentScoringVersion = 2;
 }

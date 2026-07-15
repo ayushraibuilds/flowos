@@ -1,40 +1,228 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/energy_checkins_table.dart';
 import '../../settings/providers/settings_providers.dart';
 import '../services/history_aggregator.dart';
 import '../../attention/repository/attention_data_repository.dart';
+import '../../dashboard/providers/dashboard_providers.dart';
 
-// Helper to convert task quality score letter to a numerical value (0-100)
-int _qualityScoreValue(String score) {
-  return switch (score.toUpperCase()) {
-    'A' => 100,
-    'B' => 75,
-    'C' => 50,
-    'D' => 25,
-    _ => 0,
-  };
-}
+enum InsightPeriod { today, week, month }
 
-/// 1. Energy Forecast Provider
-/// Returns a record: (hasEnoughData, totalCount, peaks)
+/// Selected period for insights dashboard
+final insightPeriodProvider = StateProvider<InsightPeriod>((ref) => InsightPeriod.today);
+
+/// Today / 7-day / 30-day Score Provider.
+/// Returns either DailyScoreResult, WeeklyAggregate, or MonthlyAggregate.
+final insightScoreProvider = FutureProvider<dynamic>((ref) async {
+  final period = ref.watch(insightPeriodProvider);
+  final db = ref.watch(databaseProvider);
+  
+  final now = DateTime.now();
+  final midnightToday = DateTime(now.year, now.month, now.day);
+
+  switch (period) {
+    case InsightPeriod.today:
+      final dashboardScore = await ref.watch(dailyScoreProvider.future);
+      return dashboardScore;
+    case InsightPeriod.week:
+      // Return WeeklyAggregate starting 6 days ago
+      final weekStart = midnightToday.subtract(const Duration(days: 6));
+      return HistoryAggregator.getWeeklyAggregate(db, weekStart);
+    case InsightPeriod.month:
+      // Return MonthlyAggregate starting 29 days ago
+      final monthStart = midnightToday.subtract(const Duration(days: 29));
+      return HistoryAggregator.getMonthlyAggregate(db, monthStart);
+  }
+});
+
+/// List of completed focus sessions for the selected period (to build honest focus timeline).
+final insightFocusTimelineProvider = FutureProvider<List<FocusSession>>((ref) async {
+  final period = ref.watch(insightPeriodProvider);
+  final db = ref.watch(databaseProvider);
+  
+  final now = DateTime.now();
+  final midnightToday = DateTime(now.year, now.month, now.day);
+  final DateTime start;
+
+  switch (period) {
+    case InsightPeriod.today:
+      start = midnightToday;
+      break;
+    case InsightPeriod.week:
+      start = midnightToday.subtract(const Duration(days: 6));
+      break;
+    case InsightPeriod.month:
+      start = midnightToday.subtract(const Duration(days: 29));
+      break;
+  }
+
+  final end = midnightToday.add(const Duration(days: 1));
+  return db.focusSessionsDao.getByDateRange(start, end);
+});
+
+/// Top distracting apps with total minutes, filtered by the selected period.
+final insightAppImpactProvider = FutureProvider<List<({String label, String packageName, int minutes, int budget})>>((ref) async {
+  final period = ref.watch(insightPeriodProvider);
+  final db = ref.watch(databaseProvider);
+  
+  final now = DateTime.now();
+  final midnightToday = DateTime(now.year, now.month, now.day);
+  final DateTime start;
+
+  switch (period) {
+    case InsightPeriod.today:
+      start = midnightToday;
+      break;
+    case InsightPeriod.week:
+      start = midnightToday.subtract(const Duration(days: 6));
+      break;
+    case InsightPeriod.month:
+      start = midnightToday.subtract(const Duration(days: 29));
+      break;
+  }
+
+  final end = midnightToday.add(const Duration(days: 1));
+  
+  // Load device usage records for Android distracting apps (read isDistracting directly as historic snapshot)
+  final records = await (db.select(db.deviceUsageRecords)
+        ..where((r) =>
+            r.date.isBiggerOrEqualValue(start) &
+            r.date.isSmallerThanValue(end) &
+            r.source.equals('android_usage') &
+            r.isDistracting.equals(true)))
+      .get();
+
+  final Map<String, ({String label, int minutes})> grouped = {};
+  for (final r in records) {
+    final current = grouped[r.packageName];
+    final label = r.label ?? r.packageName;
+    if (current == null) {
+      grouped[r.packageName] = (label: label, minutes: r.minutes);
+    } else {
+      grouped[r.packageName] = (label: label, minutes: current.minutes + r.minutes);
+    }
+  }
+
+  // Get user budgets to calculate budget delta
+  final plan = await db.dailyPlansDao.getByDateRange(start, end);
+  int budget = 30;
+  if (plan != null) {
+    budget = plan.scrollBudgetMinutes;
+  } else if (period == InsightPeriod.today) {
+    budget = ref.read(settingsProvider).scrollBudget;
+  }
+
+  final list = grouped.entries.map((e) => (
+    packageName: e.key,
+    label: e.value.label,
+    minutes: e.value.minutes,
+    budget: budget,
+  )).toList();
+
+  list.sort((a, b) => b.minutes.compareTo(a.minutes));
+  return list;
+});
+
+/// Android notification counts and unlock trends for Android users with consent.
+final insightInterruptionProvider = FutureProvider<({
+  bool isAvailable,
+  List<({String appName, String appRef, int count})> notificationCounts,
+  int totalUnlocks,
+})>((ref) async {
+  final period = ref.watch(insightPeriodProvider);
+  final db = ref.watch(databaseProvider);
+  final prefs = await SharedPreferences.getInstance();
+  final hasConsent = prefs.getBool('flowos_interruption_collection_enabled') ?? false;
+  if (!hasConsent) {
+    return (isAvailable: false, notificationCounts: <({String appName, String appRef, int count})>[], totalUnlocks: 0);
+  }
+
+  final now = DateTime.now();
+  final midnightToday = DateTime(now.year, now.month, now.day);
+  final DateTime start;
+
+  switch (period) {
+    case InsightPeriod.today:
+      start = midnightToday;
+      break;
+    case InsightPeriod.week:
+      start = midnightToday.subtract(const Duration(days: 6));
+      break;
+    case InsightPeriod.month:
+      start = midnightToday.subtract(const Duration(days: 29));
+      break;
+  }
+
+  final end = midnightToday.add(const Duration(days: 1));
+
+  // Fetch notification counts
+  final notifs = await (db.select(db.notificationDailyCounts)
+        ..where((t) =>
+            t.day.isBiggerOrEqualValue(start) &
+            t.day.isSmallerThanValue(end)))
+      .get();
+
+  final Map<String, ({String label, int count})> groupedNotifs = {};
+  for (final n in notifs) {
+    final current = groupedNotifs[n.appRef];
+    if (current == null) {
+      groupedNotifs[n.appRef] = (label: n.displayName, count: n.count);
+    } else {
+      groupedNotifs[n.appRef] = (label: n.displayName, count: current.count + n.count);
+    }
+  }
+
+  final sortedNotifs = groupedNotifs.entries.map((e) => (
+    appName: e.value.label,
+    appRef: e.key,
+    count: e.value.count,
+  )).toList()..sort((a, b) => b.count.compareTo(a.count));
+
+  // Fetch unlock counts from device day metrics
+  final dayMetrics = await (db.select(db.deviceDayMetrics)
+        ..where((t) =>
+            t.day.isBiggerOrEqualValue(start) &
+            t.day.isSmallerThanValue(end)))
+      .get();
+
+  final totalUnlocks = dayMetrics.fold<int>(0, (sum, m) => sum + (m.unlockCount ?? 0));
+
+  return (
+    isAvailable: true,
+    notificationCounts: sortedNotifs,
+    totalUnlocks: totalUnlocks,
+  );
+});
+
+/// 30-day heatmap score provider. Returns list of up to 42 calendar grid cells.
+final insightCalendarHeatmapProvider = FutureProvider<List<DailyMetric>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  
+  // Load last 30 days of metrics for calendar heatmap
+  final now = DateTime.now();
+  final end = DateTime(now.year, now.month, now.day);
+  final start = end.subtract(const Duration(days: 29));
+
+  return HistoryAggregator.getDailyMetrics(db, start, end);
+});
+
+// Keep legacy forecasts & funnels for compatibility
 final insightsEnergyForecastProvider = FutureProvider<({
   bool hasEnoughData,
   int totalCount,
   List<({String start, String end, String label, double level})> peaks
 })>((ref) async {
   final db = ref.watch(databaseProvider);
-
-  // Check total check-ins count threshold (>= 7 check-ins total)
   final allCheckins = await db.select(db.energyCheckIns).get();
   final totalCount = allCheckins.length;
 
   if (totalCount < 7) {
-    return (hasEnoughData: false, totalCount: totalCount, peaks: <({String start, String end, String label, double level})>[]);
+    return (hasEnoughData: false, totalCount: totalCount, peaks: <({String end, String label, double level, String start})>[]);
   }
 
-  // Calculate averages per bucket over last 14 days
   final averages = await db.energyCheckInsDao.averageByBucket(14);
   final morning = averages[TimeOfDayColumn.morning] ?? 0.0;
   final afternoon = averages[TimeOfDayColumn.afternoon] ?? 0.0;
@@ -59,143 +247,12 @@ final insightsEnergyForecastProvider = FutureProvider<({
   );
 });
 
-/// 2. Weekday Scores Provider
-/// Returns: (hasEnoughData, activeDaysCount, scores) - scores is list of 7 values (Mon-Sun)
-final insightsWeekdayScoresProvider = FutureProvider<({
-  bool hasEnoughData,
-  int activeDaysCount,
-  List<int> scores
-})>((ref) async {
-  final db = ref.watch(databaseProvider);
-
-  // Load last 30 days
-  final end = DateTime.now();
-  final start = end.subtract(const Duration(days: 29));
-
-  final metrics = await HistoryAggregator.getDailyMetrics(db, start, end);
-
-  // Count active days
-  final activeDays = metrics.where((m) => m.hasActivity).length;
-  if (activeDays < 7) {
-    return (hasEnoughData: false, activeDaysCount: activeDays, scores: List.filled(7, 0));
-  }
-
-  // Group by weekday (1 = Monday, 7 = Sunday)
-  final Map<int, List<int>> weekdayScores = {
-    1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []
-  };
-
-  for (final m in metrics) {
-    if (m.hasActivity) {
-      weekdayScores[m.date.weekday]?.add(m.score);
-    }
-  }
-
-  final List<int> scores = List.generate(7, (i) {
-    final list = weekdayScores[i + 1] ?? [];
-    if (list.isEmpty) return 0;
-    final avg = list.reduce((a, b) => a + b) / list.length;
-    return avg.round();
-  });
-
-  return (
-    hasEnoughData: true,
-    activeDaysCount: activeDays,
-    scores: scores,
-  );
-});
-
-/// 3. Hourly Heatmap Provider
-/// Returns: (hasEnoughData, completedSessionsCount, hourlyScores) - hourlyScores is a list of 24 values
-final insightsHourlyHeatmapProvider = FutureProvider<({
-  bool hasEnoughData,
-  int completedSessionsCount,
-  List<int> hourlyScores
-})>((ref) async {
-  final db = ref.watch(databaseProvider);
-
-  // Load all completed focus sessions
-  final sessions = await (db.select(db.focusSessions)
-        ..where((s) => s.completedAt.isNotNull()))
-      .get();
-
-  final completedSessionsCount = sessions.length;
-  if (completedSessionsCount < 10) {
-    return (hasEnoughData: false, completedSessionsCount: completedSessionsCount, hourlyScores: List.filled(24, 0));
-  }
-
-  final Map<int, List<int>> hourlyValues = {};
-  for (int h = 0; h < 24; h++) {
-    hourlyValues[h] = [];
-  }
-
-  for (final s in sessions) {
-    final hour = s.startedAt.hour;
-    final val = _qualityScoreValue(s.qualityScore);
-    if (val > 0) {
-      hourlyValues[hour]?.add(val);
-    }
-  }
-
-  final List<int> hourlyScores = List.generate(24, (hour) {
-    final list = hourlyValues[hour] ?? [];
-    if (list.isEmpty) return 0;
-    final avg = list.reduce((a, b) => a + b) / list.length;
-    return avg.round();
-  });
-
-  return (
-    hasEnoughData: true,
-    completedSessionsCount: completedSessionsCount,
-    hourlyScores: hourlyScores,
-  );
-});
-
-/// 4. Scroll vs Focus Trend Provider (7 Days)
-/// Returns: (hasEnoughData, focusData, scrollData)
-final insightsScrollVsFocusProvider = FutureProvider<({
-  bool hasEnoughData,
-  List<int> focusData,
-  List<int> scrollData
-})>((ref) async {
-  final db = ref.watch(databaseProvider);
-
-  final end = DateTime.now();
-  final start = end.subtract(const Duration(days: 6));
-
-  final metrics = await HistoryAggregator.getDailyMetrics(db, start, end);
-
-  final List<int> focusData = [];
-  final List<int> scrollData = [];
-
-  bool hasAnyData = false;
-
-  for (final m in metrics) {
-    focusData.add(m.focusMinutes);
-    final effectiveScroll = m.deviceUsageMinutes > 0 ? m.deviceUsageMinutes : m.scrollMinutes;
-    scrollData.add(effectiveScroll);
-    if (m.focusMinutes > 0 || effectiveScroll > 0) {
-      hasAnyData = true;
-    }
-  }
-
-  return (
-    hasEnoughData: hasAnyData,
-    focusData: focusData,
-    scrollData: scrollData,
-  );
-});
-
-/// 5. Task Completion Funnel Provider
-/// Returns: (created, started, completed)
 final insightsCompletionFunnelProvider = FutureProvider<({
   int created,
   int started,
   int completed
 })>((ref) async {
   final db = ref.watch(databaseProvider);
-
-  // Get active tasks (non-deleted)
   final allTasks = await db.tasksDao.getAllActive();
   final created = allTasks.length;
 
@@ -205,7 +262,6 @@ final insightsCompletionFunnelProvider = FutureProvider<({
 
   final completed = allTasks.where((t) => t.isCompleted).length;
 
-  // Started tasks = completed or has associated focus session
   final sessions = await db.select(db.focusSessions).get();
   final startedTaskIds = sessions
       .map((s) => s.taskId)
@@ -220,90 +276,5 @@ final insightsCompletionFunnelProvider = FutureProvider<({
     created: created,
     started: started,
     completed: completed,
-  );
-});
-
-/// 6. App Breakdown Provider (7 Days distraction list)
-final insightsAppBreakdownProvider = FutureProvider<List<({String label, String packageName, int minutes})>>((ref) async {
-  final db = ref.watch(databaseProvider);
-  final end = DateTime.now();
-  final start = end.subtract(const Duration(days: 7));
-  final records = await (db.select(db.deviceUsageRecords)
-        ..where((r) =>
-            r.date.isBiggerOrEqualValue(start) &
-            r.date.isSmallerThanValue(end) &
-            r.source.equals('android_usage')))
-      .get();
-  
-  final Map<String, ({String label, int minutes})> grouped = {};
-  for (final r in records) {
-    final current = grouped[r.packageName];
-    final label = r.label ?? r.packageName;
-    if (current == null) {
-      grouped[r.packageName] = (label: label, minutes: r.minutes);
-    } else {
-      grouped[r.packageName] = (label: label, minutes: current.minutes + r.minutes);
-    }
-  }
-  
-  final list = grouped.entries.map((e) => (
-    packageName: e.key,
-    label: e.value.label,
-    minutes: e.value.minutes,
-  )).toList();
-  
-  list.sort((a, b) => b.minutes.compareTo(a.minutes));
-  return list;
-});
-
-/// 7. Overrides and Recovery Actions Provider
-final insightsOverridesAndRecoveryProvider = FutureProvider<({
-  int overridesCount,
-  int recoveryCount,
-  List<({String type, String app, int minutes})> recentRecoveries
-})>((ref) async {
-  final db = ref.watch(databaseProvider);
-  
-  final sessions = await db.select(db.focusSessions).get();
-  int overrides = 0;
-  for (final s in sessions) {
-    overrides += s.appBackgroundCount + s.pauseCount;
-  }
-  
-  final logs = await (db.select(db.scrollLogs)..where((l) => l.recoveryActionTaken)).get();
-  
-  final recent = logs.map((l) => (
-    type: l.recoveryActionType ?? 'Breathing',
-    app: l.appName,
-    minutes: l.durationMinutes,
-  )).toList();
-  
-  return (
-    overridesCount: overrides,
-    recoveryCount: logs.length,
-    recentRecoveries: recent,
-  );
-});
-
-/// 8. Attention Budget Today Provider
-final insightsAttentionBudgetProvider = FutureProvider<({
-  int scrollBudget,
-  int scrollMinutes,
-  double progressFraction,
-})>((ref) async {
-  final db = ref.watch(databaseProvider);
-  final settings = ref.watch(settingsProvider);
-  
-  final plan = await db.dailyPlansDao.getToday();
-  final budget = plan?.scrollBudgetMinutes ?? settings.scrollBudget;
-  
-  final attentionDay = await ref.read(attentionDataRepositoryProvider).getAttentionDay(DateTime.now());
-  final totalScroll = attentionDay.effectiveDistractingMinutes;
-  final fraction = budget > 0 ? totalScroll / budget : 0.0;
-  
-  return (
-    scrollBudget: budget,
-    scrollMinutes: totalScroll,
-    progressFraction: fraction.clamp(0.0, 1.0),
   );
 });

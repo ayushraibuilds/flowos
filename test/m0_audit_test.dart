@@ -38,34 +38,34 @@ void main() {
   group('M0 Audit Tests', () {
     test('DailyScoreCalculator reweights properly when attention data is not connected', () {
       // 1. Fully complete coverage
-      final scoreComplete = DailyScoreCalculator.calculate(
-        focusMinutes: 60, // 60 focus score
+      final resultComplete = DailyScoreCalculator.calculate(
+        focusMinutes: 60, // 60 focus score -> 21 pts
         mitsCompleted: 3, // 100 mit score
-        scrollMinutes: 0, // 100 attention score
+        scrollMinutes: 0, // 100 attention score -> 25 pts
         scrollBudget: 30,
-        intentionCompleted: true, // 35
-        shutdownCompleted: true, // 35
-        energyCheckIns: 3, // 30 -> 100 ritual score
+        intentionCompleted: true, 
+        shutdownCompleted: true, 
+        energyCheckIns: 3, 
+        recoveryActions: 2, // Care score = 100 -> 15 pts
         attentionCoverage: DataCoverage.complete,
       );
-      // Weights: focus (0.35) * 60 + mit (0.30) * 100 + attention (0.20) * 100 + ritual (0.15) * 100
-      // 21 + 30 + 20 + 15 = 86
-      expect(scoreComplete, 86);
+      // Expected raw: 21 + 25 + 25 + 15 = 86
+      expect(resultComplete.score, 86);
 
       // 2. Missing coverage (notConnected)
-      final scoreMissing = DailyScoreCalculator.calculate(
-        focusMinutes: 60, // 60 focus score
-        mitsCompleted: 3, // 100 mit score
+      final resultMissing = DailyScoreCalculator.calculate(
+        focusMinutes: 60, // 21 pts
+        mitsCompleted: 3, 
         scrollMinutes: 0,
         scrollBudget: 30,
         intentionCompleted: true,
         shutdownCompleted: true,
-        energyCheckIns: 3, // 100 ritual score
+        energyCheckIns: 3, 
+        recoveryActions: 2, // Care score = 100 -> 15 pts
         attentionCoverage: DataCoverage.notConnected,
       );
-      // Weights normalized: Focus 0.4375 * 60 (26.25) + MIT 0.375 * 100 (37.5) + Ritual 0.1875 * 100 (18.75)
-      // 26.25 + 37.5 + 18.75 = 82.5 -> 83
-      expect(scoreMissing, 83);
+      // Expected normalized: (21 + 25 + 15) / 0.75 = 61 / 0.75 = 81.33 -> 81
+      expect(resultMissing.score, 81);
     });
 
     test('AttentionDataRepository.syncUsage ignores empty package rows but marks day complete', () async {

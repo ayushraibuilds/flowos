@@ -121,7 +121,12 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           e.date.isBefore(dayEnd));
       final dayEnergyCount = dayEnergyCheckins.length;
 
-      final score = DailyScoreCalculator.calculate(
+      final dayScrollLogs = manualScrollLogs.where((l) =>
+          l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
+          l.timestamp.isBefore(dayEnd));
+      final dayRecoveryActions = dayScrollLogs.where((l) => l.recoveryActionTaken).length;
+
+      final scoreResult = DailyScoreCalculator.calculate(
         focusMinutes: dayFocusMinutes,
         mitsCompleted: dayMits,
         scrollMinutes: dayScrollMinutes,
@@ -129,9 +134,10 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         intentionCompleted: hasIntention,
         shutdownCompleted: hasShutdown,
         energyCheckIns: dayEnergyCount,
+        recoveryActions: dayRecoveryActions,
         attentionCoverage: attentionDay.coverage,
       );
-      dailyScores.add(score);
+      dailyScores.add(scoreResult.score);
     }
 
     // Calculate current streak
