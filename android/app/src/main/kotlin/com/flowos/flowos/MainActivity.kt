@@ -16,6 +16,9 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.util.Calendar
+import org.json.JSONObject
+import org.json.JSONArray
+import java.util.UUID
 
 class MainActivity : FlutterActivity() {
     private val usageStatsChannel = "flowos/usage_stats"
@@ -113,6 +116,82 @@ class MainActivity : FlutterActivity() {
                         } else {
                             result.error("bad_arguments", "Missing packageName", null)
                         }
+                    }
+                    "claimPendingBlockedAppTrigger" -> {
+                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                        val triggerStr = prefs.getString("flutter.flowos_pending_trigger", null)
+                        if (triggerStr != null) {
+                            try {
+                                val trigger = JSONObject(triggerStr)
+                                val id = trigger.optString("id")
+                                val claimed = trigger.optBoolean("claimed", false)
+                                val triggeredAt = trigger.optLong("triggeredAt", 0L)
+                                val now = System.currentTimeMillis()
+
+                                if (!claimed && (now - triggeredAt < 60000)) {
+                                    trigger.put("claimed", true)
+                                    prefs.edit().putString("flutter.flowos_pending_trigger", trigger.toString()).apply()
+
+                                    result.success(mapOf(
+                                        "id" to id,
+                                        "packageName" to trigger.optString("packageName"),
+                                        "triggeredAt" to triggeredAt,
+                                        "source" to trigger.optString("source", "focus"),
+                                        "claimed" to true
+                                    ))
+                                    return@setMethodCallHandler
+                                }
+                            } catch (e: Exception) {}
+                        }
+                        result.success(null)
+                    }
+                    "getNudgeEvents" -> {
+                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                        val eventsStr = prefs.getString("flutter.flowos_nudge_events", "[]") ?: "[]"
+                        val resList = mutableListOf<Map<String, Any>>()
+                        val now = System.currentTimeMillis()
+                        try {
+                            val array = JSONArray(eventsStr)
+                            val newArray = JSONArray()
+                            for (i in 0 until array.length()) {
+                                val e = array.optJSONObject(i) ?: continue
+                                val triggeredAt = e.optLong("triggeredAt", 0L)
+                                if (now - triggeredAt < 60000) {
+                                    newArray.put(e)
+                                    resList.add(mapOf(
+                                        "id" to e.optString("id"),
+                                        "packageName" to e.optString("packageName"),
+                                        "triggeredAt" to triggeredAt,
+                                        "source" to "focus",
+                                        "claimed" to e.optBoolean("claimed", false)
+                                    ))
+                                }
+                            }
+                            prefs.edit().putString("flutter.flowos_nudge_events", newArray.toString()).apply()
+                        } catch (e: Exception) {}
+                        result.success(resList)
+                    }
+                    "acknowledgeNudgeEvent" -> {
+                        val id = call.argument<String>("id")
+                        if (id != null) {
+                            val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+                            val eventsStr = prefs.getString("flutter.flowos_nudge_events", "[]") ?: "[]"
+                            try {
+                                val array = JSONArray(eventsStr)
+                                val newArray = JSONArray()
+                                for (i in 0 until array.length()) {
+                                    val e = array.optJSONObject(i) ?: continue
+                                    if (e.optString("id") != id) {
+                                        newArray.put(e)
+                                    }
+                                }
+                                prefs.edit().putString("flutter.flowos_nudge_events", newArray.toString()).apply()
+                            } catch (e: Exception) {}
+                        }
+                        result.success(null)
+                    }
+                    "getDefaultEssentialPackages" -> {
+                        result.success(getDefaultEssentialPackagesList())
                     }
                     "getDailyUsage" -> {
                         val start = call.argument<Long>("startMs")
@@ -346,6 +425,32 @@ class MainActivity : FlutterActivity() {
             endMs
         ) ?: return emptyList()
 
+        val queriedDays = mutableSetOf<String>()
+        val startCal = Calendar.getInstance().apply {
+            timeInMillis = startMs
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val endCal = Calendar.getInstance().apply {
+            timeInMillis = endMs
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        while (startCal.before(endCal) || startCal.equals(endCal)) {
+            val dateStr = String.format(
+                "%04d-%02d-%02d",
+                startCal.get(Calendar.YEAR),
+                startCal.get(Calendar.MONTH) + 1,
+                startCal.get(Calendar.DAY_OF_MONTH)
+            )
+            queriedDays.add(dateStr)
+            startCal.add(Calendar.DATE, 1)
+        }
+
         val aggregated = mutableMapOf<String, Long>()
         for (stats in statsList) {
             val foregroundTimeMs = stats.totalTimeInForeground
@@ -369,20 +474,35 @@ class MainActivity : FlutterActivity() {
         }
 
         val result = mutableListOf<Map<String, Any>>()
+        val datesWithUsage = mutableSetOf<String>()
         for ((key, durationMs) in aggregated) {
             val minutes = durationMs / 60_000L
             if (minutes <= 0) continue
 
             val parts = key.split("_", limit = 2)
             if (parts.size == 2) {
+                val dateStr = parts[0]
+                datesWithUsage.add(dateStr)
                 result.add(mapOf(
-                    "date" to parts[0],
+                    "date" to dateStr,
                     "packageName" to parts[1],
                     "label" to getAppName(parts[1]),
                     "minutes" to minutes.toInt()
                 ))
             }
         }
+
+        for (dateStr in queriedDays) {
+            if (!datesWithUsage.contains(dateStr)) {
+                result.add(mapOf(
+                    "date" to dateStr,
+                    "packageName" to "",
+                    "label" to "",
+                    "minutes" to 0
+                ))
+            }
+        }
+
         return result
     }
 
@@ -435,5 +555,54 @@ class MainActivity : FlutterActivity() {
             ))
         }
         return result
+    }
+
+    private fun getDefaultEssentialPackagesList(): List<Map<String, String>> {
+        val pm = packageManager
+        val list = mutableListOf<Map<String, String>>()
+
+        // Dialers
+        val defaultDialer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val telecomManager = getSystemService(Context.TELECOM_SERVICE) as? android.telecom.TelecomManager
+            telecomManager?.defaultDialerPackage
+        } else null
+        if (defaultDialer != null) {
+            list.add(mapOf("packageName" to defaultDialer, "reason" to "Phone/dialer"))
+        }
+
+        // SMS
+        val defaultSms = android.provider.Telephony.Sms.getDefaultSmsPackage(this)
+        if (defaultSms != null) {
+            list.add(mapOf("packageName" to defaultSms, "reason" to "Default SMS"))
+        }
+
+        // Launchers
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
+        val homeInfos = pm.queryIntentActivities(homeIntent, 0)
+        for (info in homeInfos) {
+            val pkg = info.activityInfo.packageName
+            list.add(mapOf("packageName" to pkg, "reason" to "Default Launcher"))
+        }
+
+        // Camera handlers (resolve ACTION_IMAGE_CAPTURE)
+        val cameraIntent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+        val cameraInfos = pm.queryIntentActivities(cameraIntent, 0)
+        val cameraPackages = cameraInfos.map { it.activityInfo.packageName }.toMutableSet()
+        cameraPackages.add("com.android.camera")
+        cameraPackages.add("com.android.camera2")
+        cameraPackages.add("com.google.android.GoogleCamera")
+        cameraPackages.add("com.sec.android.app.camera")
+
+        for (pkg in cameraPackages) {
+            list.add(mapOf("packageName" to pkg, "reason" to "Default Camera"))
+        }
+
+        // System packages & FlowOS itself
+        list.add(mapOf("packageName" to packageName, "reason" to "FlowOS"))
+        list.add(mapOf("packageName" to "com.android.settings", "reason" to "System settings"))
+        list.add(mapOf("packageName" to "com.android.emergency", "reason" to "Emergency services"))
+        list.add(mapOf("packageName" to "com.android.systemui", "reason" to "System UI"))
+
+        return list
     }
 }

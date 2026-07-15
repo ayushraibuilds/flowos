@@ -11,6 +11,8 @@ import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/flow_garden/models/garden_day.dart';
 import '../../../features/xp/models/streak_service.dart';
+import '../models/effective_policy.dart';
+import 'policy_writer.dart';
 
 const _uuid = Uuid();
 
@@ -33,8 +35,9 @@ class FocusSessionResult {
 /// and premature stop (partial credit constraints) for focus blocks.
 class FocusSessionService {
   final AppDatabase _db;
+  final PolicyWriter _policyWriter;
 
-  FocusSessionService(this._db);
+  FocusSessionService(this._db, [this._policyWriter = const SharedPrefsPolicyWriter()]);
 
   /// Start a focus session. Inserts a new session record into the SQLite DB.
   /// Returns the newly generated sessionId (UUID).
@@ -42,6 +45,7 @@ class FocusSessionService {
     required SessionTypeColumn type,
     required int durationMinutes,
     String? taskId,
+    ProtectionMode protectionMode = ProtectionMode.guard,
   }) async {
     final sessionId = _uuid.v4();
     await _db.focusSessionsDao.insertSession(
@@ -56,34 +60,23 @@ class FocusSessionService {
 
     // Save active state and distractor packages for Android Accessibility Blocker
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_focus_active', true);
+      final protectedApps = await _db.protectedAppsDao.getFocusProtected();
+      final packages = protectedApps.map((a) => a.appRef).toSet();
 
-      final rawProfile = prefs.getString('flowos_user_profile');
-      if (rawProfile != null) {
-        final json = jsonDecode(rawProfile) as Map<String, dynamic>;
-        final distractions = List<String>.from(json['distractions'] ?? []);
-        final packageNames = distractions
-            .map((d) => _mapToPackageName(d))
-            .whereType<String>()
-            .toList();
-        await prefs.setString('blocked_packages', jsonEncode(packageNames));
-      }
+      // Lease duration is short (3 mins) and renewed dynamically by the screens
+      final policy = SourcePolicy(
+        sessionId: sessionId,
+        activeUntil: DateTime.now().add(const Duration(minutes: 3)),
+        selectedPackages: packages,
+        protectionMode: protectionMode,
+        source: PolicySource.focus,
+        scopedBreaks: [],
+      );
+
+      await _policyWriter.activatePolicy(policy);
     } catch (_) {}
 
     return sessionId;
-  }
-
-  String? _mapToPackageName(String label) {
-    return switch (label.toLowerCase()) {
-      'instagram' => 'com.instagram.android',
-      'youtube/shorts' || 'youtube' => 'com.google.android.youtube',
-      'tiktok' => 'com.zhiliaoapp.musically',
-      'x/twitter' || 'twitter' || 'x' => 'com.twitter.android',
-      'reddit' => 'com.reddit.frontpage',
-      'browser' => 'com.android.chrome',
-      _ => null,
-    };
   }
 
   /// Complete a focus session (countdown target hit or Flowtime closed by user).
@@ -99,8 +92,7 @@ class FocusSessionService {
   }) async {
     // Deactivate accessibility blocker
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_focus_active', false);
+      await _policyWriter.deactivatePolicy(PolicySource.focus);
     } catch (_) {}
 
     final actualMin = (elapsedSeconds / 60).round();
@@ -192,8 +184,7 @@ class FocusSessionService {
   }) async {
     // Deactivate accessibility blocker
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_focus_active', false);
+      await _policyWriter.deactivatePolicy(PolicySource.focus);
     } catch (_) {}
 
     final actualMin = (elapsedSeconds / 60).round();

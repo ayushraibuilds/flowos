@@ -3863,6 +3863,17 @@ class $DailyReportsTable extends DailyReports
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _coverageStateMeta = const VerificationMeta(
+    'coverageState',
+  );
+  @override
+  late final GeneratedColumn<String> coverageState = GeneratedColumn<String>(
+    'coverage_state',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _generatedAtMeta = const VerificationMeta(
     'generatedAt',
   );
@@ -3884,6 +3895,7 @@ class $DailyReportsTable extends DailyReports
     xpEarnedToday,
     attentionCostToday,
     promptVersion,
+    coverageState,
     generatedAt,
   ];
   @override
@@ -3956,6 +3968,15 @@ class $DailyReportsTable extends DailyReports
         ),
       );
     }
+    if (data.containsKey('coverage_state')) {
+      context.handle(
+        _coverageStateMeta,
+        coverageState.isAcceptableOrUnknown(
+          data['coverage_state']!,
+          _coverageStateMeta,
+        ),
+      );
+    }
     if (data.containsKey('generated_at')) {
       context.handle(
         _generatedAtMeta,
@@ -4002,6 +4023,10 @@ class $DailyReportsTable extends DailyReports
         DriftSqlType.int,
         data['${effectivePrefix}prompt_version'],
       ),
+      coverageState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}coverage_state'],
+      ),
       generatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}generated_at'],
@@ -4023,6 +4048,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
   final int xpEarnedToday;
   final int attentionCostToday;
   final int? promptVersion;
+  final String? coverageState;
   final DateTime generatedAt;
   const DailyReport({
     required this.id,
@@ -4032,6 +4058,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
     required this.xpEarnedToday,
     required this.attentionCostToday,
     this.promptVersion,
+    this.coverageState,
     required this.generatedAt,
   });
   @override
@@ -4045,6 +4072,9 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
     map['attention_cost_today'] = Variable<int>(attentionCostToday);
     if (!nullToAbsent || promptVersion != null) {
       map['prompt_version'] = Variable<int>(promptVersion);
+    }
+    if (!nullToAbsent || coverageState != null) {
+      map['coverage_state'] = Variable<String>(coverageState);
     }
     map['generated_at'] = Variable<DateTime>(generatedAt);
     return map;
@@ -4061,6 +4091,9 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
       promptVersion: promptVersion == null && nullToAbsent
           ? const Value.absent()
           : Value(promptVersion),
+      coverageState: coverageState == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverageState),
       generatedAt: Value(generatedAt),
     );
   }
@@ -4078,6 +4111,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
       xpEarnedToday: serializer.fromJson<int>(json['xpEarnedToday']),
       attentionCostToday: serializer.fromJson<int>(json['attentionCostToday']),
       promptVersion: serializer.fromJson<int?>(json['promptVersion']),
+      coverageState: serializer.fromJson<String?>(json['coverageState']),
       generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
     );
   }
@@ -4092,6 +4126,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
       'xpEarnedToday': serializer.toJson<int>(xpEarnedToday),
       'attentionCostToday': serializer.toJson<int>(attentionCostToday),
       'promptVersion': serializer.toJson<int?>(promptVersion),
+      'coverageState': serializer.toJson<String?>(coverageState),
       'generatedAt': serializer.toJson<DateTime>(generatedAt),
     };
   }
@@ -4104,6 +4139,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
     int? xpEarnedToday,
     int? attentionCostToday,
     Value<int?> promptVersion = const Value.absent(),
+    Value<String?> coverageState = const Value.absent(),
     DateTime? generatedAt,
   }) => DailyReport(
     id: id ?? this.id,
@@ -4115,6 +4151,9 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
     promptVersion: promptVersion.present
         ? promptVersion.value
         : this.promptVersion,
+    coverageState: coverageState.present
+        ? coverageState.value
+        : this.coverageState,
     generatedAt: generatedAt ?? this.generatedAt,
   );
   DailyReport copyWithCompanion(DailyReportsCompanion data) {
@@ -4136,6 +4175,9 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
       promptVersion: data.promptVersion.present
           ? data.promptVersion.value
           : this.promptVersion,
+      coverageState: data.coverageState.present
+          ? data.coverageState.value
+          : this.coverageState,
       generatedAt: data.generatedAt.present
           ? data.generatedAt.value
           : this.generatedAt,
@@ -4152,6 +4194,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
           ..write('xpEarnedToday: $xpEarnedToday, ')
           ..write('attentionCostToday: $attentionCostToday, ')
           ..write('promptVersion: $promptVersion, ')
+          ..write('coverageState: $coverageState, ')
           ..write('generatedAt: $generatedAt')
           ..write(')'))
         .toString();
@@ -4166,6 +4209,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
     xpEarnedToday,
     attentionCostToday,
     promptVersion,
+    coverageState,
     generatedAt,
   );
   @override
@@ -4179,6 +4223,7 @@ class DailyReport extends DataClass implements Insertable<DailyReport> {
           other.xpEarnedToday == this.xpEarnedToday &&
           other.attentionCostToday == this.attentionCostToday &&
           other.promptVersion == this.promptVersion &&
+          other.coverageState == this.coverageState &&
           other.generatedAt == this.generatedAt);
 }
 
@@ -4190,6 +4235,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
   final Value<int> xpEarnedToday;
   final Value<int> attentionCostToday;
   final Value<int?> promptVersion;
+  final Value<String?> coverageState;
   final Value<DateTime> generatedAt;
   final Value<int> rowid;
   const DailyReportsCompanion({
@@ -4200,6 +4246,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
     this.xpEarnedToday = const Value.absent(),
     this.attentionCostToday = const Value.absent(),
     this.promptVersion = const Value.absent(),
+    this.coverageState = const Value.absent(),
     this.generatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4211,6 +4258,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
     required int xpEarnedToday,
     this.attentionCostToday = const Value.absent(),
     this.promptVersion = const Value.absent(),
+    this.coverageState = const Value.absent(),
     this.generatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -4226,6 +4274,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
     Expression<int>? xpEarnedToday,
     Expression<int>? attentionCostToday,
     Expression<int>? promptVersion,
+    Expression<String>? coverageState,
     Expression<DateTime>? generatedAt,
     Expression<int>? rowid,
   }) {
@@ -4238,6 +4287,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
       if (attentionCostToday != null)
         'attention_cost_today': attentionCostToday,
       if (promptVersion != null) 'prompt_version': promptVersion,
+      if (coverageState != null) 'coverage_state': coverageState,
       if (generatedAt != null) 'generated_at': generatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4251,6 +4301,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
     Value<int>? xpEarnedToday,
     Value<int>? attentionCostToday,
     Value<int?>? promptVersion,
+    Value<String?>? coverageState,
     Value<DateTime>? generatedAt,
     Value<int>? rowid,
   }) {
@@ -4262,6 +4313,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
       xpEarnedToday: xpEarnedToday ?? this.xpEarnedToday,
       attentionCostToday: attentionCostToday ?? this.attentionCostToday,
       promptVersion: promptVersion ?? this.promptVersion,
+      coverageState: coverageState ?? this.coverageState,
       generatedAt: generatedAt ?? this.generatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -4291,6 +4343,9 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
     if (promptVersion.present) {
       map['prompt_version'] = Variable<int>(promptVersion.value);
     }
+    if (coverageState.present) {
+      map['coverage_state'] = Variable<String>(coverageState.value);
+    }
     if (generatedAt.present) {
       map['generated_at'] = Variable<DateTime>(generatedAt.value);
     }
@@ -4310,6 +4365,7 @@ class DailyReportsCompanion extends UpdateCompanion<DailyReport> {
           ..write('xpEarnedToday: $xpEarnedToday, ')
           ..write('attentionCostToday: $attentionCostToday, ')
           ..write('promptVersion: $promptVersion, ')
+          ..write('coverageState: $coverageState, ')
           ..write('generatedAt: $generatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -9431,6 +9487,7 @@ typedef $$DailyReportsTableCreateCompanionBuilder =
       required int xpEarnedToday,
       Value<int> attentionCostToday,
       Value<int?> promptVersion,
+      Value<String?> coverageState,
       Value<DateTime> generatedAt,
       Value<int> rowid,
     });
@@ -9443,6 +9500,7 @@ typedef $$DailyReportsTableUpdateCompanionBuilder =
       Value<int> xpEarnedToday,
       Value<int> attentionCostToday,
       Value<int?> promptVersion,
+      Value<String?> coverageState,
       Value<DateTime> generatedAt,
       Value<int> rowid,
     });
@@ -9488,6 +9546,11 @@ class $$DailyReportsTableFilterComposer
 
   ColumnFilters<int> get promptVersion => $composableBuilder(
     column: $table.promptVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverageState => $composableBuilder(
+    column: $table.coverageState,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9541,6 +9604,11 @@ class $$DailyReportsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get coverageState => $composableBuilder(
+    column: $table.coverageState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
     column: $table.generatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -9584,6 +9652,11 @@ class $$DailyReportsTableAnnotationComposer
 
   GeneratedColumn<int> get promptVersion => $composableBuilder(
     column: $table.promptVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get coverageState => $composableBuilder(
+    column: $table.coverageState,
     builder: (column) => column,
   );
 
@@ -9631,6 +9704,7 @@ class $$DailyReportsTableTableManager
                 Value<int> xpEarnedToday = const Value.absent(),
                 Value<int> attentionCostToday = const Value.absent(),
                 Value<int?> promptVersion = const Value.absent(),
+                Value<String?> coverageState = const Value.absent(),
                 Value<DateTime> generatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyReportsCompanion(
@@ -9641,6 +9715,7 @@ class $$DailyReportsTableTableManager
                 xpEarnedToday: xpEarnedToday,
                 attentionCostToday: attentionCostToday,
                 promptVersion: promptVersion,
+                coverageState: coverageState,
                 generatedAt: generatedAt,
                 rowid: rowid,
               ),
@@ -9653,6 +9728,7 @@ class $$DailyReportsTableTableManager
                 required int xpEarnedToday,
                 Value<int> attentionCostToday = const Value.absent(),
                 Value<int?> promptVersion = const Value.absent(),
+                Value<String?> coverageState = const Value.absent(),
                 Value<DateTime> generatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyReportsCompanion.insert(
@@ -9663,6 +9739,7 @@ class $$DailyReportsTableTableManager
                 xpEarnedToday: xpEarnedToday,
                 attentionCostToday: attentionCostToday,
                 promptVersion: promptVersion,
+                coverageState: coverageState,
                 generatedAt: generatedAt,
                 rowid: rowid,
               ),

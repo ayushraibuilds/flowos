@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:flowos/data/local/database/app_database.dart';
 import 'package:flowos/data/local/tables/focus_sessions_table.dart';
 import 'package:flowos/features/focus/services/focus_session_service.dart';
+import 'package:flowos/features/focus/services/policy_writer.dart';
 import 'package:flowos/core/constants/xp_constants.dart';
 
 void main() {
@@ -15,7 +16,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    service = FocusSessionService(db);
+    service = FocusSessionService(db, FakePolicyWriter());
   });
 
   tearDown(() async {

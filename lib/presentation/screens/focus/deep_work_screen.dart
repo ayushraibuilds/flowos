@@ -20,6 +20,10 @@ import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 import '../../../features/focus/widgets/focus_shield_overlay.dart';
+import '../../../features/focus/models/effective_policy.dart';
+import '../../../features/focus/services/protection_policy_service.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
+import '../../../data/local/database/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Deep Work Screen — 90-minute immersive focus with flow state visuals.
@@ -49,6 +53,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   int _pauseCount = 0;
   int _backgroundCount = 0;
   Timer? _timer;
+  Timer? _leaseTimer;
   String _sessionId = '';
   FocusProtectionLevel _sessionProtection = FocusProtectionLevel.softReturn;
   bool _wasBackgrounded = false;
@@ -97,6 +102,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   @override
   void dispose() {
     _timer?.cancel();
+    _leaseTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _glowController.dispose();
     _breatheController.dispose();
@@ -125,18 +131,27 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   }
 
   Future<void> _checkBlockedAppTrigger() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      final String? triggeredPackage = await channel.invokeMethod<String>('getBlockedAppTrigger');
-      if (triggeredPackage != null && mounted) {
+      final policyService = ref.read(protectionPolicyServiceProvider);
+      final trigger = await policyService.claimPendingTrigger();
+      if (trigger != null && mounted) {
         if (_isRunning && !_isPaused) {
           _pauseTimer();
         }
+
+        final db = ref.read(databaseProvider);
+        final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', trigger.packageName);
+        final appDisplayName = protectedApp?.displayName ?? trigger.packageName;
+
+        final activePolicies = await policyService.getActivePolicies();
+        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
+
         if (context.mounted) {
           await FocusShieldOverlay.show(
             context,
-            packageName: triggeredPackage,
-            protectionLevel: _sessionProtection,
+            packageName: trigger.packageName,
+            appDisplayName: appDisplayName,
+            protectionMode: effectiveMode,
             onKeepFocus: () {
               if (_isRunning && mounted) {
                 _resumeTimer();
@@ -147,15 +162,39 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                 _requestCompleteSession();
               }
             },
-            onGrantBreak: (minutes) async {
-              final prefs = await SharedPreferences.getInstance();
-              final blockedUntilMs = DateTime.now().add(Duration(minutes: minutes)).millisecondsSinceEpoch;
-              await prefs.setInt('blocked_until', blockedUntilMs);
-              if (_isRunning && mounted) {
-                _resumeTimer();
-              }
-            },
+            onGrantBreak: effectiveMode == ProtectionMode.guard
+                ? (minutes) async {
+                    await policyService.grantScopedBreak(
+                      packageName: trigger.packageName,
+                      minutes: minutes,
+                    );
+                    if (_isRunning && mounted) {
+                      _resumeTimer();
+                    }
+                  }
+                : null,
           );
+        }
+      }
+
+      // Check nudge events
+      final nudges = await policyService.getNudgeEvents();
+      if (nudges.isNotEmpty && mounted) {
+        for (final nudge in nudges) {
+          final db = ref.read(databaseProvider);
+          final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', nudge.packageName);
+          final appDisplayName = protectedApp?.displayName ?? nudge.packageName;
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$appDisplayName was opened. Ready to return to focus?'),
+                backgroundColor: AppColors.background2,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          await ref.read(deviceAttentionPlatformProvider).acknowledgeNudgeEvent(nudge.id);
         }
       }
     } catch (_) {}
@@ -170,7 +209,12 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       type: SessionTypeColumn.deepWork,
       durationMinutes: 90,
       taskId: widget.taskId,
+      protectionMode: protection.toProtectionMode(),
     );
+
+    _leaseTimer = Timer.periodic(const Duration(seconds: 90), (_) {
+      ref.read(protectionPolicyServiceProvider).renewFocusLease();
+    });
 
     setState(() {
       _isRunning = true;
@@ -220,6 +264,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
   void _completeSession() async {
     _timer?.cancel();
+    _leaseTimer?.cancel();
     HapticFeedback.heavyImpact();
     await AmbientSoundPlayer.fadeOut();
 

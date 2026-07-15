@@ -10,6 +10,7 @@ class DailyReports extends Table {
   IntColumn get xpEarnedToday => integer()();
   IntColumn get attentionCostToday => integer().withDefault(const Constant(0))();
   IntColumn get promptVersion => integer().nullable()();
+  TextColumn get coverageState => text().nullable()();
 
   DateTimeColumn get generatedAt => dateTime().withDefault(currentDateAndTime)();
 

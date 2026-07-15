@@ -20,6 +20,8 @@ import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/onboarding/providers/onboarding_providers.dart';
 import '../../../features/onboarding/models/user_profile.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
+import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
 
 /// Full Settings Screen — notification prefs, themes, scroll budget,
 /// sync controls, account management.
@@ -67,31 +69,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
 
   Future<void> _toggleAccessibilityService(bool enable) async {
     if (enable && !_isAccessibilityEnabled) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.background2,
-          title: const Text('Enable App Shielding?'),
-          content: const Text(
-            'FlowOS needs Accessibility permission to detect when selected distraction apps are in the foreground and temporarily shield them. We do not observe or collect any sensitive text, password inputs, or personal information. Everything is evaluated local-only on your device.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Allow'),
-            ),
-          ],
-        ),
-      ) ?? false;
-
-      if (proceed && mounted) {
-        const channel = MethodChannel('flowos/usage_stats');
-        await channel.invokeMethod('requestAccessibilityPermission');
-      }
+      final platform = DeviceAttentionPlatform();
+      await showAccessibilityDisclosure(context, platform);
     }
   }
 
@@ -192,6 +171,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             subtitle: 'Manage usage access, accessibility blocker, and notification status',
             icon: Icons.lock_outline_rounded,
             onTap: () => context.push('/permissions'),
+          ),
+          _actionTile(
+            title: 'Manage protected apps',
+            subtitle: 'Choose which apps are blocked during focus and sleep',
+            icon: Icons.app_blocking_outlined,
+            onTap: () => context.push('/app-picker'),
           ),
           _actionTile(
             title: 'Shape my focus',

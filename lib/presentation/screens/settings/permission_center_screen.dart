@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../widgets/flow_surface.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
+import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
 
 /// Permission Center Screen — manage and check all system permission states in one hub.
 class PermissionCenterScreen extends ConsumerStatefulWidget {
@@ -57,7 +58,11 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
     if (type == 'usage') {
       await platform.openUsageAccessSettings();
     } else if (type == 'accessibility') {
-      await platform.openAccessibilitySettings();
+      if (!_accessibilityEnabled) {
+        await showAccessibilityDisclosure(context, platform);
+      } else {
+        await platform.openAccessibilitySettings();
+      }
     }
   }
 

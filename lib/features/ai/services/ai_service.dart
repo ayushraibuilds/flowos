@@ -155,6 +155,16 @@ class DailyReportInsight {
       tomorrowTip: 'Pick one deep task first thing. Momentum builds from there.',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'headline': headline,
+      'highlight': highlight,
+      'growth_area': growthArea,
+      'energy_insight': energyInsight,
+      'tomorrow_tip': tomorrowTip,
+    };
+  }
 }
 
 class BreakContent {

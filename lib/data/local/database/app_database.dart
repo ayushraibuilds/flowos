@@ -76,7 +76,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +105,9 @@ class AppDatabase extends _$AppDatabase {
         // Note: Drift will automatically apply default values on columns,
         // but we also perform a manual backfill to populate any existing rows:
         await customStatement("UPDATE device_usage_records SET source = 'android_usage'");
+      }
+      if (from < 6) {
+        await m.addColumn(dailyReports, dailyReports.coverageState);
       }
     },
   );

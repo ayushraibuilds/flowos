@@ -7,7 +7,7 @@ import 'package:drift/drift.dart' show Value;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../models/focus_protection.dart';
+import '../models/effective_policy.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../features/sync/providers/sync_providers.dart';
@@ -16,7 +16,8 @@ import '../../../features/sync/providers/sync_providers.dart';
 /// Displayed when a blocked app is intercepted.
 class FocusShieldOverlay extends ConsumerStatefulWidget {
   final String packageName;
-  final FocusProtectionLevel protectionLevel;
+  final String appDisplayName;
+  final ProtectionMode protectionMode;
   final VoidCallback onKeepFocus;
   final VoidCallback onCancelSession;
   final Function(int minutes)? onGrantBreak;
@@ -24,7 +25,8 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
   const FocusShieldOverlay({
     super.key,
     required this.packageName,
-    required this.protectionLevel,
+    required this.appDisplayName,
+    required this.protectionMode,
     required this.onKeepFocus,
     required this.onCancelSession,
     this.onGrantBreak,
@@ -33,7 +35,8 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required String packageName,
-    required FocusProtectionLevel protectionLevel,
+    required String appDisplayName,
+    required ProtectionMode protectionMode,
     required VoidCallback onKeepFocus,
     required VoidCallback onCancelSession,
     Function(int minutes)? onGrantBreak,
@@ -45,7 +48,8 @@ class FocusShieldOverlay extends ConsumerStatefulWidget {
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (ctx, anim1, anim2) => FocusShieldOverlay(
         packageName: packageName,
-        protectionLevel: protectionLevel,
+        appDisplayName: appDisplayName,
+        protectionMode: protectionMode,
         onKeepFocus: () {
           Navigator.pop(ctx);
           onKeepFocus();
@@ -88,7 +92,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
           id: Value(id),
           platform: const Value('android'),
           target: Value(widget.packageName),
-          level: Value(widget.protectionLevel.name),
+          level: Value(widget.protectionMode.name),
           requestedBreakMinutes: Value(breakMinutes),
           intention: Value(intention),
           waitOutcome: Value(outcome),
@@ -119,7 +123,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Why do you need to unlock ${_cleanAppName(widget.packageName)} right now?',
+              'Why do you need to unlock ${widget.appDisplayName} right now?',
               style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -186,17 +190,19 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
     widget.onCancelSession();
   }
 
-  // Pulse/Breathing Animation
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _secondsRemaining = switch (widget.protectionLevel) {
-      FocusProtectionLevel.softReturn => 10,
-      FocusProtectionLevel.pauseAndProtect => 30,
-      FocusProtectionLevel.intentionalExit => 30,
+    // Guard mode has a 20-second countdown before showing break buttons.
+    // Deep mode has a 30-second reflection countdown before showing the give-up button.
+    // Nudge mode has a short 10-second countdown.
+    _secondsRemaining = switch (widget.protectionMode) {
+      ProtectionMode.nudge => 10,
+      ProtectionMode.guard => 20,
+      ProtectionMode.deep => 30,
     };
 
     _pulseController = AnimationController(
@@ -240,49 +246,48 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final modeLabel = widget.protectionLevel.shortLabel;
-    final appLabel = _cleanAppName(widget.packageName);
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xxl,
-            vertical: AppSpacing.xl,
+            vertical: AppSpacing.lg,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(),
-
-              // Shield Icon & Mode
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.dangerCoral.withValues(alpha: 0.1),
-                ),
-                child: Icon(
-                  Icons.shield_outlined,
-                  size: 48,
-                  color: AppColors.dangerCoral,
+              const Spacer(flex: 3),
+              ScaleTransition(
+                scale: _pulseAnimation,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.background2,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.dangerCoral.withValues(alpha: 0.2),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      widget.protectionMode == ProtectionMode.deep
+                          ? Icons.gpp_bad_outlined
+                          : Icons.shield_outlined,
+                      color: AppColors.dangerCoral,
+                      size: 40,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Focus Active · $modeLabel Mode',
-                style: AppTypography.monoSmall.copyWith(
-                  color: AppColors.dangerCoral,
-                  letterSpacing: 2,
-                ),
-              ),
-
               const SizedBox(height: AppSpacing.xxl),
-
-              // Dynamic prompt
               Text(
-                '$appLabel is shielded',
+                '${widget.appDisplayName} is shielded',
                 style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
                 textAlign: TextAlign.center,
               ),
@@ -292,74 +297,54 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                 style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
-
-              const Spacer(),
-
-              // Animated Breathing Ring
-              ScaleTransition(
-                scale: _pulseAnimation,
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.dangerCoral.withValues(alpha: 0.3),
-                      width: 4,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.dangerCoral.withValues(alpha: 0.1),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (!_canAction) ...[
-                          Text(
-                            '$_secondsRemaining',
-                            style: AppTypography.display.copyWith(
-                              fontSize: 36,
-                              color: AppColors.textPrimary,
-                            ),
+              const SizedBox(height: AppSpacing.xxl),
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.background1,
+                ),
+                child: Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (!_canAction)
+                        CircularProgressIndicator(
+                          value: _secondsRemaining /
+                              (widget.protectionMode == ProtectionMode.nudge
+                                  ? 10
+                                  : widget.protectionMode == ProtectionMode.guard
+                                      ? 20
+                                      : 30),
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.dangerCoral),
+                          backgroundColor: AppColors.background2,
+                          strokeWidth: 4,
+                        ),
+                      if (!_canAction)
+                        Text(
+                          '$_secondsRemaining',
+                          style: AppTypography.h3.copyWith(
+                            color: AppColors.dangerCoral,
+                            fontWeight: FontWeight.bold,
                           ),
-                          Text(
-                            'Breathe',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
-                        ] else ...[
-                          Icon(
-                            Icons.check_circle_outline_rounded,
-                            size: 40,
-                            color: AppColors.emerald,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Ready',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.emerald,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                        ),
+                      if (_canAction) ...[
+                        Icon(
+                          Icons.done_all_rounded,
+                          size: 32,
+                          color: AppColors.emerald,
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
               ),
-
               const Spacer(flex: 2),
 
               // Actions Block
               if (_canAction) ...[
-                if (widget.protectionLevel == FocusProtectionLevel.softReturn) ...[
-                  // Reflect Mode Actions
+                if (widget.protectionMode == ProtectionMode.nudge) ...[
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -377,8 +362,7 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                     ),
                     child: const Text('Continue to app (5m break)'),
                   ),
-                ] else if (widget.protectionLevel == FocusProtectionLevel.pauseAndProtect) ...[
-                  // Guard Mode Actions
+                ] else if (widget.protectionMode == ProtectionMode.guard) ...[
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -396,10 +380,10 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(50),
                     ),
-                    child: Text('Take a $_selectedBreakMinutes min break'),
+                    child: Text('Take a break from ${widget.appDisplayName} ($_selectedBreakMinutes min)'),
                   ),
                 ] else ...[
-                  // Deep Mode Actions
+                  // Deep Mode: No break options, only Resume or Give up
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -473,23 +457,13 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
   }
 
   String _getInstructionText() {
-    return switch (widget.protectionLevel) {
-      FocusProtectionLevel.softReturn =>
+    return switch (widget.protectionMode) {
+      ProtectionMode.nudge =>
         'Take a 10-second breath. You can choose to skip past this reminder if you must.',
-      FocusProtectionLevel.pauseAndProtect =>
-        'Take a 30-second pause to reflect. You can request a short timed break once the count ends.',
-      FocusProtectionLevel.intentionalExit =>
+      ProtectionMode.guard =>
+        'Take a 20-second pause to reflect. You can request a short timed break from this specific app once the count ends.',
+      ProtectionMode.deep =>
         'This is Deep Focus. You cannot bypass this shield without terminating your entire focus session.',
     };
-  }
-
-  String _cleanAppName(String pkg) {
-    if (pkg.contains('instagram')) return 'Instagram';
-    if (pkg.contains('youtube')) return 'YouTube';
-    if (pkg.contains('tiktok') || pkg.contains('musically')) return 'TikTok';
-    if (pkg.contains('twitter') || pkg.contains('x')) return 'X/Twitter';
-    if (pkg.contains('reddit')) return 'Reddit';
-    if (pkg.contains('chrome') || pkg.contains('browser')) return 'Browser';
-    return 'Distractor App';
   }
 }

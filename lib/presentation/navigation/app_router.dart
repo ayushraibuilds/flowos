@@ -25,6 +25,7 @@ import '../screens/insights/insights_dashboard_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/permission_center_screen.dart';
 import '../screens/flow_garden/garden_screen.dart';
+import '../screens/protection/app_picker_screen.dart';
 import '../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../screens/rest/intentional_rest_screen.dart';
 
@@ -248,6 +249,11 @@ final appRouter = GoRouter(
       path: '/settings',
       name: 'settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/app-picker',
+      name: 'appPicker',
+      builder: (context, state) => const AppPickerScreen(),
     ),
     GoRoute(
       path: '/energy-checkin',

@@ -1,3 +1,5 @@
+import 'effective_policy.dart';
+
 /// A consent-based ladder for protecting a focus session.
 ///
 /// These levels only control FlowOS behavior. They never claim to block other
@@ -30,4 +32,10 @@ extension FocusProtectionLevelDetails on FocusProtectionLevel {
 
   bool get requiresExitReflection =>
       this == FocusProtectionLevel.intentionalExit;
+
+  ProtectionMode toProtectionMode() => switch (this) {
+        FocusProtectionLevel.softReturn => ProtectionMode.nudge,
+        FocusProtectionLevel.pauseAndProtect => ProtectionMode.guard,
+        FocusProtectionLevel.intentionalExit => ProtectionMode.deep,
+      };
 }

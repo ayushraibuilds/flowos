@@ -123,6 +123,54 @@ class DeviceAttentionPlatform {
     return null;
   }
 
+  Future<Map<String, dynamic>?> claimPendingBlockedAppTrigger() async {
+    if (!Platform.isAndroid) return null;
+    try {
+      final Map<dynamic, dynamic>? res =
+          await _channel.invokeMethod('claimPendingBlockedAppTrigger');
+      if (res != null) {
+        return Map<String, dynamic>.from(res);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> getNudgeEvents() async {
+    if (!Platform.isAndroid) return [];
+    try {
+      final List<dynamic>? res = await _channel.invokeMethod('getNudgeEvents');
+      if (res != null) {
+        return res.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<void> acknowledgeNudgeEvent(String id) async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _channel.invokeMethod('acknowledgeNudgeEvent', {'id': id});
+    } catch (_) {}
+  }
+
+  Future<List<Map<String, String>>> getDefaultEssentialPackages() async {
+    if (!Platform.isAndroid) return [];
+    try {
+      final List<dynamic>? res =
+          await _channel.invokeMethod('getDefaultEssentialPackages');
+      if (res != null) {
+        return res.map((item) {
+          final m = Map<dynamic, dynamic>.from(item);
+          return {
+            'packageName': m['packageName'] as String? ?? '',
+            'reason': m['reason'] as String? ?? '',
+          };
+        }).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   Future<List<Map<String, dynamic>>> getDailyUsage(DateTime start, DateTime end) async {
     if (!Platform.isAndroid) return [];
     try {
@@ -158,8 +206,8 @@ class AttentionDataRepository {
 
   AttentionDataRepository(this._db, this._platform);
 
-  Future<void> syncUsage({int days = 1}) async {
-    if (!Platform.isAndroid) return;
+  Future<void> syncUsage({int days = 1, bool forcePlatformCheck = true}) async {
+    if (forcePlatformCheck && !Platform.isAndroid) return;
 
     final states = await _platform.getPermissionStates();
     if (!states.usageAccess) {
@@ -203,6 +251,7 @@ class AttentionDataRepository {
       for (final row in rawUsage) {
         final dateStr = row['date'] as String;
         final packageName = row['packageName'] as String;
+        if (packageName.isEmpty) continue; // skip zero-usage placeholder rows
         final label = row['label'] as String?;
         final minutes = row['minutes'] as int;
 

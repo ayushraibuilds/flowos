@@ -20,6 +20,10 @@ import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
 import '../../../features/focus/widgets/focus_shield_overlay.dart';
+import '../../../features/focus/models/effective_policy.dart';
+import '../../../features/focus/services/protection_policy_service.dart';
+import '../../../features/attention/repository/attention_data_repository.dart';
+import '../../../data/local/database/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Focus Timer Screen — full-screen immersive "flow cave."
@@ -52,6 +56,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   int _pauseCount = 0;
   int _backgroundCount = 0;
   Timer? _timer;
+  Timer? _leaseTimer;
   String _sessionId = '';
   FocusProtectionLevel _sessionProtection = FocusProtectionLevel.softReturn;
   bool _wasBackgrounded = false;
@@ -95,6 +100,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   @override
   void dispose() {
     _timer?.cancel();
+    _leaseTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     AmbientSoundPlayer.stop();
     super.dispose();
@@ -122,21 +128,30 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   }
 
   Future<void> _checkBlockedAppTrigger() async {
-    const channel = MethodChannel('flowos/usage_stats');
     try {
-      final String? triggeredPackage = await channel.invokeMethod<String>('getBlockedAppTrigger');
-      if (triggeredPackage != null && mounted) {
+      final policyService = ref.read(protectionPolicyServiceProvider);
+      final trigger = await policyService.claimPendingTrigger();
+      if (trigger != null && mounted) {
         if (_isRunning && !_isPaused) {
           _timer?.cancel();
           setState(() {
             _isPaused = true;
           });
         }
+
+        final db = ref.read(databaseProvider);
+        final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', trigger.packageName);
+        final appDisplayName = protectedApp?.displayName ?? trigger.packageName;
+
+        final activePolicies = await policyService.getActivePolicies();
+        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
+
         if (context.mounted) {
           await FocusShieldOverlay.show(
             context,
-            packageName: triggeredPackage,
-            protectionLevel: _sessionProtection,
+            packageName: trigger.packageName,
+            appDisplayName: appDisplayName,
+            protectionMode: effectiveMode,
             onKeepFocus: () {
               if (_isRunning && mounted) {
                 setState(() {
@@ -151,19 +166,43 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                 _stopSession();
               }
             },
-            onGrantBreak: (minutes) async {
-              final prefs = await SharedPreferences.getInstance();
-              final blockedUntilMs = DateTime.now().add(Duration(minutes: minutes)).millisecondsSinceEpoch;
-              await prefs.setInt('blocked_until', blockedUntilMs);
-              if (_isRunning && mounted) {
-                setState(() {
-                  _isPaused = false;
-                  _showReturnCue = false;
-                });
-                _runTimer();
-              }
-            },
+            onGrantBreak: effectiveMode == ProtectionMode.guard
+                ? (minutes) async {
+                    await policyService.grantScopedBreak(
+                      packageName: trigger.packageName,
+                      minutes: minutes,
+                    );
+                    if (_isRunning && mounted) {
+                      setState(() {
+                        _isPaused = false;
+                        _showReturnCue = false;
+                      });
+                      _runTimer();
+                    }
+                  }
+                : null,
           );
+        }
+      }
+
+      // Check nudge events
+      final nudges = await policyService.getNudgeEvents();
+      if (nudges.isNotEmpty && mounted) {
+        for (final nudge in nudges) {
+          final db = ref.read(databaseProvider);
+          final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', nudge.packageName);
+          final appDisplayName = protectedApp?.displayName ?? nudge.packageName;
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$appDisplayName was opened. Ready to return to focus?'),
+                backgroundColor: AppColors.background2,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          await ref.read(deviceAttentionPlatformProvider).acknowledgeNudgeEvent(nudge.id);
         }
       }
     } catch (_) {}
@@ -200,7 +239,12 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     _sessionId = await service.startSession(
       type: dbType,
       durationMinutes: minutes,
+      protectionMode: protection.toProtectionMode(),
     );
+
+    _leaseTimer = Timer.periodic(const Duration(seconds: 90), (_) {
+      ref.read(protectionPolicyServiceProvider).renewFocusLease();
+    });
 
     _runTimer();
     if (ref.read(settingsProvider).soundEnabled) {
@@ -247,6 +291,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   void _onComplete() async {
     HapticFeedback.heavyImpact();
+    _leaseTimer?.cancel();
     final elapsed = _totalSeconds - _remainingSeconds;
     final actualMin = (elapsed / 60).round();
 
@@ -303,6 +348,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   void _stopSession() async {
     _timer?.cancel();
+    _leaseTimer?.cancel();
     AmbientSoundPlayer.stop();
     final isFlowtime = _selectedSessionType == 3;
     final elapsed = isFlowtime

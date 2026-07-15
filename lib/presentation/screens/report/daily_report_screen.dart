@@ -1,4 +1,6 @@
 import 'dart:ui' as ui;
+import 'dart:convert';
+import 'package:drift/drift.dart' show Value;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -45,6 +47,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   int _scrollBudget = 30;
   bool _intentionCompleted = false;
   DailyReportInsight _insight = DailyReportInsight.fallback();
+  DataCoverage _coverage = DataCoverage.complete;
   bool _loading = true;
 
   @override
@@ -98,6 +101,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
     }
 
     // Calculate score
+    _coverage = todayAttention.coverage;
     _dailyScore = DailyScoreCalculator.calculate(
       focusMinutes: _focusMinutes,
       mitsCompleted: _mitsCompleted,
@@ -134,8 +138,23 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
       'prompt_version': 1,
     });
 
+    final targetInsight = aiInsight ?? DailyReportInsight.fallback();
+
+    // Persist daily score and coverage state in database
+    final dateStr = DateTime.now().toIso8601String().split('T')[0];
+    await db.dailyReportsDao.upsertReport(DailyReportsCompanion(
+      id: Value(dateStr),
+      date: Value(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)),
+      reportJson: Value(jsonEncode(targetInsight.toJson())),
+      dailyScore: Value(_dailyScore),
+      xpEarnedToday: Value(_xpToday),
+      attentionCostToday: Value(_scrollMinutes),
+      generatedAt: Value(DateTime.now()),
+      coverageState: Value(_coverage.name),
+    ));
+
     setState(() {
-      if (aiInsight != null) _insight = aiInsight;
+      _insight = targetInsight;
       _loading = false;
     });
 
@@ -240,6 +259,64 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
               color: AppColors.textSecondary,
             ),
             textAlign: TextAlign.center,
+          ),
+          _buildCoverageBadge(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoverageBadge() {
+    final (label, icon, color) = switch (_coverage) {
+      DataCoverage.complete => (
+          'Full Screen Time Coverage',
+          Icons.verified_user_rounded,
+          AppColors.emerald
+        ),
+      DataCoverage.partial => (
+          'Partial Coverage (Reweighted)',
+          Icons.warning_amber_rounded,
+          AppColors.warningAmber
+        ),
+      DataCoverage.manualOnly => (
+          'Manual Logs Only (Reweighted)',
+          Icons.edit_note_rounded,
+          AppColors.warningAmber
+        ),
+      DataCoverage.notConnected => (
+          'Missing Screen Time (Reweighted)',
+          Icons.gpp_maybe_rounded,
+          AppColors.dangerCoral
+        ),
+      DataCoverage.unsupported => (
+          'Screen Time Unsupported (Reweighted)',
+          Icons.info_outline_rounded,
+          AppColors.dangerCoral
+        ),
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
