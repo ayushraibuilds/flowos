@@ -2,13 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../widgets/flow_surface.dart';
+import '../../../features/focus/providers/focus_timer_provider.dart';
 
-class IntentionalRestScreen extends StatefulWidget {
+class IntentionalRestScreen extends ConsumerStatefulWidget {
   final int defaultMinutes;
   final bool autoStart;
 
@@ -19,10 +21,10 @@ class IntentionalRestScreen extends StatefulWidget {
   });
 
   @override
-  State<IntentionalRestScreen> createState() => _IntentionalRestScreenState();
+  ConsumerState<IntentionalRestScreen> createState() => _IntentionalRestScreenState();
 }
 
-class _IntentionalRestScreenState extends State<IntentionalRestScreen>
+class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
     with SingleTickerProviderStateMixin {
   int _selectedMinutes = 5;
   bool _isActive = false;
@@ -61,11 +63,19 @@ class _IntentionalRestScreenState extends State<IntentionalRestScreen>
     _timer?.cancel();
     _breathCycleTimer?.cancel();
     _animController.dispose();
+    // Reset recovery active state when exiting screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(isRecoveryActiveProvider.notifier).state = false;
+    });
     super.dispose();
   }
 
   void _startRest() {
     HapticFeedback.mediumImpact();
+    
+    // Set recovery active state to true
+    ref.read(isRecoveryActiveProvider.notifier).state = true;
+
     setState(() {
       _isActive = true;
       _secondsRemaining = _selectedMinutes * 60;

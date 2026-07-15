@@ -19,6 +19,7 @@ class HomeGardenScene extends StatefulWidget {
   final VoidCallback onFocusTap;
   final VoidCallback onRecoveryTap;
   final VoidCallback onGardenTap;
+  final bool isHero;
 
   const HomeGardenScene({
     super.key,
@@ -26,6 +27,7 @@ class HomeGardenScene extends StatefulWidget {
     required this.onFocusTap,
     required this.onRecoveryTap,
     required this.onGardenTap,
+    this.isHero = false,
   });
 
   @override
@@ -141,11 +143,15 @@ class _HomeGardenSceneState extends State<HomeGardenScene>
       label: 'Today’s Garden. ${widget.day.headline}. '
           '${widget.day.supportingText}',
       child: Container(
-        height: 188,
+        height: widget.isHero ? double.infinity : 188,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-          border: Border.all(color: AppColors.emerald.withValues(alpha: 0.26)),
+          borderRadius: widget.isHero
+              ? const BorderRadius.vertical(bottom: Radius.circular(AppSpacing.radiusCard))
+              : BorderRadius.circular(AppSpacing.radiusCard),
+          border: widget.isHero
+              ? null
+              : Border.all(color: AppColors.emerald.withValues(alpha: 0.26)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.20),
@@ -174,48 +180,50 @@ class _HomeGardenSceneState extends State<HomeGardenScene>
                     ),
                   ),
                 ),
-                Positioned(
-                  top: AppSpacing.md,
-                  left: AppSpacing.lg,
-                  right: 74,
-                  child: IgnorePointer(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.day.headline,
-                          style: AppTypography.h3.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
+                if (!widget.isHero) ...[
+                  Positioned(
+                    top: AppSpacing.md,
+                    left: AppSpacing.lg,
+                    right: 74,
+                    child: IgnorePointer(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.day.headline,
+                            style: AppTypography.h3.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          widget.day.supportingText,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            widget.day.supportingText,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 6,
-                  right: 4,
-                  child: Semantics(
-                    button: true,
-                    label: 'Open full Garden',
-                    child: IconButton(
-                      onPressed: widget.onGardenTap,
-                      tooltip: 'Open Garden',
-                      color: AppColors.emerald,
-                      icon: const Icon(Icons.arrow_outward_rounded),
+                  Positioned(
+                    top: 6,
+                    right: 4,
+                    child: Semantics(
+                      button: true,
+                      label: 'Open full Garden',
+                      child: IconButton(
+                        onPressed: widget.onGardenTap,
+                        tooltip: 'Open Garden',
+                        color: AppColors.emerald,
+                        icon: const Icon(Icons.arrow_outward_rounded),
+                      ),
                     ),
                   ),
-                ),
+                ],
                 Align(
                   alignment: const Alignment(-0.10, 0.30),
                   child: Semantics(
@@ -254,30 +262,31 @@ class _HomeGardenSceneState extends State<HomeGardenScene>
                       ),
                     ),
                   ),
-                Positioned(
-                  left: AppSpacing.lg,
-                  bottom: AppSpacing.sm,
-                  child: IgnorePointer(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.20),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        isThirsty
-                            ? 'A small reset is enough'
-                            : 'Tap the plant to focus',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textPrimary.withValues(alpha: 0.88),
+                if (!widget.isHero)
+                  Positioned(
+                    left: AppSpacing.lg,
+                    bottom: AppSpacing.sm,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.20),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          isThirsty
+                              ? 'A small reset is enough'
+                              : 'Tap the plant to focus',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textPrimary.withValues(alpha: 0.88),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
               ],
             );
           },

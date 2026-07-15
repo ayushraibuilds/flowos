@@ -1,21 +1,19 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:audio_session/audio_session.dart';
 
 /// Ambient Sound Player — loops background audio during focus sessions.
-///
-/// Available sounds:
-/// - Binaural beats (40Hz gamma)
-/// - Rain
-/// - Café ambiance
-/// - Piano
-/// - Synth (cyberpunk)
-///
-/// Uses just_audio for gapless looping and volume control.
-/// Gracefully no-ops when audio assets are missing or inaccessible.
+/// Uses just_audio for gapless looping and audio_session for interruption handling.
 class AmbientSoundPlayer {
   static AudioPlayer? _player;
   static String? _currentSound;
+
+  static bool _sessionListenersRegistered = false;
+  static bool _wasPlayingBeforeInterruption = false;
+  static StreamSubscription? _interruptionSubscription;
+  static StreamSubscription? _noisySubscription;
 
   static const _assets = {
     'binaural': 'assets/sounds/bodhisounds-gamma-binaural-beats-enhance-brain-power-relaxing-music-for-study-161763.mp3',
@@ -24,10 +22,66 @@ class AmbientSoundPlayer {
     'piano': 'assets/sounds/the_mountain-piano-background-487020.mp3',
     'synth': 'assets/sounds/freemusiclab-dark-cyberpunk-i-free-background-music-i-free-music-lab-release-469493.mp3',
   };
-  /// Lazily initializes the player. Returns null if initialization fails.
+
+  /// Asynchronously configures the audio session and registers OS listeners once.
+  static Future<void> _initAudioSession() async {
+    if (_sessionListenersRegistered) return;
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+
+      _interruptionSubscription = session.interruptionEventStream.listen((event) {
+        final player = _player;
+        if (player == null) return;
+
+        if (event.begin) {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              // Lower volume
+              player.setVolume(player.volume * 0.2);
+              break;
+            case AudioInterruptionType.pause:
+            case AudioInterruptionType.unknown:
+              _wasPlayingBeforeInterruption = player.playing;
+              player.pause();
+              break;
+          }
+        } else {
+          // Interruption ended
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              player.setVolume(0.4);
+              break;
+            case AudioInterruptionType.pause:
+              if (_wasPlayingBeforeInterruption) {
+                // Resume loop only if active before interruption and not manually paused
+                player.play();
+              }
+              break;
+            case AudioInterruptionType.unknown:
+              break;
+          }
+        }
+      });
+
+      _noisySubscription = session.becomingNoisyEventStream.listen((_) {
+        // Headphone unplugged -> pause loop, requires manual resume
+        stop();
+      });
+
+      _sessionListenersRegistered = true;
+    } catch (e) {
+      debugPrint('⚠️ AudioSession setup failed: $e');
+    }
+  }
+
+  /// Lazily initializes the player.
   static AudioPlayer? _getPlayer() {
     try {
-      _player ??= AudioPlayer();
+      if (_player == null) {
+        _player = AudioPlayer();
+        _initAudioSession();
+      }
       return _player;
     } catch (e) {
       debugPrint('⚠️ AudioPlayer initialization failed: $e');
@@ -35,7 +89,7 @@ class AmbientSoundPlayer {
     }
   }
 
-  /// Verify an asset exists in the bundle. Returns true if accessible.
+  /// Verify an asset exists in the bundle.
   static Future<bool> _assetExists(String assetPath) async {
     try {
       await rootBundle.load(assetPath);
@@ -46,7 +100,6 @@ class AmbientSoundPlayer {
   }
 
   /// Start playing a sound loop.
-  /// Silently no-ops if the asset is missing or playback fails.
   static Future<void> play(String soundKey) async {
     if (soundKey == 'none' || !_assets.containsKey(soundKey)) {
       await stop();
@@ -76,10 +129,10 @@ class AmbientSoundPlayer {
       await player.setVolume(0.4); // Subtle by default
       await player.play();
       _currentSound = soundKey;
+      _wasPlayingBeforeInterruption = true;
       debugPrint('🔊 Playing: $soundKey');
     } catch (e) {
       debugPrint('⚠️ AmbientSound playback error ($soundKey): $e');
-      // Don't rethrow — the app continues without audio
       _currentSound = null;
     }
   }
@@ -92,9 +145,10 @@ class AmbientSoundPlayer {
       debugPrint('⚠️ AmbientSound stop error: $e');
     }
     _currentSound = null;
+    _wasPlayingBeforeInterruption = false;
   }
 
-  /// Adjust volume (0.0 – 1.0). No-ops if player is unavailable.
+  /// Adjust volume (0.0 – 1.0).
   static Future<void> setVolume(double volume) async {
     try {
       await _player?.setVolume(volume.clamp(0.0, 1.0));
@@ -103,8 +157,7 @@ class AmbientSoundPlayer {
     }
   }
 
-  /// Fade out over duration (for session end).
-  /// Gracefully handles missing player or interruptions.
+  /// Fade out over duration.
   static Future<void> fadeOut({
     Duration duration = const Duration(seconds: 3),
   }) async {
@@ -140,9 +193,12 @@ class AmbientSoundPlayer {
   /// Available sound keys for UI display
   static List<String> get availableKeys => _assets.keys.toList();
 
-  /// Dispose player resources. Call on app shutdown.
+  /// Dispose player resources.
   static Future<void> dispose() async {
     try {
+      await _interruptionSubscription?.cancel();
+      await _noisySubscription?.cancel();
+      _sessionListenersRegistered = false;
       await _player?.dispose();
       _player = null;
       _currentSound = null;

@@ -1,4 +1,5 @@
 import '../../../data/local/tables/focus_sessions_table.dart';
+import 'package:flowos/data/local/database/app_database.dart';
 
 enum GardenObjectKind { tree, flower, water, light, wildlife }
 
@@ -41,6 +42,29 @@ class GardenObject {
 
     return GardenObject(
       id: 'focus-$sessionId',
+      kind: isTree ? GardenObjectKind.tree : GardenObjectKind.flower,
+      emoji: emoji,
+      seedEmoji: isTree ? '🌰' : '🌱',
+      title: isTree ? 'Deep-root tree' : 'Focus flower',
+      detail: taskTitle?.trim().isEmpty ?? true ? null : taskTitle,
+      x: x,
+      y: y,
+    );
+  }
+
+  static GardenObject fromPersistedSeed(
+    FocusSession session, {
+    String? taskTitle,
+  }) {
+    final seed = _stableSeed(session.id);
+    final x = 0.14 + ((seed % 68) / 100);
+    final y = 0.46 + (((seed ~/ 11) % 30) / 100);
+
+    final isTree = session.gardenSeedKind == 'tree';
+    final emoji = session.gardenSeedEmoji ?? (isTree ? '🌲' : '🌸');
+
+    return GardenObject(
+      id: 'focus-${session.id}',
       kind: isTree ? GardenObjectKind.tree : GardenObjectKind.flower,
       emoji: emoji,
       seedEmoji: isTree ? '🌰' : '🌱',

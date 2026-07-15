@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,6 +49,14 @@ class FocusSessionService {
     ProtectionMode protectionMode = ProtectionMode.guard,
   }) async {
     final sessionId = _uuid.v4();
+    
+    // Generate seed parameters inside service to avoid UI mismatches
+    final isTree = type == SessionTypeColumn.deepWork || durationMinutes >= 50;
+    final seedKind = isTree ? 'tree' : 'flower';
+    final variants = isTree ? ['🌲', '🌳', '🌴'] : ['🌸', '🌻', '🌷', '🌼'];
+    final variant = math.Random().nextInt(variants.length);
+    final emoji = variants[variant];
+
     await _db.focusSessionsDao.insertSession(
       FocusSessionsCompanion(
         id: Value(sessionId),
@@ -55,6 +64,9 @@ class FocusSessionService {
         sessionType: Value(type),
         durationMinutes: Value(durationMinutes),
         startedAt: Value(DateTime.now()),
+        gardenSeedKind: Value(seedKind),
+        gardenVariant: Value(variant),
+        gardenSeedEmoji: Value(emoji),
       ),
     );
 

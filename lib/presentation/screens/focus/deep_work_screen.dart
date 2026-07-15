@@ -1,41 +1,29 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import 'package:go_router/go_router.dart';
-
-import '../../../features/focus/services/focus_session_service.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
-import '../../../features/focus/services/ambient_sound_player.dart';
-import '../../../features/settings/providers/settings_providers.dart';
-import '../../../features/celebration/services/celebration_service.dart';
-import '../../../features/achievements/models/achievement_checker.dart';
-import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
+import '../../../features/focus/services/focus_session_service.dart';
+import '../../../features/focus/providers/focus_timer_provider.dart';
+import '../../../features/focus/models/focus_timer_stage.dart';
 import '../../../features/focus/models/focus_protection.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/widgets/intentional_exit_dialog.dart';
 import '../../../features/focus/widgets/focus_shield_overlay.dart';
-import '../../../features/focus/models/effective_policy.dart';
 import '../../../features/focus/services/protection_policy_service.dart';
-import '../../../features/attention/repository/attention_data_repository.dart';
+import '../../../features/focus/models/effective_policy.dart';
+import '../../../features/settings/providers/settings_providers.dart';
+import '../../../features/celebration/services/celebration_service.dart';
+import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
 import '../../../data/local/database/app_database.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../../features/focus/widgets/focus_nudge_banner.dart';
-import '../../../features/focus/models/pending_trigger.dart';
-import '../../../features/focus/providers/nudge_provider.dart';
+import '../../../features/focus/services/ambient_sound_player.dart';
 
-/// Deep Work Screen — 90-minute immersive focus with flow state visuals.
-/// Features:
-/// - 90-min timer with ambient glow animation
-/// - Ambient sound selector (binaural, rain, café, piano)
-/// - Pause/resume with count tracking
-/// - 2× XP multiplier
-/// - Quality grade on completion
 class DeepWorkScreen extends ConsumerStatefulWidget {
   final String? taskTitle;
   final String? taskId;
@@ -48,20 +36,7 @@ class DeepWorkScreen extends ConsumerStatefulWidget {
 
 class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  // Timer state
-  static const _totalSeconds = 90 * 60; // 90 minutes
-  int _remainingSeconds = _totalSeconds;
-  bool _isRunning = false;
-  bool _isPaused = false;
-  int _pauseCount = 0;
-  int _backgroundCount = 0;
-  Timer? _timer;
-  Timer? _leaseTimer;
-  String _sessionId = '';
-  FocusProtectionLevel _sessionProtection = FocusProtectionLevel.softReturn;
-  bool _wasBackgrounded = false;
-
-  // Ambient sound
+  
   String _selectedSound = 'none';
   final _sounds = [
     (key: 'none', emoji: '🔇', label: 'Silent'),
@@ -69,8 +44,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     (key: 'rain', emoji: '🌧️', label: 'Rain'),
     (key: 'cafe', emoji: '☕', label: 'Café'),
     (key: 'piano', emoji: '🎹', label: 'Piano'),
-    (key: 'synth', emoji: '👾', label: 'Cyber'),
   ];
+
+  bool _wasBackgrounded = false;
 
   // Flow state animation
   late AnimationController _glowController;
@@ -104,28 +80,24 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _leaseTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _glowController.dispose();
     _breatheController.dispose();
-    AmbientSoundPlayer.stop();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_isRunning) return;
-    final leavingApp =
-        state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive;
+    final active = ref.read(focusTimerNotifierProvider);
+    if (active == null || active.phase != FocusTimerPhase.running) return;
+
+    final leavingApp = state == AppLifecycleState.paused || state == AppLifecycleState.inactive;
     if (leavingApp && !_wasBackgrounded) {
       _wasBackgrounded = true;
-      _backgroundCount++;
-      if (_sessionProtection.pausesWhenLeaving && !_isPaused) {
-        _timer?.cancel();
-        AmbientSoundPlayer.stop();
-        setState(() => _isPaused = true);
+      ref.read(focusTimerNotifierProvider.notifier).recordBackground();
+      final protection = ref.read(settingsProvider).focusProtection;
+      if (protection.pausesWhenLeaving) {
+        ref.read(focusTimerNotifierProvider.notifier).pauseSession();
       }
     } else if (state == AppLifecycleState.resumed) {
       _wasBackgrounded = false;
@@ -142,16 +114,13 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
         final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
 
         if (effectiveMode == ProtectionMode.nudge) {
-          // Nudge must not block. Just clear and resume.
-          if (_isRunning && mounted) {
-            _resumeTimer();
+          if (mounted) {
+            ref.read(focusTimerNotifierProvider.notifier).resumeSession();
           }
           return;
         }
 
-        if (_isRunning && !_isPaused) {
-          _pauseTimer();
-        }
+        ref.read(focusTimerNotifierProvider.notifier).pauseSession();
 
         final db = ref.read(databaseProvider);
         final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', trigger.packageName);
@@ -165,14 +134,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
             protectionMode: effectiveMode,
             bypassAllowed: trigger.bypassAllowed,
             onKeepFocus: () {
-              if (_isRunning && mounted) {
-                _resumeTimer();
-              }
+              ref.read(focusTimerNotifierProvider.notifier).resumeSession();
             },
             onCancelSession: () {
-              if (mounted) {
-                _requestCompleteSession();
-              }
+              _stopSession();
             },
             onGrantBreak: effectiveMode == ProtectionMode.guard
                 ? (minutes) async {
@@ -180,9 +145,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                       packageName: trigger.packageName,
                       minutes: minutes,
                     );
-                    if (_isRunning && mounted) {
-                      _resumeTimer();
-                    }
+                    ref.read(focusTimerNotifierProvider.notifier).resumeSession();
                   }
                 : null,
           );
@@ -191,536 +154,344 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     } catch (_) {}
   }
 
-
-
-  void _startTimer() async {
-    HapticFeedback.heavyImpact();
-    final protection = ref.read(settingsProvider).focusProtection;
-
-    final service = ref.read(focusSessionServiceProvider);
-    _sessionId = await service.startSession(
+  Future<void> _startTimer() async {
+    final success = await ref.read(focusTimerNotifierProvider.notifier).startSession(
       type: SessionTypeColumn.deepWork,
       durationMinutes: 90,
       taskId: widget.taskId,
-      protectionMode: protection.toProtectionMode(),
+      taskTitle: widget.taskTitle,
+      selectedSound: _selectedSound,
     );
 
-    _leaseTimer = Timer.periodic(const Duration(seconds: 90), (_) {
-      ref.read(protectionPolicyServiceProvider).renewFocusLease();
-    });
-
-    setState(() {
-      _isRunning = true;
-      _isPaused = false;
-      _backgroundCount = 0;
-      _sessionProtection = protection;
-      _wasBackgrounded = false;
-    });
-
-    if (_selectedSound != 'none' && ref.read(settingsProvider).soundEnabled) {
-      await AmbientSoundPlayer.play(_selectedSound);
-    }
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_remainingSeconds > 0) {
-        setState(() => _remainingSeconds--);
-      } else {
-        _completeSession();
-      }
-    });
-  }
-
-  void _pauseTimer() {
-    HapticFeedback.mediumImpact();
-    _timer?.cancel();
-    AmbientSoundPlayer.stop();
-    setState(() {
-      _isPaused = true;
-      _pauseCount++;
-    });
-  }
-
-  void _resumeTimer() {
-    HapticFeedback.selectionClick();
-    setState(() => _isPaused = false);
-    if (_selectedSound != 'none' && ref.read(settingsProvider).soundEnabled) {
-      AmbientSoundPlayer.play(_selectedSound);
-    }
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_remainingSeconds > 0) {
-        setState(() => _remainingSeconds--);
-      } else {
-        _completeSession();
-      }
-    });
-  }
-
-  void _completeSession() async {
-    _timer?.cancel();
-    _leaseTimer?.cancel();
-    HapticFeedback.heavyImpact();
-    await AmbientSoundPlayer.fadeOut();
-
-    final elapsed = _totalSeconds - _remainingSeconds;
-    final actualMinutes = (elapsed / 60).round();
-
-    final service = ref.read(focusSessionServiceProvider);
-    final result = await service.completeSession(
-      sessionId: _sessionId,
-      elapsedSeconds: elapsed,
-      pauseCount: _pauseCount,
-      backgroundCount: _backgroundCount,
-      type: SessionTypeColumn.deepWork,
-    );
-
-    final quality = (_pauseCount + _backgroundCount) == 0
-        ? 'A'
-        : (_pauseCount + _backgroundCount) <= 2
-        ? 'B'
-        : 'C';
-
-    if (mounted) {
-      if (result.gardenGrowth != null) {
-        await GardenGrowthDialog.celebrate(context, result.gardenGrowth!);
-      }
-      if (!mounted) return;
-      for (final key in result.newlyUnlockedAchievements) {
-        final ach = allAchievements.firstWhere((a) => a.key == key);
-        CelebrationService.showAchievementToast(
-          context,
-          name: ach.name,
-          emoji: ach.emoji,
+    if (!success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('A focus session is already active.')),
         );
       }
-      context.go(
-        '/break',
-        extra: {
-          'xpEarned': result.xpEarned,
-          'qualityGrade': quality,
-          'focusMinutes': actualMinutes,
-        },
-      );
     }
   }
 
-  Future<void> _requestCompleteSession() async {
-    if (_sessionProtection.requiresExitReflection &&
+  Future<void> _togglePause(FocusTimerState active) async {
+    HapticFeedback.selectionClick();
+    if (active.phase == FocusTimerPhase.paused) {
+      await ref.read(focusTimerNotifierProvider.notifier).resumeSession();
+    } else {
+      await ref.read(focusTimerNotifierProvider.notifier).pauseSession();
+    }
+  }
+
+  Future<void> _requestStopSession() async {
+    final protection = ref.read(settingsProvider).focusProtection;
+    if (protection.requiresExitReflection &&
         !await IntentionalExitDialog.confirm(context)) {
       return;
     }
-    _completeSession();
+    _stopSession();
   }
 
-  void _showProtectionSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.background1,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: FocusProtectionSelector(
-            value: ref.read(settingsProvider).focusProtection,
-            onChanged: (level) {
-              ref.read(settingsProvider.notifier).setFocusProtection(level);
-              Navigator.pop(context);
-            },
+  Future<void> _stopSession() async {
+    final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
+    if (mounted) {
+      final active = ref.read(focusTimerNotifierProvider);
+      final total = active?.totalSeconds ?? 1;
+      final elapsed = active?.elapsedSeconds ?? 0;
+      final actualMin = (elapsed / 60).round();
+      final pct = elapsed / total;
+
+      if (pct >= 0.6 && actualMin >= 10) {
+        for (final key in result.newlyUnlockedAchievements) {
+          final ach = allAchievements.firstWhere((a) => a.key == key);
+          CelebrationService.showAchievementToast(
+            context,
+            name: ach.name,
+            emoji: ach.emoji,
+          );
+        }
+        context.push(
+          '/break',
+          extra: {
+            'xpEarned': result.xpEarned,
+            'qualityGrade': 'D',
+            'focusMinutes': actualMin,
+          },
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session stopped. Unfinished sessions receive no credit.'),
+            backgroundColor: Colors.redAccent,
           ),
-        ),
-      ),
-    );
+        );
+        context.pop();
+      }
+    }
   }
 
-  void _abandonSession() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.background2,
-        title: Text(
-          'End session?',
-          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
-        ),
-        content: Text(
-          "You'll earn partial XP for the time completed.",
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Continue'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _requestCompleteSession();
-            },
-            child: Text('End', style: TextStyle(color: AppColors.dangerCoral)),
-          ),
-        ],
-      ),
-    );
+  String _formatTime(int totalSecs) {
+    final mins = totalSecs ~/ 60;
+    final secs = totalSecs % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final progress = 1.0 - (_remainingSeconds / _totalSeconds);
-    final minutes = _remainingSeconds ~/ 60;
-    final seconds = _remainingSeconds % 60;
-    final timeStr =
-        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final active = ref.watch(focusTimerNotifierProvider);
+    final size = MediaQuery.of(context).size;
+
+    // Listen for sound updates reactively
+    ref.listen<FocusTimerState?>(focusTimerNotifierProvider, (previous, next) {
+      if (next == null) {
+        AmbientSoundPlayer.fadeOut();
+      } else {
+        if (next.phase == FocusTimerPhase.running) {
+          if (ref.read(settingsProvider).soundEnabled) {
+            AmbientSoundPlayer.play(next.selectedSound);
+          } else {
+            AmbientSoundPlayer.stop();
+          }
+        } else {
+          AmbientSoundPlayer.stop();
+        }
+      }
+    });
+
+    if (active != null) {
+      return _buildTimerView(context, active, size);
+    }
 
     return Scaffold(
-      backgroundColor: AppColors.background0,
       body: SafeArea(
-        child: Column(
-          children: [
-            if (ref.watch(currentNudgeProvider) != null)
-              FocusNudgeBanner(
-                appLabel: ref.watch(currentNudgeProvider)!.appLabel,
-                onReturn: () {
-                  if (_isRunning && mounted) {
-                    _resumeTimer();
-                  }
-                },
-                onDismiss: () {
-                  ref.read(currentNudgeProvider.notifier).dismiss();
-                },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          child: Column(
+            children: [
+              const SizedBox(height: AppSpacing.xxl),
+              Text(
+                'Deep Work',
+                style: AppTypography.display.copyWith(color: AppColors.textPrimary),
               ),
-            // Top bar
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.md,
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Grow a deep-root tree inside today\'s garden plot. Requires 90 minutes of protected attention.',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: _isRunning
-                        ? _abandonSession
-                        : () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.focusBlue.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(
-                        AppSpacing.radiusPill,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Text('🧠 ', style: const TextStyle(fontSize: 14)),
-                        Text(
-                          'DEEP WORK • 2× XP',
-                          style: AppTypography.monoSmall.copyWith(
-                            color: AppColors.focusBlue,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 48), // Balance
-                ],
-              ),
-            ),
-
-            const Spacer(),
-
-            // ─── Flow State Timer Ring ────────────────────────
-            AnimatedBuilder(
-              animation: Listenable.merge([
-                _glowController,
-                _breatheController,
-              ]),
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _isRunning ? _breatheAnimation.value : 1.0,
-                  child: SizedBox(
-                    width: 260,
-                    height: 260,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Glow
-                        if (_isRunning)
-                          Container(
-                            width: 260,
-                            height: 260,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.focusBlue.withValues(
-                                    alpha: _glowAnimation.value,
-                                  ),
-                                  blurRadius: 60,
-                                  spreadRadius: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Progress ring
-                        SizedBox(
-                          width: 240,
-                          height: 240,
-                          child: CircularProgressIndicator(
-                            value: progress,
-                            strokeWidth: 4,
-                            backgroundColor: AppColors.textTertiary.withValues(
-                              alpha: 0.1,
-                            ),
-                            valueColor: AlwaysStoppedAnimation(
-                              _isPaused
-                                  ? AppColors.warningAmber
-                                  : AppColors.focusBlue,
-                            ),
-                          ),
-                        ),
-                        // Time
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              timeStr,
-                              style: AppTypography.display.copyWith(
-                                color: AppColors.textPrimary,
-                                fontSize: 52,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            if (widget.taskTitle != null) ...[
-                              const SizedBox(height: AppSpacing.sm),
-                              SizedBox(
-                                width: 160,
-                                child: Text(
-                                  widget.taskTitle!,
-                                  style: AppTypography.caption.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                            if (_isPaused) ...[
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                'PAUSED',
-                                style: AppTypography.monoSmall.copyWith(
-                                  color: AppColors.warningAmber,
-                                  letterSpacing: 3,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: AppSpacing.xxl),
-
-            if (!_isRunning)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-                child: Container(
+              const SizedBox(height: AppSpacing.xxl),
+              if (widget.taskTitle != null) ...[
+                Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: AppColors.emerald.withValues(alpha: 0.08),
+                    color: AppColors.emerald.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
                     border: Border.all(
-                      color: AppColors.emerald.withValues(alpha: 0.18),
+                      color: AppColors.emerald.withValues(alpha: 0.2),
                     ),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Text('🌰', style: TextStyle(fontSize: 24)),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          widget.taskTitle == null
-                              ? 'A deep-focus seed is ready to become a tree.'
-                              : 'Growing a deep-root tree for “${widget.taskTitle}”.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                      const Text('🎯', style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        widget.taskTitle!,
+                        style: AppTypography.h3.copyWith(color: AppColors.emerald),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
-              ),
-
-            if (!_isRunning) const SizedBox(height: AppSpacing.lg),
-
-            if (!_isRunning)
-              TextButton.icon(
-                onPressed: _showProtectionSheet,
-                icon: const Icon(Icons.shield_outlined, size: 16),
-                label: Text(
-                  'Protection: ${ref.watch(settingsProvider).focusProtection.label}',
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.focusBlue,
-                ),
-              ),
-
-            // Pause count
-            if (_pauseCount > 0)
-              Text(
-                'Paused $_pauseCount×',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-              ),
-
-            const Spacer(),
-
-            // ─── Ambient Sounds ──────────────────────────────
-            if (!_isRunning || _isPaused) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ambient Sound',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: _sounds.map((s) {
-                        final isActive = _selectedSound == s.key;
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            setState(() => _selectedSound = s.key);
-                            if (_isRunning &&
-                                !_isPaused &&
-                                ref.read(settingsProvider).soundEnabled) {
-                              AmbientSoundPlayer.play(s.key);
-                            }
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.sm,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? AppColors.focusBlue.withValues(alpha: 0.15)
-                                  : AppColors.background2,
-                              borderRadius: BorderRadius.circular(
-                                AppSpacing.radiusPill,
-                              ),
-                              border: Border.all(
-                                color: isActive
-                                    ? AppColors.focusBlue
-                                    : Colors.transparent,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Text(
-                                  s.emoji,
-                                  style: const TextStyle(fontSize: 20),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  s.label,
-                                  style: AppTypography.caption.copyWith(
-                                    color: isActive
-                                        ? AppColors.focusBlue
-                                        : AppColors.textTertiary,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              FocusProtectionSelector(
+                value: ref.watch(settingsProvider).focusProtection,
+                onChanged: (level) => ref
+                    .read(settingsProvider.notifier)
+                    .setFocusProtection(level),
               ),
               const SizedBox(height: AppSpacing.xxl),
+              ElevatedButton(
+                onPressed: _startTimer,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.focusBlue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Begin Deep Work',
+                  style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
             ],
-
-            // ─── Controls ────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-              child: _buildControls(),
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildControls() {
-    if (!_isRunning) {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _startTimer,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.focusBlue,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-          ),
-          child: const Text('Enter Flow State'),
-        ),
-      );
-    }
+  Widget _buildTimerView(BuildContext context, FocusTimerState active, Size size) {
+    final remaining = active.totalSeconds - active.elapsedSeconds;
+    final timeVal = remaining.clamp(0, active.totalSeconds);
+    final progress = active.elapsedSeconds / active.totalSeconds;
+    final liveXP = (active.elapsedSeconds / 60 * 3.2).round().clamp(0, 300); // 2x deep work multi
 
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton(
-            onPressed: _isPaused ? _resumeTimer : _pauseTimer,
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: _isPaused ? AppColors.emerald : AppColors.warningAmber,
-              ),
-              foregroundColor: _isPaused
-                  ? AppColors.emerald
-                  : AppColors.warningAmber,
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-            ),
-            child: Text(_isPaused ? 'Resume' : 'Pause'),
+    return Scaffold(
+      backgroundColor: AppColors.background0,
+      body: Stack(
+        children: [
+          // Dynamic glow animation
+          AnimatedBuilder(
+            animation: _glowAnimation,
+            builder: (context, child) {
+              return Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.focusBlue.withValues(alpha: _glowAnimation.value),
+                      Colors.transparent,
+                    ],
+                    radius: 1.2,
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: _requestCompleteSession,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.emerald,
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          SafeArea(
+            child: Column(
+              children: [
+                const Spacer(flex: 2),
+                AnimatedBuilder(
+                  animation: _breatheAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: active.phase == FocusTimerPhase.running ? _breatheAnimation.value : 1.0,
+                      child: child,
+                    );
+                  },
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _formatTime(timeVal),
+                          style: AppTypography.display.copyWith(
+                            color: AppColors.textPrimary,
+                            fontSize: 72,
+                            fontWeight: FontWeight.w200,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Deep Work Session',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textTertiary,
+                            letterSpacing: 2.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                Text(
+                  '+$liveXP XP (2x Multiplier)',
+                  style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
+                ),
+                const Spacer(flex: 1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_sounds.length, (i) {
+                    final s = _sounds[i];
+                    final isActive = s.key == active.selectedSound;
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(focusTimerNotifierProvider.notifier).selectSound(s.key);
+                      },
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isActive
+                              ? AppColors.emerald.withValues(alpha: 0.15)
+                              : AppColors.background2,
+                          border: Border.all(
+                            color: isActive ? AppColors.emerald : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            s.emoji,
+                            style: const TextStyle(fontSize: 20),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _togglePause(active),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.textTertiary,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          active.phase == FocusTimerPhase.paused
+                              ? Icons.play_arrow_rounded
+                              : Icons.pause_rounded,
+                          color: AppColors.textSecondary,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xxl),
+                    GestureDetector(
+                      onTap: _requestStopSession,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.dangerCoral.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.stop_rounded,
+                          color: AppColors.dangerCoral.withValues(alpha: 0.7),
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+              ],
             ),
-            child: const Text('Complete'),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -78,14 +78,23 @@ class GardenService {
       final task = session.taskId == null
           ? null
           : await _db.tasksDao.getById(session.taskId!);
-      objects.add(
-        GardenObject.fromFocusSession(
-          sessionId: session.id,
-          sessionType: session.sessionType,
-          actualMinutes: session.actualMinutes,
-          taskTitle: task?.title,
-        ),
-      );
+      if (session.gardenSeedKind != null) {
+        objects.add(
+          GardenObject.fromPersistedSeed(
+            session,
+            taskTitle: task?.title,
+          ),
+        );
+      } else {
+        objects.add(
+          GardenObject.fromFocusSession(
+            sessionId: session.id,
+            sessionType: session.sessionType,
+            actualMinutes: session.actualMinutes,
+            taskTitle: task?.title,
+          ),
+        );
+      }
     }
 
     if (recoveryCount > 0) {
