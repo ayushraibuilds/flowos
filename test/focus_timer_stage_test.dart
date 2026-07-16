@@ -181,13 +181,115 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 150));
 
       final rehydratedState = newContainer.read(focusTimerNotifierProvider);
-      // Stale paused session should run stopSession and clean state
-      expect(rehydratedState, isNull);
+      // Stale paused session should transition to stopped state without silent erasure
+      expect(rehydratedState, isNotNull);
+      expect(rehydratedState!.phase, equals(FocusTimerPhase.stopped));
 
       final session = await db.focusSessionsDao.getById('paused-stale-session');
       expect(session, isNotNull);
       expect(session!.completedAt, isNotNull);
       expect(session.qualityScore, equals('F')); // Stopped with F due to stale/aborted timeout
+
+      // Calling clearActiveSession should then wipe preferences and state
+      await newContainer.read(focusTimerNotifierProvider.notifier).clearActiveSession();
+      expect(newContainer.read(focusTimerNotifierProvider), isNull);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('flowos_active_session_id'), isNull);
+      
+      newContainer.dispose();
+    });
+
+    test('Partial credit bounds: progress >= 60% and time >= 10m gets D and partial XP, otherwise F and 0 XP', () async {
+      final service = FocusSessionService(db);
+      
+      // Case A: 5 minutes elapsed out of 25 (progress = 20%, < 10 minutes) -> F grade, 0 XP
+      await db.focusSessionsDao.insertSession(
+        FocusSessionsCompanion(
+          id: const drift.Value('partial-1'),
+          sessionType: const drift.Value(SessionTypeColumn.pomodoro),
+          durationMinutes: const drift.Value(25),
+          startedAt: drift.Value(DateTime.now()),
+        ),
+      );
+      final res1 = await service.stopSession(
+        sessionId: 'partial-1',
+        elapsedSeconds: 5 * 60,
+        totalSeconds: 25 * 60,
+        pauseCount: 0,
+        backgroundCount: 0,
+        type: SessionTypeColumn.pomodoro,
+      );
+      expect(res1.xpEarned, equals(0));
+      final s1 = await db.focusSessionsDao.getById('partial-1');
+      expect(s1!.qualityScore, equals('F'));
+
+      // Case B: 18 minutes elapsed out of 25 (progress = 72% >= 60%, minutes = 18 >= 10m) -> D grade, partial XP
+      await db.focusSessionsDao.insertSession(
+        FocusSessionsCompanion(
+          id: const drift.Value('partial-2'),
+          sessionType: const drift.Value(SessionTypeColumn.pomodoro),
+          durationMinutes: const drift.Value(25),
+          startedAt: drift.Value(DateTime.now()),
+        ),
+      );
+      final res2 = await service.stopSession(
+        sessionId: 'partial-2',
+        elapsedSeconds: 18 * 60,
+        totalSeconds: 25 * 60,
+        pauseCount: 0,
+        backgroundCount: 0,
+        type: SessionTypeColumn.pomodoro,
+      );
+      expect(res2.xpEarned, greaterThan(0));
+      final s2 = await db.focusSessionsDao.getById('partial-2');
+      expect(s2!.qualityScore, equals('D'));
+    });
+
+    test('Overnight rollover or stale countdown session auto-finalizes to completed or stopped phase', () async {
+      final now = DateTime.now().toUtc();
+      final expectedEnd = now.subtract(const Duration(minutes: 2)); // naturally completed 2 minutes ago
+      
+      SharedPreferences.setMockInitialValues({
+        'flowos_active_session_id': 'completed-stale-session',
+        'flowos_active_session_type': SessionTypeColumn.pomodoro.name,
+        'flowos_active_phase': FocusTimerPhase.running.name,
+        'flowos_active_total_seconds': 25 * 60,
+        'flowos_active_elapsed_seconds': 25 * 60,
+        'flowos_active_started_at_utc': now.subtract(const Duration(minutes: 27)).toIso8601String(),
+        'flowos_active_expected_end_time_utc': expectedEnd.toIso8601String(),
+        'flowos_active_seed_kind': 'flower',
+        'flowos_active_seed_emoji': '🌸',
+      });
+
+      await db.focusSessionsDao.insertSession(
+        FocusSessionsCompanion(
+          id: const drift.Value('completed-stale-session'),
+          sessionType: const drift.Value(SessionTypeColumn.pomodoro),
+          durationMinutes: const drift.Value(25),
+          startedAt: drift.Value(DateTime.now().subtract(const Duration(minutes: 27))),
+        ),
+      );
+
+      final newContainer = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+        ],
+      );
+      newContainer.read(focusTimerNotifierProvider);
+
+      // Wait for async rehydration query and completeSession completion
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      final rehydratedState = newContainer.read(focusTimerNotifierProvider);
+      // Completed naturally while closed should transition to completed phase
+      expect(rehydratedState, isNotNull);
+      expect(rehydratedState!.phase, equals(FocusTimerPhase.completed));
+
+      final session = await db.focusSessionsDao.getById('completed-stale-session');
+      expect(session, isNotNull);
+      expect(session!.completedAt, isNotNull);
+      expect(session.qualityScore, isNot(equals('F'))); // Completed successfully
       
       newContainer.dispose();
     });

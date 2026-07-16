@@ -27,14 +27,12 @@ import '../../../features/focus/services/ambient_sound_player.dart';
 class FocusScreen extends ConsumerStatefulWidget {
   final int? durationMinutes;
   final String? sessionLabel;
-  final bool firstSeed;
   final bool autoStart;
 
   const FocusScreen({
     super.key,
     this.durationMinutes,
     this.sessionLabel,
-    this.firstSeed = false,
     this.autoStart = false,
   });
 
@@ -63,6 +61,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
 
   bool _wasBackgrounded = false;
   bool _showReturnCue = false;
+  bool _isFinalizing = false;
 
   @override
   void initState() {
@@ -163,17 +162,13 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
 
   Future<void> _startTimer() async {
     final isFlowtime = _selectedSessionType == 3;
-    final int minutes = widget.firstSeed
-        ? 10
-        : (widget.durationMinutes ?? _sessionTypes[_selectedSessionType].minutes);
+    final int minutes = (widget.durationMinutes ?? _sessionTypes[_selectedSessionType].minutes);
 
-    final SessionTypeColumn dbType = widget.firstSeed
-        ? SessionTypeColumn.custom
-        : (_selectedSessionType == 0
-            ? SessionTypeColumn.pomodoro
-            : (_selectedSessionType == 2
-                ? SessionTypeColumn.deepWork
-                : SessionTypeColumn.custom));
+    final SessionTypeColumn dbType = _selectedSessionType == 0
+        ? SessionTypeColumn.pomodoro
+        : (_selectedSessionType == 2
+            ? SessionTypeColumn.deepWork
+            : SessionTypeColumn.custom);
 
     final success = await ref.read(focusTimerNotifierProvider.notifier).startSession(
       type: dbType,
@@ -211,6 +206,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
   }
 
   Future<void> _stopSession() async {
+    if (_isFinalizing) return;
+    setState(() => _isFinalizing = true);
+
     final active = ref.read(focusTimerNotifierProvider);
     if (active == null) return;
 
@@ -220,8 +218,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
     final pct = elapsed / total;
 
     final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
-    if (mounted) {
+    await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
 
+    if (mounted) {
       if (pct >= 0.6 && actualMin >= 10) {
         for (final key in result.newlyUnlockedAchievements) {
           final ach = allAchievements.firstWhere((a) => a.key == key);
@@ -231,7 +230,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
             emoji: ach.emoji,
           );
         }
-        context.push(
+        context.pushReplacement(
           '/break',
           extra: {
             'xpEarned': result.xpEarned,
@@ -252,6 +251,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
   }
 
   Future<void> _onComplete() async {
+    if (_isFinalizing) return;
+    setState(() => _isFinalizing = true);
+
     HapticFeedback.heavyImpact();
     final active = ref.read(focusTimerNotifierProvider);
     if (active == null) return;
@@ -260,6 +262,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
     final actualMin = (elapsed / 60).round();
 
     final result = await ref.read(focusTimerNotifierProvider.notifier).completeSession();
+    await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
     
     final quality = (active.pauseCount + active.backgroundCount) == 0
         ? 'A'
@@ -280,7 +283,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
           emoji: ach.emoji,
         );
       }
-      context.push(
+      context.pushReplacement(
         '/break',
         extra: {
           'xpEarned': result.xpEarned,
@@ -302,12 +305,16 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
     final active = ref.watch(focusTimerNotifierProvider);
     final size = MediaQuery.of(context).size;
 
-    // Listen for sound updates reactively
+    // Listen for sound updates and session completion reactively
     ref.listen<FocusTimerState?>(focusTimerNotifierProvider, (previous, next) {
       if (next == null) {
         AmbientSoundPlayer.fadeOut();
       } else {
-        if (next.phase == FocusTimerPhase.running) {
+        if (next.phase == FocusTimerPhase.completed) {
+          _onComplete();
+        } else if (next.phase == FocusTimerPhase.stopped) {
+          _stopSession();
+        } else if (next.phase == FocusTimerPhase.running) {
           if (ref.read(settingsProvider).soundEnabled) {
             AmbientSoundPlayer.play(next.selectedSound);
           } else {
@@ -341,37 +348,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
-              if (widget.firstSeed) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    color: AppColors.emerald.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                    border: Border.all(
-                      color: AppColors.emerald.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('🌱', style: TextStyle(fontSize: 48)),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'Plant your first seed',
-                        style: AppTypography.h3.copyWith(color: AppColors.emerald),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'This is a special 10-minute deep work session to start your garden.',
-                        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-              ] else ...[
-                GridView.builder(
+              GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -441,8 +418,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
                       .read(settingsProvider.notifier)
                       .setFocusProtection(level),
                 ),
-              ],
-              const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.md),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(

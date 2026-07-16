@@ -49,10 +49,16 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       return;
     }
 
+    final phaseStr = prefs.getString(_prefPhase) ?? FocusTimerPhase.idle.name;
+    final phase = FocusTimerPhase.values.firstWhere(
+      (e) => e.name == phaseStr,
+      orElse: () => FocusTimerPhase.idle,
+    );
+
     // Verify session existence and active status in DB (source of truth reconciliation)
     final db = _ref.read(databaseProvider);
     final dbSession = await db.focusSessionsDao.getById(sessionId);
-    if (dbSession == null || dbSession.completedAt != null) {
+    if (dbSession == null || (dbSession.completedAt != null && (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused))) {
       // Conflicting/stale pref payload -> clear
       await _clearPrefs();
       state = null;
@@ -66,11 +72,6 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     final sessionType = SessionTypeColumn.values.firstWhere(
       (e) => e.name == sessionTypeStr,
       orElse: () => SessionTypeColumn.pomodoro,
-    );
-    final phaseStr = prefs.getString(_prefPhase) ?? FocusTimerPhase.idle.name;
-    final phase = FocusTimerPhase.values.firstWhere(
-      (e) => e.name == phaseStr,
-      orElse: () => FocusTimerPhase.idle,
     );
     final totalSeconds = prefs.getInt(_prefTotalSeconds) ?? 25 * 60;
     final elapsedSeconds = prefs.getInt(_prefElapsedSeconds) ?? 0;
@@ -120,7 +121,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     final now = DateTime.now().toUtc();
     final isCountdown = sessionType != SessionTypeColumn.custom; // Custom = Flowtime
 
-    if (isCountdown && expectedEndTimeUtc != null) {
+    if (isCountdown && expectedEndTimeUtc != null && (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused)) {
       // 1. Check stale countdown session (startedAt + duration + 5 mins limit)
       final staleLimit = expectedEndTimeUtc.add(const Duration(minutes: 5));
       if (now.isAfter(staleLimit)) {
@@ -134,8 +135,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
           backgroundCount: backgroundCount,
           type: sessionType,
         );
-        await _clearPrefs();
-        state = null;
+        restored = restored.copyWith(phase: FocusTimerPhase.stopped);
+        state = restored;
+        await _saveToPrefs(restored);
         return;
       }
 
@@ -150,8 +152,12 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
           backgroundCount: backgroundCount,
           type: sessionType,
         );
-        await _clearPrefs();
-        state = null;
+        restored = restored.copyWith(
+          phase: FocusTimerPhase.completed,
+          elapsedSeconds: totalSeconds,
+        );
+        state = restored;
+        await _saveToPrefs(restored);
         return;
       }
 
@@ -160,7 +166,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
         final elapsed = totalSeconds - expectedEndTimeUtc.difference(now).inSeconds;
         restored = restored.copyWith(elapsedSeconds: elapsed.clamp(0, totalSeconds));
       }
-    } else if (!isCountdown) {
+    } else if (!isCountdown && (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused)) {
       // Flowtime stale/resume checks
       if (phase == FocusTimerPhase.running && lastResumedAtUtc != null) {
         // Catch up Flowtime elapsed seconds
@@ -180,8 +186,12 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
             type: sessionType,
             isFlowtime: true,
           );
-          await _clearPrefs();
-          state = null;
+          restored = restored.copyWith(
+            phase: FocusTimerPhase.completed,
+            elapsedSeconds: running,
+          );
+          state = restored;
+          await _saveToPrefs(restored);
           return;
         }
       }
@@ -202,8 +212,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
           backgroundCount: backgroundCount,
           type: sessionType,
         );
-        await _clearPrefs();
-        state = null;
+        restored = restored.copyWith(phase: FocusTimerPhase.stopped);
+        state = restored;
+        await _saveToPrefs(restored);
         return;
       }
     }
@@ -368,9 +379,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       type: current.sessionType,
     );
 
-    state = current.copyWith(phase: FocusTimerPhase.stopped);
-    await _clearPrefs();
-    state = null;
+    final updated = current.copyWith(phase: FocusTimerPhase.stopped);
+    state = updated;
+    await _saveToPrefs(updated);
     return result;
   }
 
@@ -394,10 +405,19 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       isFlowtime: isFlow,
     );
 
-    state = current.copyWith(phase: FocusTimerPhase.completed);
+    final updated = current.copyWith(
+      phase: FocusTimerPhase.completed,
+      elapsedSeconds: isFlow ? current.elapsedSeconds : current.totalSeconds,
+    );
+    state = updated;
+    await _saveToPrefs(updated);
+    return result;
+  }
+
+  /// Clear the active session and preferences.
+  Future<void> clearActiveSession() async {
     await _clearPrefs();
     state = null;
-    return result;
   }
 
   /// Record a background switch. Increments background counter.

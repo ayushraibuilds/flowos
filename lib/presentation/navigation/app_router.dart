@@ -140,7 +140,6 @@ final appRouter = GoRouter(
               child: FocusScreen(
                 durationMinutes: extra?['durationMinutes'] as int?,
                 sessionLabel: extra?['sessionLabel'] as String?,
-                firstSeed: extra?['firstSeed'] as bool? ?? false,
                 autoStart: extra?['autoStart'] as bool? ?? false,
               ),
             );

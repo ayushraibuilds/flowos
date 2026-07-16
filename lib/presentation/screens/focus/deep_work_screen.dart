@@ -47,6 +47,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   ];
 
   bool _wasBackgrounded = false;
+  bool _isFinalizing = false;
 
   // Flow state animation
   late AnimationController _glowController;
@@ -191,6 +192,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   }
 
   Future<void> _stopSession() async {
+    if (_isFinalizing) return;
+    setState(() => _isFinalizing = true);
+
     final active = ref.read(focusTimerNotifierProvider);
     if (active == null) return;
 
@@ -200,8 +204,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     final pct = elapsed / total;
 
     final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
-    if (mounted) {
+    await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
 
+    if (mounted) {
       if (pct >= 0.6 && actualMin >= 10) {
         for (final key in result.newlyUnlockedAchievements) {
           final ach = allAchievements.firstWhere((a) => a.key == key);
@@ -211,7 +216,7 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
             emoji: ach.emoji,
           );
         }
-        context.push(
+        context.pushReplacement(
           '/break',
           extra: {
             'xpEarned': result.xpEarned,
@@ -231,6 +236,46 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     }
   }
 
+  Future<void> _onComplete() async {
+    if (_isFinalizing) return;
+    setState(() => _isFinalizing = true);
+
+    HapticFeedback.heavyImpact();
+    final active = ref.read(focusTimerNotifierProvider);
+    if (active == null) return;
+    
+    final elapsed = active.elapsedSeconds;
+    final actualMin = (elapsed / 60).round();
+
+    final result = await ref.read(focusTimerNotifierProvider.notifier).completeSession();
+    await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
+    
+    final quality = (active.pauseCount + active.backgroundCount) == 0
+        ? 'A'
+        : (active.pauseCount + active.backgroundCount) <= 2
+        ? 'B'
+        : 'C';
+
+    if (mounted) {
+      for (final key in result.newlyUnlockedAchievements) {
+        final ach = allAchievements.firstWhere((a) => a.key == key);
+        CelebrationService.showAchievementToast(
+          context,
+          name: ach.name,
+          emoji: ach.emoji,
+        );
+      }
+      context.pushReplacement(
+        '/break',
+        extra: {
+          'xpEarned': result.xpEarned,
+          'qualityGrade': quality,
+          'focusMinutes': actualMin,
+        },
+      );
+    }
+  }
+
   String _formatTime(int totalSecs) {
     final mins = totalSecs ~/ 60;
     final secs = totalSecs % 60;
@@ -242,12 +287,16 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     final active = ref.watch(focusTimerNotifierProvider);
     final size = MediaQuery.of(context).size;
 
-    // Listen for sound updates reactively
+    // Listen for sound updates and session completion reactively
     ref.listen<FocusTimerState?>(focusTimerNotifierProvider, (previous, next) {
       if (next == null) {
         AmbientSoundPlayer.fadeOut();
       } else {
-        if (next.phase == FocusTimerPhase.running) {
+        if (next.phase == FocusTimerPhase.completed) {
+          _onComplete();
+        } else if (next.phase == FocusTimerPhase.stopped) {
+          _stopSession();
+        } else if (next.phase == FocusTimerPhase.running) {
           if (ref.read(settingsProvider).soundEnabled) {
             AmbientSoundPlayer.play(next.selectedSound);
           } else {
