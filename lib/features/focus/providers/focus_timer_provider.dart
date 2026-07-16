@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../data/local/database/app_database.dart';
 import '../../../../data/local/tables/focus_sessions_table.dart';
+import '../../../../core/config/supabase_config.dart';
 import '../models/focus_timer_stage.dart';
 import '../services/focus_session_service.dart';
 import '../services/policy_writer.dart';
@@ -283,7 +284,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await _saveToPrefs(newState);
     _startTickers();
     // Trigger immediate push to sync the active session state
-    _ref.read(syncEngineProvider).schedulePush();
+    if (SupabaseConfig.isConfigured) {
+      _ref.read(syncEngineProvider).schedulePush();
+    }
     return true;
   }
 
@@ -317,7 +320,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     } catch (_) {}
 
     // Trigger immediate push to sync the active session state
-    _ref.read(syncEngineProvider).schedulePush();
+    if (SupabaseConfig.isConfigured) {
+      _ref.read(syncEngineProvider).schedulePush();
+    }
   }
 
   /// Resume current paused timer session.
@@ -366,7 +371,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     } catch (_) {}
 
     // Trigger immediate push to sync the active session state
-    _ref.read(syncEngineProvider).schedulePush();
+    if (SupabaseConfig.isConfigured) {
+      _ref.read(syncEngineProvider).schedulePush();
+    }
   }
 
   /// Stop session prematurely (cancellation/stop pipeline).
@@ -393,7 +400,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await _saveToPrefs(updated);
 
     // Trigger immediate push to sync the active session state
-    _ref.read(syncEngineProvider).schedulePush();
+    if (SupabaseConfig.isConfigured) {
+      _ref.read(syncEngineProvider).schedulePush();
+    }
     return result;
   }
 
@@ -425,7 +434,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await _saveToPrefs(updated);
 
     // Trigger immediate push to sync the active session state
-    _ref.read(syncEngineProvider).schedulePush();
+    if (SupabaseConfig.isConfigured) {
+      _ref.read(syncEngineProvider).schedulePush();
+    }
     return result;
   }
 
