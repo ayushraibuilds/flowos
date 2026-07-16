@@ -344,11 +344,11 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           data: (data) {
             if (data is! WeeklyAggregate) return const SizedBox.shrink();
             
-            // Weekly Score Terrain (overlaid focus & distraction trend chart)
+            // Weekly Rhythm Terrain (overlaid focus & distraction trend chart)
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Score Terrain', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+                Text('Rhythm Terrain', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
                 const SizedBox(height: AppSpacing.md),
                 SizedBox(
                   height: 180,
@@ -378,16 +378,53 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                         // Focus line
                         LineChartBarData(
                           spots: List.generate(data.days.length, (i) {
-                            return FlSpot(i.toDouble(), data.days[i].score.toDouble());
+                            return FlSpot(i.toDouble(), data.days[i].focusMinutes.toDouble());
                           }),
                           isCurved: true,
                           color: AppColors.emerald,
                           barWidth: 3,
                           dotData: const FlDotData(show: true),
                         ),
+                        // Distraction/Scroll line
+                        LineChartBarData(
+                          spots: List.generate(data.days.length, (i) {
+                            return FlSpot(i.toDouble(), data.days[i].scrollMinutes.toDouble());
+                          }),
+                          isCurved: true,
+                          color: AppColors.warningAmber,
+                          barWidth: 3,
+                          dotData: const FlDotData(show: true),
+                        ),
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.emerald,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Focus Time', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    const SizedBox(width: 24),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppColors.warningAmber,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text('Distractions', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                  ],
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 if (data.hasReclaimableData) ...[

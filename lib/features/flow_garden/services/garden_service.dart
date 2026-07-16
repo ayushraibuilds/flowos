@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:drift/drift.dart';
 
 import '../../../data/local/database/app_database.dart';
@@ -190,15 +191,64 @@ class GardenService {
     );
   }
 
-  Stream<GardenDay> watchToday() => _poll(() => buildDay(DateTime.now()));
+  Stream<GardenDay> watchToday() {
+    final controller = StreamController<GardenDay>();
+    StreamSubscription? sub;
 
-  Stream<List<GardenDay>> watchCurrentWeek() => _poll(buildCurrentWeek);
-
-  Stream<T> _poll<T>(Future<T> Function() load) async* {
-    yield await load();
-    await for (final _ in Stream<void>.periodic(const Duration(seconds: 12))) {
-      yield await load();
+    void update() async {
+      try {
+        final day = await buildDay(DateTime.now());
+        if (!controller.isClosed) {
+          controller.add(day);
+        }
+      } catch (_) {}
     }
+
+    sub = _db.tableUpdates(TableUpdateQuery.onAllTables({
+      _db.focusSessions,
+      _db.scrollLogs,
+      _db.energyCheckIns,
+      _db.dailyPlans,
+      _db.deviceUsageRecords,
+      _db.deviceDayMetrics,
+    })).listen((_) => update());
+
+    controller.onCancel = () {
+      sub?.cancel();
+    };
+
+    update();
+    return controller.stream;
+  }
+
+  Stream<List<GardenDay>> watchCurrentWeek() {
+    final controller = StreamController<List<GardenDay>>();
+    StreamSubscription? sub;
+
+    void update() async {
+      try {
+        final week = await buildCurrentWeek();
+        if (!controller.isClosed) {
+          controller.add(week);
+        }
+      } catch (_) {}
+    }
+
+    sub = _db.tableUpdates(TableUpdateQuery.onAllTables({
+      _db.focusSessions,
+      _db.scrollLogs,
+      _db.energyCheckIns,
+      _db.dailyPlans,
+      _db.deviceUsageRecords,
+      _db.deviceDayMetrics,
+    })).listen((_) => update());
+
+    controller.onCancel = () {
+      sub?.cancel();
+    };
+
+    update();
+    return controller.stream;
   }
 
   DateTime _startOfToday() {

@@ -358,7 +358,7 @@ class AttentionDataRepository {
     }
 
     final metric = await _db.deviceDayMetricsDao.getForDay(targetDate, 'android');
-    if (metric == null || metric.coverageState == 'notConnected') {
+    if (metric == null) {
       return AttentionDay(
         day: targetDate,
         coverage: DataCoverage.notConnected,
@@ -374,12 +374,25 @@ class AttentionDataRepository {
         .where((r) => r.isDistracting == true && r.source == 'android_usage')
         .fold<int>(0, (sum, r) => sum + r.minutes);
 
+    final DataCoverage coverage = switch (metric.coverageState) {
+      'complete' => DataCoverage.complete,
+      'partial' => DataCoverage.partial,
+      'unsupported' => DataCoverage.unsupported,
+      _ => DataCoverage.notConnected,
+    };
+
+    final effectiveDistracting = switch (coverage) {
+      DataCoverage.complete => nativeDistracting,
+      DataCoverage.partial => nativeDistracting > manualMinutes ? nativeDistracting : manualMinutes,
+      _ => manualMinutes,
+    };
+
     return AttentionDay(
       day: targetDate,
-      coverage: DataCoverage.complete,
+      coverage: coverage,
       nativeDistractingMinutes: nativeDistracting,
       manualScrollMinutes: manualMinutes,
-      effectiveDistractingMinutes: nativeDistracting,
+      effectiveDistractingMinutes: effectiveDistracting,
       unlockCount: metric.unlockCount ?? 0,
     );
   }
