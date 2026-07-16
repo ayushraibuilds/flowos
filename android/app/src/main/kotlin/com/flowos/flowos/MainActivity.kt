@@ -11,6 +11,9 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Process
 import android.provider.Settings
+import android.provider.MediaStore
+import android.telecom.TelecomManager
+import android.util.LruCache
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -19,10 +22,15 @@ import java.util.Calendar
 import org.json.JSONObject
 import org.json.JSONArray
 import java.util.UUID
+import kotlinx.coroutines.*
 
 class MainActivity : FlutterActivity() {
     private val usageStatsChannel = "flowos/usage_stats"
     private val deviceAttentionChannel = "flowos/device_attention"
+
+    private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val iconCache = LruCache<String, ByteArray>(100)
+    private val inFlightIconRequests = mutableMapOf<String, Deferred<ByteArray?>>()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -44,7 +52,12 @@ class MainActivity : FlutterActivity() {
                                 null,
                             )
                         } else {
-                            result.success(todayUsageMinutes())
+                            ioScope.launch {
+                                val usage = todayUsageMinutes()
+                                withContext(Dispatchers.Main) {
+                                    result.success(usage)
+                                }
+                            }
                         }
                     }
                     "getUsageForDays" -> {
@@ -56,7 +69,12 @@ class MainActivity : FlutterActivity() {
                             )
                         } else {
                             val days = call.argument<Int>("days") ?: 1
-                            result.success(getUsageForDays(days))
+                            ioScope.launch {
+                                val usage = getUsageForDays(days)
+                                withContext(Dispatchers.Main) {
+                                    result.success(usage)
+                                }
+                            }
                         }
                     }
                     "checkUsagePermission" -> {
@@ -107,121 +125,127 @@ class MainActivity : FlutterActivity() {
                         result.success(null)
                     }
                     "getLaunchableApps" -> {
-                        result.success(getLaunchableAppsList())
+                        ioScope.launch {
+                            val apps = getLaunchableAppsList()
+                            withContext(Dispatchers.Main) {
+                                result.success(apps)
+                            }
+                        }
                     }
                     "loadAppIcon" -> {
                         val pkg = call.argument<String>("packageName")
                         if (pkg != null) {
-                            result.success(loadAppIcon(pkg))
+                            ioScope.launch {
+                                val iconBytes = getAppIconCached(pkg)
+                                withContext(Dispatchers.Main) {
+                                    result.success(iconBytes)
+                                }
+                            }
                         } else {
                             result.error("bad_arguments", "Missing packageName", null)
                         }
                     }
                     "claimPendingBlockedAppTrigger" -> {
-                        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-                        val triggerStr = prefs.getString("flutter.flowos_pending_trigger", null)
-                        if (triggerStr != null) {
-                            try {
-                                val trigger = JSONObject(triggerStr)
-                                val id = trigger.optString("id")
-                                val claimed = trigger.optBoolean("claimed", false)
-                                val triggeredAt = trigger.optLong("triggeredAt", 0L)
-                                val now = System.currentTimeMillis()
-
-                                if (!claimed && (now - triggeredAt < 60000)) {
-                                    trigger.put("claimed", true)
-                                    prefs.edit().putString("flutter.flowos_pending_trigger", trigger.toString()).apply()
-
-                                    result.success(mapOf(
-                                        "id" to id,
-                                        "packageName" to trigger.optString("packageName"),
-                                        "triggeredAt" to triggeredAt,
-                                        "source" to trigger.optString("source", "focus"),
-                                        "claimed" to true,
-                                        "bypassAllowed" to trigger.optBoolean("bypassAllowed", true)
-                                    ))
-                                    return@setMethodCallHandler
-                                  }
-                              } catch (e: Exception) {}
-                          }
-                          result.success(null)
-                      }
-                      "claimPendingNudge" -> {
-                          val now = System.currentTimeMillis()
-                          val claimed = NudgeStore.claim(this, now)
-                          result.success(claimed)
-                      }
-                      "clearNudgesForSession" -> {
-                          val sessionId = call.argument<String>("sessionId")
-                          if (sessionId != null) {
-                              NudgeStore.clearForSession(this, sessionId)
-                          }
-                          result.success(null)
-                      }
-                      "getDefaultEssentialPackages" -> {
-                          result.success(getDefaultEssentialPackagesList())
-                      }
-                      "getDailyUsage" -> {
-                          val start = call.argument<Long>("startMs")
-                          val end = call.argument<Long>("endMs")
-                          if (start != null && end != null) {
-                              if (!hasUsageStatsPermission()) {
-                                  result.error(
-                                      "permission_denied",
-                                      "Usage Access is required to read device screen time.",
-                                      null,
-                                  )
-                              } else {
-                                  result.success(getDailyUsageRange(start, end))
-                              }
-                          } else {
-                              result.error("bad_arguments", "Missing startMs or endMs", null)
-                          }
-                      }
-                      "getDailyUnlockEvents" -> {
-                          val start = call.argument<Long>("startMs")
-                          val end = call.argument<Long>("endMs")
-                          if (start != null && end != null) {
-                              if (!hasUsageStatsPermission()) {
-                                  result.error(
-                                      "permission_denied",
-                                      "Usage Access is required to read unlock events.",
-                                      null,
-                                  )
-                              } else {
-                                  result.success(getDailyUnlockEventsRange(start, end))
-                              }
-                          } else {
-                              result.error("bad_arguments", "Missing startMs or endMs", null)
-                          }
-                      }
-                      "startInFlightBatch" -> {
-                          result.success(NotificationCountStore.startInFlightBatch(this))
-                      }
-                      "acknowledgeBatch" -> {
-                          val batchId = call.argument<String>("batchId")
-                          if (batchId != null) {
-                              NotificationCountStore.acknowledgeBatch(this, batchId)
-                              result.success(null)
-                          } else {
-                              result.error("bad_arguments", "Missing batchId", null)
-                          }
-                      }
-                      "getUnacknowledgedBatches" -> {
-                          result.success(NotificationCountStore.getUnacknowledgedBatches(this))
-                      }
-                      "wipeNotificationTracker" -> {
-                          NotificationCountStore.wipeAll(this)
-                          result.success(null)
-                      }
-                      else -> result.notImplemented()
-                  }
-              }
+                        val now = System.currentTimeMillis()
+                        val claimed = TriggerStore.claimTrigger(this, now)
+                        result.success(claimed)
+                    }
+                    "claimPendingNudge" -> {
+                        val now = System.currentTimeMillis()
+                        val claimed = NudgeStore.claim(this, now)
+                        result.success(claimed)
+                    }
+                    "clearNudgesForSession" -> {
+                        val sessionId = call.argument<String>("sessionId")
+                        if (sessionId != null) {
+                            NudgeStore.clearForSession(this, sessionId)
+                        }
+                        result.success(null)
+                    }
+                    "getDefaultEssentialPackages" -> {
+                        ioScope.launch {
+                            val list = getDefaultEssentialPackagesList()
+                            withContext(Dispatchers.Main) {
+                                result.success(list)
+                            }
+                        }
+                    }
+                    "getDailyUsage" -> {
+                        val start = call.argument<Long>("startMs")
+                        val end = call.argument<Long>("endMs")
+                        if (start != null && end != null) {
+                            if (!hasUsageStatsPermission()) {
+                                result.error(
+                                    "permission_denied",
+                                    "Usage Access is required to read device screen time.",
+                                    null,
+                                )
+                            } else {
+                                ioScope.launch {
+                                    val usage = getDailyUsageRange(start, end)
+                                    withContext(Dispatchers.Main) {
+                                        result.success(usage)
+                                    }
+                                }
+                            }
+                        } else {
+                            result.error("bad_arguments", "Missing startMs or endMs", null)
+                        }
+                    }
+                    "getDailyUnlockEvents" -> {
+                        val start = call.argument<Long>("startMs")
+                        val end = call.argument<Long>("endMs")
+                        if (start != null && end != null) {
+                            if (!hasUsageStatsPermission()) {
+                                result.error(
+                                    "permission_denied",
+                                    "Usage Access is required to read unlock events.",
+                                    null,
+                                )
+                            } else {
+                                ioScope.launch {
+                                    val unlocks = getDailyUnlockEventsRange(start, end)
+                                    withContext(Dispatchers.Main) {
+                                        result.success(unlocks)
+                                    }
+                                }
+                            }
+                        } else {
+                            result.error("bad_arguments", "Missing startMs or endMs", null)
+                        }
+                    }
+                    "startInFlightBatch" -> {
+                        result.success(NotificationCountStore.startInFlightBatch(this))
+                    }
+                    "acknowledgeBatch" -> {
+                        val batchId = call.argument<String>("batchId")
+                        if (batchId != null) {
+                            NotificationCountStore.acknowledgeBatch(this, batchId)
+                            result.success(null)
+                        } else {
+                            result.error("bad_arguments", "Missing batchId", null)
+                        }
+                    }
+                    "getUnacknowledgedBatches" -> {
+                        result.success(NotificationCountStore.getUnacknowledgedBatches(this))
+                    }
+                    "wipeNotificationTracker" -> {
+                        NotificationCountStore.wipeAll(this)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+    }
+
+    override fun onDestroy() {
+        ioScope.cancel()
+        super.onDestroy()
     }
 
     private fun hasUsageStatsPermission(): Boolean {
@@ -270,62 +294,55 @@ class MainActivity : FlutterActivity() {
 
     private fun getUsageForDays(days: Int): List<Map<String, Any>> {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val result = mutableListOf<Map<String, Any>>()
         
         val calendar = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, -days + 1)
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        val startTime = calendar.timeInMillis
-        val endTime = System.currentTimeMillis()
-
-        val statsList = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startTime,
-            endTime
-        ) ?: return emptyList()
-
-        val aggregated = mutableMapOf<String, Long>()
         
-        for (stats in statsList) {
-            val foregroundTimeMs = stats.totalTimeInForeground
-            if (foregroundTimeMs <= 0) continue
-
-            val entryCal = Calendar.getInstance().apply {
-                timeInMillis = stats.firstTimeStamp
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+        for (i in 0 until days) {
+            val dayStart = calendar.timeInMillis
+            val dayEndCal = (calendar.clone() as Calendar).apply {
+                add(Calendar.DATE, 1)
             }
+            val dayEnd = dayEndCal.timeInMillis
             
             val dateStr = String.format(
                 "%04d-%02d-%02d",
-                entryCal.get(Calendar.YEAR),
-                entryCal.get(Calendar.MONTH) + 1,
-                entryCal.get(Calendar.DAY_OF_MONTH)
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH) + 1,
+                calendar.get(Calendar.DAY_OF_MONTH)
             )
-
-            val key = "${dateStr}_${stats.packageName}"
-            aggregated[key] = (aggregated[key] ?: 0L) + foregroundTimeMs
-        }
-
-        val result = mutableListOf<Map<String, Any>>()
-        for ((key, durationMs) in aggregated) {
-            val minutes = durationMs / 60_000L
-            if (minutes <= 0) continue
-
-            val parts = key.split("_", limit = 2)
-            if (parts.size == 2) {
-                result.add(mapOf(
-                    "date" to parts[0],
-                    "packageName" to parts[1],
-                    "label" to getAppName(parts[1]),
-                    "minutes" to minutes
-                ))
+            
+            val statsList = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                dayStart,
+                dayEnd
+            )
+            
+            if (statsList != null) {
+                val dailyAggregated = mutableMapOf<String, Long>()
+                for (stats in statsList) {
+                    val foregroundTimeMs = stats.totalTimeInForeground
+                    if (foregroundTimeMs <= 0) continue
+                    dailyAggregated[stats.packageName] = (dailyAggregated[stats.packageName] ?: 0L) + foregroundTimeMs
+                }
+                
+                for ((pkg, durationMs) in dailyAggregated) {
+                    val minutes = durationMs / 60_000L
+                    if (minutes <= 0) continue
+                    result.add(mapOf(
+                        "date" to dateStr,
+                        "packageName" to pkg,
+                        "label" to getAppName(pkg),
+                        "minutes" to minutes
+                    ))
+                }
             }
+            calendar.add(Calendar.DATE, -1)
         }
         
         return result
@@ -385,34 +402,71 @@ class MainActivity : FlutterActivity() {
         return try {
             val pm = packageManager
             val icon = pm.getApplicationIcon(packageName)
-            val bitmap = if (icon is BitmapDrawable) {
+            
+            val width = icon.intrinsicWidth.coerceAtLeast(1)
+            val height = icon.intrinsicHeight.coerceAtLeast(1)
+            
+            // Limit maximum dimension to 144px to save space and transport bandwidth
+            val maxDim = 144
+            val (targetWidth, targetHeight) = if (width > maxDim || height > maxDim) {
+                if (width > height) {
+                    Pair(maxDim, (height * maxDim / width).coerceAtLeast(1))
+                } else {
+                    Pair((width * maxDim / height).coerceAtLeast(1), maxDim)
+                }
+            } else {
+                Pair(width, height)
+            }
+
+            val bitmap = if (icon is BitmapDrawable && width <= maxDim && height <= maxDim) {
                 icon.bitmap
             } else {
-                val width = icon.intrinsicWidth.coerceAtLeast(1)
-                val height = icon.intrinsicHeight.coerceAtLeast(1)
-                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val bmp = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bmp)
-                icon.setBounds(0, 0, canvas.width, canvas.height)
+                icon.setBounds(0, 0, targetWidth, targetHeight)
                 icon.draw(canvas)
                 bmp
             }
             val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 80, stream)
             stream.toByteArray()
         } catch (e: Exception) {
             null
         }
     }
 
+    private suspend fun getAppIconCached(packageName: String): ByteArray? = withContext(Dispatchers.IO) {
+        val cached = iconCache.get(packageName)
+        if (cached != null) return@withContext cached
+
+        val deferred = synchronized(iconCache) {
+            val existing = inFlightIconRequests[packageName]
+            if (existing != null) {
+                existing
+            } else {
+                val newDeferred = ioScope.async {
+                    loadAppIcon(packageName)
+                }
+                inFlightIconRequests[packageName] = newDeferred
+                newDeferred
+            }
+        }
+
+        val result = deferred.await()
+        synchronized(iconCache) {
+            inFlightIconRequests.remove(packageName)
+        }
+        
+        if (result != null) {
+            iconCache.put(packageName, result)
+        }
+        return@withContext result
+    }
+
     private fun getDailyUsageRange(startMs: Long, endMs: Long): List<Map<String, Any>> {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val statsList = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            startMs,
-            endMs
-        ) ?: return emptyList()
-
-        val queriedDays = mutableSetOf<String>()
+        val result = mutableListOf<Map<String, Any>>()
+        
         val startCal = Calendar.getInstance().apply {
             timeInMillis = startMs
             set(Calendar.HOUR_OF_DAY, 0)
@@ -427,56 +481,53 @@ class MainActivity : FlutterActivity() {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        while (startCal.before(endCal) || startCal.equals(endCal)) {
+
+        val queriedDays = mutableSetOf<String>()
+        val datesWithUsage = mutableSetOf<String>()
+
+        val activeCal = startCal.clone() as Calendar
+        while (activeCal.before(endCal) || activeCal.equals(endCal)) {
             val dateStr = String.format(
                 "%04d-%02d-%02d",
-                startCal.get(Calendar.YEAR),
-                startCal.get(Calendar.MONTH) + 1,
-                startCal.get(Calendar.DAY_OF_MONTH)
+                activeCal.get(Calendar.YEAR),
+                activeCal.get(Calendar.MONTH) + 1,
+                activeCal.get(Calendar.DAY_OF_MONTH)
             )
             queriedDays.add(dateStr)
-            startCal.add(Calendar.DATE, 1)
-        }
 
-        val aggregated = mutableMapOf<String, Long>()
-        for (stats in statsList) {
-            val foregroundTimeMs = stats.totalTimeInForeground
-            if (foregroundTimeMs <= 0) continue
-
-            val entryCal = Calendar.getInstance().apply {
-                timeInMillis = stats.firstTimeStamp
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+            val dayStart = activeCal.timeInMillis
+            val dayEndCal = (activeCal.clone() as Calendar).apply {
+                add(Calendar.DATE, 1)
             }
-            val dateStr = String.format(
-                "%04d-%02d-%02d",
-                entryCal.get(Calendar.YEAR),
-                entryCal.get(Calendar.MONTH) + 1,
-                entryCal.get(Calendar.DAY_OF_MONTH)
+            val dayEnd = dayEndCal.timeInMillis
+
+            val statsList = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                dayStart,
+                dayEnd
             )
-            val key = "${dateStr}_${stats.packageName}"
-            aggregated[key] = (aggregated[key] ?: 0L) + foregroundTimeMs
-        }
 
-        val result = mutableListOf<Map<String, Any>>()
-        val datesWithUsage = mutableSetOf<String>()
-        for ((key, durationMs) in aggregated) {
-            val minutes = durationMs / 60_000L
-            if (minutes <= 0) continue
+            if (statsList != null) {
+                val dailyAggregated = mutableMapOf<String, Long>()
+                for (stats in statsList) {
+                    val foregroundTimeMs = stats.totalTimeInForeground
+                    if (foregroundTimeMs <= 0) continue
+                    dailyAggregated[stats.packageName] = (dailyAggregated[stats.packageName] ?: 0L) + foregroundTimeMs
+                }
 
-            val parts = key.split("_", limit = 2)
-            if (parts.size == 2) {
-                val dateStr = parts[0]
-                datesWithUsage.add(dateStr)
-                result.add(mapOf(
-                    "date" to dateStr,
-                    "packageName" to parts[1],
-                    "label" to getAppName(parts[1]),
-                    "minutes" to minutes.toInt()
-                ))
+                for ((pkg, durationMs) in dailyAggregated) {
+                    val minutes = durationMs / 60_000L
+                    if (minutes <= 0) continue
+                    datesWithUsage.add(dateStr)
+                    result.add(mapOf(
+                        "date" to dateStr,
+                        "packageName" to pkg,
+                        "label" to getAppName(pkg),
+                        "minutes" to minutes.toInt()
+                    ))
+                }
             }
+            activeCal.add(Calendar.DATE, 1)
         }
 
         for (dateStr in queriedDays) {
@@ -548,22 +599,19 @@ class MainActivity : FlutterActivity() {
         val pm = packageManager
         val list = mutableListOf<Map<String, String>>()
 
-        // Dialers
         val defaultDialer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val telecomManager = getSystemService(Context.TELECOM_SERVICE) as? android.telecom.TelecomManager
+            val telecomManager = getSystemService(Context.TELECOM_SERVICE) as? TelecomManager
             telecomManager?.defaultDialerPackage
         } else null
         if (defaultDialer != null) {
             list.add(mapOf("packageName" to defaultDialer, "reason" to "Phone/dialer"))
         }
 
-        // SMS
         val defaultSms = android.provider.Telephony.Sms.getDefaultSmsPackage(this)
         if (defaultSms != null) {
             list.add(mapOf("packageName" to defaultSms, "reason" to "Default SMS"))
         }
 
-        // Launchers
         val homeIntent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
         val homeInfos = pm.queryIntentActivities(homeIntent, 0)
         for (info in homeInfos) {
@@ -571,8 +619,7 @@ class MainActivity : FlutterActivity() {
             list.add(mapOf("packageName" to pkg, "reason" to "Default Launcher"))
         }
 
-        // Camera handlers (resolve ACTION_IMAGE_CAPTURE)
-        val cameraIntent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
+        val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         val cameraInfos = pm.queryIntentActivities(cameraIntent, 0)
         val cameraPackages = cameraInfos.map { it.activityInfo.packageName }.toMutableSet()
         cameraPackages.add("com.android.camera")
@@ -584,7 +631,6 @@ class MainActivity : FlutterActivity() {
             list.add(mapOf("packageName" to pkg, "reason" to "Default Camera"))
         }
 
-        // System packages & FlowOS itself
         list.add(mapOf("packageName" to packageName, "reason" to "FlowOS"))
         list.add(mapOf("packageName" to "com.android.settings", "reason" to "System settings"))
         list.add(mapOf("packageName" to "com.android.emergency", "reason" to "Emergency services"))
