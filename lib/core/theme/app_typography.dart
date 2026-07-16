@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// FlowOS Typography System
-/// Primary: Inter (via Google Fonts) — all body text, labels, buttons
+/// Primary: Inter (bundled TTF) — all body text, labels, buttons
 /// Monospace: JetBrains Mono (bundled) — timer digits, XP numbers, stats
 abstract final class AppTypography {
   // ─── Base Text Styles ──────────────────────────────────────────
 
   /// Display — Flow Score grade, level-up number (48px, 800 weight)
-  static TextStyle get display => GoogleFonts.inter(
+  static const display = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 48,
     fontWeight: FontWeight.w800,
     height: 1.0,
@@ -16,7 +16,8 @@ abstract final class AppTypography {
   );
 
   /// H1 — Screen titles ("Morning Intention") (28px, 700 weight)
-  static TextStyle get h1 => GoogleFonts.inter(
+  static const h1 = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 28,
     fontWeight: FontWeight.w700,
     height: 1.2,
@@ -24,7 +25,8 @@ abstract final class AppTypography {
   );
 
   /// H2 — Section headers ("Today's MITs") (22px, 600 weight)
-  static TextStyle get h2 => GoogleFonts.inter(
+  static const h2 = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 22,
     fontWeight: FontWeight.w600,
     height: 1.3,
@@ -32,28 +34,32 @@ abstract final class AppTypography {
   );
 
   /// H3 — Card titles, task names (18px, 600 weight)
-  static TextStyle get h3 => GoogleFonts.inter(
+  static const h3 = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 18,
     fontWeight: FontWeight.w600,
     height: 1.3,
   );
 
   /// Body — Body text, descriptions, AI report content (15px, 400 weight)
-  static TextStyle get body => GoogleFonts.inter(
+  static const body = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 15,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
 
   /// Body Small — Secondary labels, timestamps (13px, 400 weight)
-  static TextStyle get bodySmall => GoogleFonts.inter(
+  static const bodySmall = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
 
   /// Caption — Badges, tags, micro-labels (11px, 500 weight)
-  static TextStyle get caption => GoogleFonts.inter(
+  static const caption = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 11,
     fontWeight: FontWeight.w500,
     height: 1.4,
@@ -61,7 +67,8 @@ abstract final class AppTypography {
   );
 
   /// Button text (15px, 600 weight)
-  static TextStyle get button => GoogleFonts.inter(
+  static const button = TextStyle(
+    fontFamily: 'Inter',
     fontSize: 15,
     fontWeight: FontWeight.w600,
     height: 1.0,

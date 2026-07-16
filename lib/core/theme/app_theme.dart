@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 import 'app_spacing.dart';
@@ -31,41 +30,50 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
       ),
 
+      // Use the bundled Inter font family directly (no google_fonts runtime lookup)
+      fontFamily: 'Inter',
+
       // Text theme
-      textTheme: GoogleFonts.interTextTheme(
-        const TextTheme(
-          displayLarge: TextStyle(
-            fontSize: 48, fontWeight: FontWeight.w800, height: 1.0,
-            color: AppColors.textPrimary, letterSpacing: -1.0,
-          ),
-          headlineLarge: TextStyle(
-            fontSize: 28, fontWeight: FontWeight.w700, height: 1.2,
-            color: AppColors.textPrimary, letterSpacing: -0.5,
-          ),
-          headlineMedium: TextStyle(
-            fontSize: 22, fontWeight: FontWeight.w600, height: 1.3,
-            color: AppColors.textPrimary, letterSpacing: -0.3,
-          ),
-          headlineSmall: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w600, height: 1.3,
-            color: AppColors.textPrimary,
-          ),
-          bodyLarge: TextStyle(
-            fontSize: 15, fontWeight: FontWeight.w400, height: 1.5,
-            color: AppColors.textPrimary,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w400, height: 1.5,
-            color: AppColors.textSecondary,
-          ),
-          bodySmall: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w500, height: 1.4,
-            color: AppColors.textSecondary, letterSpacing: 0.3,
-          ),
-          labelLarge: TextStyle(
-            fontSize: 15, fontWeight: FontWeight.w600, height: 1.0,
-            color: AppColors.textPrimary,
-          ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 48, fontWeight: FontWeight.w800, height: 1.0,
+          color: AppColors.textPrimary, letterSpacing: -1.0,
+        ),
+        headlineLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 28, fontWeight: FontWeight.w700, height: 1.2,
+          color: AppColors.textPrimary, letterSpacing: -0.5,
+        ),
+        headlineMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 22, fontWeight: FontWeight.w600, height: 1.3,
+          color: AppColors.textPrimary, letterSpacing: -0.3,
+        ),
+        headlineSmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 18, fontWeight: FontWeight.w600, height: 1.3,
+          color: AppColors.textPrimary,
+        ),
+        bodyLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 15, fontWeight: FontWeight.w400, height: 1.5,
+          color: AppColors.textPrimary,
+        ),
+        bodyMedium: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 13, fontWeight: FontWeight.w400, height: 1.5,
+          color: AppColors.textSecondary,
+        ),
+        bodySmall: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 11, fontWeight: FontWeight.w500, height: 1.4,
+          color: AppColors.textSecondary, letterSpacing: 0.3,
+        ),
+        labelLarge: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 15, fontWeight: FontWeight.w600, height: 1.0,
+          color: AppColors.textPrimary,
         ),
       ),
 
