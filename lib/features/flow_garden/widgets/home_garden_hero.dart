@@ -91,13 +91,6 @@ class HomeGardenHero extends ConsumerWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),

@@ -109,15 +109,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.lg),
-              // ─── Header: Level + Streak ────────────────────────
-              _buildHeader(context, ref),
+              // ─── Immersive Garden Hero Backdrop ─────────────────
+              const HomeGardenHero(),
               if (ref.watch(userProfileProvider).isInProtectedWindow()) ...[
                 const SizedBox(height: AppSpacing.md),
                 _buildProtectedWindowBanner(context, ref.read(userProfileProvider)),
               ],
-              const SizedBox(height: AppSpacing.xxl),
-              // ─── Immersive Garden Hero Backdrop ─────────────────
-              const HomeGardenHero(),
+              const SizedBox(height: AppSpacing.lg),
+              // ─── Header: Level + Streak ────────────────────────
+              _buildHeader(context, ref),
               const SizedBox(height: AppSpacing.lg),
               // ─── Flow Score Card ────────────────────────────────
               _buildFlowScoreCard(context, ref),
@@ -206,8 +206,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             vertical: AppSpacing.sm,
           ),
           decoration: BoxDecoration(
-            color: AppColors.background2,
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.08),
+              width: 1,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -245,10 +249,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: AppColors.background2,
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
               border: Border.all(
-                color: AppColors.emerald.withAlpha(50),
+                color: AppColors.emerald.withValues(alpha: 0.15),
                 width: 1,
               ),
             ),
@@ -295,16 +299,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         color: AppColors.background2,
         borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Colors.white.withValues(alpha: 0.08),
           width: 0.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.emeraldGlow,
-            blurRadius: 30,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -471,26 +468,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: actions.map((action) {
-          return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            child: OutlinedButton.icon(
-              onPressed: action.onTap,
-              icon: Text(action.icon, style: const TextStyle(fontSize: 16)),
-              label: Text(action.label),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
+    return Row(
+      children: actions.map((action) {
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: GestureDetector(
+              onTap: action.onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.background2,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(action.icon, style: const TextStyle(fontSize: 20)),
+                    const SizedBox(height: 4),
+                    Text(
+                      action.label,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
-        }).toList(),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 
