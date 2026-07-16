@@ -191,13 +191,16 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   }
 
   Future<void> _stopSession() async {
+    final active = ref.read(focusTimerNotifierProvider);
+    if (active == null) return;
+
+    final total = active.totalSeconds;
+    final elapsed = active.elapsedSeconds;
+    final actualMin = (elapsed / 60).round();
+    final pct = elapsed / total;
+
     final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
     if (mounted) {
-      final active = ref.read(focusTimerNotifierProvider);
-      final total = active?.totalSeconds ?? 1;
-      final elapsed = active?.elapsedSeconds ?? 0;
-      final actualMin = (elapsed / 60).round();
-      final pct = elapsed / total;
 
       if (pct >= 0.6 && actualMin >= 10) {
         for (final key in result.newlyUnlockedAchievements) {

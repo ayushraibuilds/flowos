@@ -192,13 +192,13 @@ class ProfileScreen extends ConsumerWidget {
         crossAxisCount: 3,
         crossAxisSpacing: AppSpacing.md,
         mainAxisSpacing: AppSpacing.md,
-        childAspectRatio: 1.1,
+        childAspectRatio: 0.95,
       ),
       itemCount: stats.length,
       itemBuilder: (context, i) {
         final stat = stats[i];
         return Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.md),
           decoration: BoxDecoration(
             color: AppColors.background2,
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
@@ -220,12 +220,16 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                stat.label,
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.textTertiary,
+              Flexible(
+                child: Text(
+                  stat.label,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

@@ -37,7 +37,26 @@ class HomeGardenHero extends ConsumerWidget {
         ),
         child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (err, __) => Container(
+        height: cardHeight,
+        decoration: BoxDecoration(
+          color: AppColors.background2,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('🌱', style: TextStyle(fontSize: 40)),
+              const SizedBox(height: 8),
+              Text(
+                'Garden is resting',
+                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ),
       data: (day) {
         // Compute CTA Action
         final String ctaText;

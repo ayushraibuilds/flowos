@@ -6,6 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/focus/providers/nudge_provider.dart';
 
+import 'dart:io';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
 import 'core/config/supabase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
@@ -22,6 +26,16 @@ Future<void> main() async {
   // Initialize Supabase (skip if not configured — local-first mode)
   // Load SharedPreferences earlier
   final prefs = await SharedPreferences.getInstance();
+
+  // Check if database exists in documents directory to detect fresh install vs upgrade
+  final dbFolder = await getApplicationDocumentsDirectory();
+  final dbFile = File(p.join(dbFolder.path, 'flowos.sqlite'));
+  if (!dbFile.existsSync()) {
+    // Fresh install — clear potentially stale SharedPreferences backed up by Android auto-restore
+    await prefs.remove('flowos_onboarding_complete');
+    await prefs.remove('flowos_user_profile');
+    await prefs.remove('flowos_active_session_id');
+  }
 
   // Initialize unique device ID
   await SupabaseConfig.initializeDeviceId(prefs);

@@ -113,12 +113,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 5) {
         await m.createTable(deviceDayMetrics);
         await m.createTable(protectedApps);
-        await m.addColumn(deviceUsageRecords, deviceUsageRecords.source);
-        await m.addColumn(deviceUsageRecords, deviceUsageRecords.category);
-        await m.addColumn(deviceUsageRecords, deviceUsageRecords.isDistracting);
-        // Note: Drift will automatically apply default values on columns,
-        // but we also perform a manual backfill to populate any existing rows:
-        await customStatement("UPDATE device_usage_records SET source = 'android_usage'");
+        if (from >= 3) {
+          await m.addColumn(deviceUsageRecords, deviceUsageRecords.source);
+          await m.addColumn(deviceUsageRecords, deviceUsageRecords.category);
+          await m.addColumn(deviceUsageRecords, deviceUsageRecords.isDistracting);
+          // Note: Drift will automatically apply default values on columns,
+          // but we also perform a manual backfill to populate any existing rows:
+          await customStatement("UPDATE device_usage_records SET source = 'android_usage'");
+        }
       }
       if (from < 6) {
         await m.addColumn(dailyReports, dailyReports.coverageState);

@@ -160,46 +160,50 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
   Future<void> _saveAndFinish() async {
     HapticFeedback.mediumImpact();
     
-    // Only write policies to database if they were confirmed
-    if (_pickerConfirmed) {
-      final db = ref.read(databaseProvider);
-      final now = DateTime.now();
-      
-      // Load launchable apps to match packages with labels
-      final launchable = await ref.read(launchableAppsProvider.future);
+    try {
+      // Only write policies to database if they were confirmed
+      if (_pickerConfirmed) {
+        final db = ref.read(databaseProvider);
+        final now = DateTime.now();
+        
+        // Load launchable apps to match packages with labels
+        final launchable = await ref.read(launchableAppsProvider.future);
 
-      for (final entry in _focusState.entries) {
-        final pkg = entry.key;
-        final isFocusChecked = entry.value;
-        final isSleepChecked = _sleepState[pkg] ?? false;
+        for (final entry in _focusState.entries) {
+          final pkg = entry.key;
+          final isFocusChecked = entry.value;
+          final isSleepChecked = _sleepState[pkg] ?? false;
 
-        if (isFocusChecked || isSleepChecked) {
-          final existing = await db.protectedAppsDao.getByPlatformAndRef('android', pkg);
-          final entryId = existing?.id ?? const Uuid().v4();
-          final appInfo = launchable.firstWhere(
-            (a) => a['packageName'] == pkg,
-            orElse: () => <String, String>{},
-          );
-          final label = appInfo['label'] ?? pkg;
+          if (isFocusChecked || isSleepChecked) {
+            final existing = await db.protectedAppsDao.getByPlatformAndRef('android', pkg);
+            final entryId = existing?.id ?? const Uuid().v4();
+            final appInfo = launchable.firstWhere(
+              (a) => a['packageName'] == pkg,
+              orElse: () => <String, String>{},
+            );
+            final label = appInfo['label'] ?? pkg;
 
-          await db.protectedAppsDao.upsertApp(
-            ProtectedAppsCompanion(
-              id: Value(entryId),
-              platform: const Value('android'),
-              appRef: Value(pkg),
-              displayName: Value(label),
-              protectsFocus: Value(isFocusChecked),
-              protectsSleep: Value(isSleepChecked),
-              isEssential: const Value(false),
-              createdAt: Value(now),
-            ),
-          );
+            await db.protectedAppsDao.upsertApp(
+              ProtectedAppsCompanion(
+                id: Value(entryId),
+                platform: const Value('android'),
+                appRef: Value(pkg),
+                displayName: Value(label),
+                protectsFocus: Value(isFocusChecked),
+                protectsSleep: Value(isSleepChecked),
+                isEssential: const Value(false),
+                createdAt: Value(now),
+              ),
+            );
+          }
         }
       }
-    }
 
-    // Refresh versioned native sleep config after picker selection completes
-    await ref.read(sleepConfigWriterProvider).writeSleepConfig();
+      // Refresh versioned native sleep config after picker selection completes
+      await ref.read(sleepConfigWriterProvider).writeSleepConfig();
+    } catch (e) {
+      debugPrint('⚠️ Onboarding Connect: Error saving configuration: $e');
+    }
 
     widget.onComplete();
   }
@@ -320,13 +324,16 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Choose what pulls you away',
-                style: AppTypography.body.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              Flexible(
+                child: Text(
+                  'Choose what pulls you away',
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
+              const SizedBox(width: AppSpacing.sm),
               if (_pickerConfirmed)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
