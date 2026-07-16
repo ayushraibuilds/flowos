@@ -15,11 +15,11 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
 from .routers.ai import router as ai_router
+from .services.limiter import limiter
 
 # ─── Config ───────────────────────────────────────────────────────
 
@@ -30,10 +30,6 @@ logging.basicConfig(
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
 )
 logger = logging.getLogger("flowos")
-
-# ─── Rate Limiting ────────────────────────────────────────────────
-
-limiter = Limiter(key_func=get_remote_address)
 
 # ─── App ──────────────────────────────────────────────────────────
 
@@ -48,17 +44,28 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ─── CORS ─────────────────────────────────────────────────────────
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:*",
-        "http://127.0.0.1:*",
-        # Add your production domain when deploying
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+is_dev = os.getenv("ENVIRONMENT", "development").lower() == "development"
+
+if is_dev:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    allowed_origins_str = os.getenv("CORS_ALLOWED_ORIGINS")
+    if not allowed_origins_str:
+        raise ValueError("CORS_ALLOWED_ORIGINS environment variable is required in production")
+    allowed_origins = [o.strip() for o in allowed_origins_str.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # ─── Routes ───────────────────────────────────────────────────────
 

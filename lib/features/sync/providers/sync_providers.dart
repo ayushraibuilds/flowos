@@ -49,7 +49,9 @@ class SyncController {
   Future<SyncResult> sync() async {
     statusNotifier.state = SyncStatus.syncing;
     final result = await engine.fullSync();
-    statusNotifier.state = result.hasErrors ? SyncStatus.error : SyncStatus.synced;
+    statusNotifier.state = result.isPaused
+        ? SyncStatus.idle
+        : (result.hasErrors ? SyncStatus.error : SyncStatus.synced);
     return result;
   }
 
@@ -62,5 +64,7 @@ class SyncController {
 Future<void> _triggerSync(SyncEngine engine, StateController<SyncStatus> status) async {
   status.state = SyncStatus.syncing;
   final result = await engine.fullSync();
-  status.state = result.hasErrors ? SyncStatus.error : SyncStatus.synced;
+  status.state = result.isPaused
+      ? SyncStatus.idle
+      : (result.hasErrors ? SyncStatus.error : SyncStatus.synced);
 }

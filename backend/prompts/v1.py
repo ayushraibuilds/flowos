@@ -24,8 +24,8 @@ USER'S DAY:
 - Scroll Time: {scroll_minutes} min (budget: {scroll_budget} min)
 - Recovery Actions: {recovery_actions_taken}
 - Energy Readings: {energy_readings}
-- Morning Intention: {"✅" if intention_completed else "❌"}
-- Shutdown Ritual: {"✅" if shutdown_completed else "❌"}
+- Morning Intention: {intention_status}
+- Shutdown Ritual: {shutdown_status}
 {task_details}
 
 Respond with EXACTLY this JSON structure:

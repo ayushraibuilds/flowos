@@ -10,7 +10,9 @@ import random
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
+from ..services.auth_service import get_current_user_id
+from ..services.limiter import limiter
 
 from ..models.schemas import (
     DailyReportRequest, DailyReportResponse, DailyReportInsight,
@@ -23,11 +25,8 @@ from ..services.gemini_service import (
     generate_json,
     FALLBACK_REPORT, FALLBACK_BREAK_SUGGESTIONS, FALLBACK_WEEKLY,
 )
-from ..prompts.v1 import (
-    DAILY_REPORT_PROMPT, BREAK_SUGGESTION_PROMPT,
-    BRAIN_DUMP_PROMPT, WEEKLY_REVIEW_PROMPT,
-    VERSION as PROMPT_VERSION,
-)
+from ..services.prompt_renderer import PromptRenderer
+from ..prompts.v1 import VERSION as PROMPT_VERSION
 
 logger = logging.getLogger("flowos.ai")
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -36,7 +35,8 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 # ─── Daily Report ────────────────────────────────────────────────
 
 @router.post("/daily-report", response_model=DailyReportResponse)
-async def generate_daily_report(req: DailyReportRequest):
+@limiter.limit("5/minute")
+async def generate_daily_report(req: DailyReportRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Generate AI-powered daily report from productivity data."""
 
     # Build task details (respecting private mode)
@@ -52,7 +52,7 @@ async def generate_daily_report(req: DailyReportRequest):
     # Calculate grade
     grade = _score_to_grade(req.daily_score)
 
-    prompt = DAILY_REPORT_PROMPT.format(
+    prompt = PromptRenderer.render_daily_report(
         daily_score=req.daily_score,
         grade=grade,
         xp_earned_today=req.xp_earned_today,
@@ -66,7 +66,7 @@ async def generate_daily_report(req: DailyReportRequest):
         scroll_minutes=req.scroll_minutes,
         scroll_budget=req.scroll_budget,
         recovery_actions_taken=req.recovery_actions_taken,
-        energy_readings=req.energy_readings or "Not recorded",
+        energy_readings=str(req.energy_readings) if req.energy_readings else "Not recorded",
         intention_completed=req.intention_completed,
         shutdown_completed=req.shutdown_completed,
         task_details=task_details,
@@ -98,18 +98,19 @@ async def generate_daily_report(req: DailyReportRequest):
 # ─── Break Suggestion ────────────────────────────────────────────
 
 @router.post("/break-suggestion", response_model=BreakSuggestionResponse)
-async def generate_break_suggestion(req: BreakSuggestionRequest):
+@limiter.limit("10/minute")
+async def generate_break_suggestion(req: BreakSuggestionRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Generate a break content suggestion after a focus session."""
 
     # Determine content type
     content_type = req.preferred_type or random.choice(list(BreakContentType))
 
-    prompt = BREAK_SUGGESTION_PROMPT.format(
+    prompt = PromptRenderer.render_break_suggestion(
         session_type=req.session_type.value,
         focus_minutes=req.focus_minutes,
         quality_grade=req.quality_grade,
         xp_earned=req.xp_earned,
-        energy_level=req.energy_level or "unknown",
+        energy_level=str(req.energy_level) if req.energy_level else "unknown",
         preferred_type=content_type.value,
         content_type=content_type.value,
     )
@@ -143,12 +144,13 @@ async def generate_break_suggestion(req: BreakSuggestionRequest):
 # ─── Brain Dump ───────────────────────────────────────────────────
 
 @router.post("/brain-dump", response_model=BrainDumpResponse)
-async def process_brain_dump(req: BrainDumpRequest):
+@limiter.limit("10/minute")
+async def process_brain_dump(req: BrainDumpRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Process raw brain dump text into sorted, actionable tasks."""
 
-    prompt = BRAIN_DUMP_PROMPT.format(
+    prompt = PromptRenderer.render_brain_dump(
         raw_text=req.raw_text,
-        current_energy=req.current_energy or "unknown",
+        current_energy=str(req.current_energy) if req.current_energy else "unknown",
     )
 
     result = await generate_json(prompt, temperature=0.4, max_tokens=2048)
@@ -176,13 +178,14 @@ async def process_brain_dump(req: BrainDumpRequest):
 # ─── Weekly Review ────────────────────────────────────────────────
 
 @router.post("/weekly-review", response_model=WeeklyReviewResponse)
-async def generate_weekly_review(req: WeeklyReviewRequest):
+@limiter.limit("5/minute")
+async def generate_weekly_review(req: WeeklyReviewRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Generate AI-powered weekly review with insights and reflection questions."""
 
     avg_score = (sum(req.daily_scores) / len(req.daily_scores)
                  if req.daily_scores else 0)
 
-    prompt = WEEKLY_REVIEW_PROMPT.format(
+    prompt = PromptRenderer.render_weekly_review(
         week_start=req.week_start,
         week_end=req.week_end,
         daily_scores=req.daily_scores,

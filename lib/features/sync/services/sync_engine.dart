@@ -53,73 +53,16 @@ class SyncEngine {
 
   /// Full bidirectional sync. Call on app open and network reconnect.
   Future<SyncResult> fullSync() async {
-    if (!isAuthenticated || _isSyncing) {
-      return SyncResult(pushed: 0, pulled: 0, errors: []);
-    }
-
-    _isSyncing = true;
-    final errors = <String>[];
-    int pushed = 0;
-    int pulled = 0;
-
-    try {
-      // Pull first (server → local)
-      pulled += await _pullTasks();
-      pulled += await _pullSessions();
-      pulled += await _pullPlans();
-      pulled += await _pullAchievements();
-      pulled += await _pullDailyReports();
-
-      // Push (local → server)
-      pushed += await _pushTasks();
-      pushed += await _pushSessions();
-      pushed += await _pushXpLedger();
-      pushed += await _pushScrollLogs();
-      pushed += await _pushEnergy();
-      pushed += await _pushPlans();
-      pushed += await _pushAchievements();
-      pushed += await _pushDailyReports();
-      pushed += await _pushUnlockAttempts();
-
-      // Mark sync time
-      await _setLastSyncAt(DateTime.now());
-
-      debugPrint('✅ Sync complete: ↑$pushed ↓$pulled');
-    } catch (e) {
-      errors.add(e.toString());
-      debugPrint('❌ Sync error: $e');
-    } finally {
-      _isSyncing = false;
-    }
-
-    return SyncResult(pushed: pushed, pulled: pulled, errors: errors);
+    // Sync is temporarily paused while we improve reliability (Phase 0 protection)
+    return SyncResult(pushed: 0, pulled: 0, errors: [], isPaused: true);
   }
 
-  /// Debounced push after local mutation (300ms debounce).
   void schedulePush() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      _pushAll();
-    });
+    // Cloud push is disabled under Phase 0 feature flag
   }
 
   Future<void> _pushAll() async {
-    if (!isAuthenticated || _isSyncing) return;
-    _isSyncing = true;
-    try {
-      await _pushTasks();
-      await _pushSessions();
-      await _pushXpLedger();
-      await _pushScrollLogs();
-      await _pushEnergy();
-      await _pushPlans();
-      await _pushDailyReports();
-      await _pushUnlockAttempts();
-    } catch (e) {
-      debugPrint('Push error: $e');
-    } finally {
-      _isSyncing = false;
-    }
+    // Cloud push is disabled under Phase 0 feature flag
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -641,8 +584,9 @@ class SyncResult {
   final int pushed;
   final int pulled;
   final List<String> errors;
+  final bool isPaused;
 
-  SyncResult({required this.pushed, required this.pulled, required this.errors});
+  SyncResult({required this.pushed, required this.pulled, required this.errors, this.isPaused = false});
 
   bool get hasErrors => errors.isNotEmpty;
   bool get isClean => !hasErrors && (pushed > 0 || pulled > 0);

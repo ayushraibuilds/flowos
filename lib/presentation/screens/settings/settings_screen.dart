@@ -365,13 +365,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        result.hasErrors
-                            ? 'Sync completed with errors.'
-                            : 'Sync successful!',
+                        result.isPaused
+                            ? 'Sync temporarily paused while we improve reliability.'
+                            : (result.hasErrors
+                                ? 'Sync completed with errors.'
+                                : 'Sync successful!'),
                       ),
-                      backgroundColor: result.hasErrors
-                          ? AppColors.dangerCoral
-                          : AppColors.emerald,
+                      backgroundColor: result.isPaused
+                          ? AppColors.warningAmber
+                          : (result.hasErrors
+                              ? AppColors.dangerCoral
+                              : AppColors.emerald),
                     ),
                   );
                 }
