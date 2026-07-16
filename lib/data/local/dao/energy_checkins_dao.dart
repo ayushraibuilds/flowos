@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -13,8 +14,28 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
     with _$EnergyCheckInsDaoMixin {
   EnergyCheckInsDao(super.db);
 
-  Future<void> insertCheckIn(EnergyCheckInsCompanion entry) =>
-      into(energyCheckIns).insert(entry);
+  Future<EnergyCheckIn?> getById(String id) =>
+      (select(energyCheckIns)..where((e) => e.id.equals(id))).getSingleOrNull();
+
+  Future<void> _recordOutboxUpsert(String id) async {
+    final checkin = await getById(id);
+    if (checkin != null) {
+      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
+        id: Value(_uuid.v4()),
+        entityTable: const Value('energy_checkins'),
+        entityId: Value(id),
+        operation: const Value('upsert'),
+        serializedData: Value(jsonEncode(checkin.toJson())),
+      ));
+    }
+  }
+
+  Future<void> insertCheckIn(EnergyCheckInsCompanion entry) async {
+    await transaction(() async {
+      await into(energyCheckIns).insert(entry);
+      await _recordOutboxUpsert(entry.id.value);
+    });
+  }
 
   /// Get check-ins for a specific date
   Future<List<EnergyCheckIn>> getForDate(DateTime date) {
@@ -23,7 +44,8 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
     return (select(energyCheckIns)
           ..where((e) =>
               e.date.isBiggerOrEqualValue(start) &
-              e.date.isSmallerThanValue(end)))
+              e.date.isSmallerThanValue(end) &
+              e.deletedAt.isNull()))
         .get();
   }
 
@@ -36,12 +58,13 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
   /// Get check-ins since a given timestamp (for sync push).
   Future<List<EnergyCheckIn>> getModifiedSince(DateTime since) =>
       (select(energyCheckIns)
-            ..where((e) => e.date.isBiggerOrEqualValue(since)))
+            ..where((e) => e.updatedAt.isBiggerOrEqualValue(since)))
           .get();
 
   /// Get the latest energy check-in
   Future<EnergyCheckIn?> getLatest() =>
       (select(energyCheckIns)
+            ..where((e) => e.deletedAt.isNull())
             ..orderBy([(e) => OrderingTerm.desc(e.date)])
             ..limit(1))
           .getSingleOrNull();
@@ -54,29 +77,45 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
           ..where((e) =>
               e.date.isBiggerOrEqualValue(start) &
               e.date.isSmallerThanValue(end) &
-              e.timeOfDay.equalsValue(bucket)))
+              e.timeOfDay.equalsValue(bucket) &
+              e.deletedAt.isNull()))
         .getSingleOrNull();
   }
 
   /// Upsert energy check-in (same-day same-bucket updates, otherwise inserts)
   Future<void> upsertCheckIn(TimeOfDayColumn bucket, int value) async {
-    final now = DateTime.now();
-    final existing = await getForBucket(bucket, now);
-    if (existing != null) {
-      await (update(energyCheckIns)..where((e) => e.id.equals(existing.id)))
-          .write(EnergyCheckInsCompanion(
-        value: Value(value),
-        date: Value(now),
-      ));
-    } else {
-      await into(energyCheckIns).insert(EnergyCheckInsCompanion(
-        id: Value(_uuid.v4()),
-        timeOfDay: Value(bucket),
-        value: Value(value),
-        date: Value(now),
-      ));
-    }
+    await transaction(() async {
+      final now = DateTime.now();
+      final existing = await getForBucket(bucket, now);
+      if (existing != null) {
+        final id = existing.id;
+        await (update(energyCheckIns)..where((e) => e.id.equals(id)))
+            .write(EnergyCheckInsCompanion(
+          value: Value(value),
+          date: Value(now),
+          updatedAt: Value(now),
+        ));
+        await _recordOutboxUpsert(id);
+      } else {
+        final id = _uuid.v4();
+        await into(energyCheckIns).insert(EnergyCheckInsCompanion(
+          id: Value(id),
+          timeOfDay: Value(bucket),
+          value: Value(value),
+          date: Value(now),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ));
+        await _recordOutboxUpsert(id);
+      }
+    });
   }
+
+  // ─── Sync Bypass ───────────────────────────────────────────────
+
+  Future<void> insertCheckInFromSync(EnergyCheckInsCompanion entry) => into(energyCheckIns).insert(entry);
+  Future<void> updateCheckInFromSync(EnergyCheckInsCompanion entry) =>
+      (update(energyCheckIns)..where((e) => e.id.equals(entry.id.value))).write(entry);
 
   /// Watch check-ins today (reactive stream)
   Stream<List<EnergyCheckIn>> watchToday() {

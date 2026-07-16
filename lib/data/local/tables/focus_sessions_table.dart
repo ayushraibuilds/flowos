@@ -35,6 +35,10 @@ class FocusSessions extends Table {
   IntColumn get gardenVariant => integer().nullable()();
   TextColumn get gardenSeedEmoji => text().nullable()();
 
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

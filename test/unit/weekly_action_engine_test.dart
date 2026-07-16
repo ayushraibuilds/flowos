@@ -17,6 +17,7 @@ void main() {
           recoveryActionTaken: false,
           wasTimeboxed: false,
           timestamp: DateTime.now(),
+          updatedAt: DateTime.now(),
         ),
         ScrollLog(
           id: '2',
@@ -26,6 +27,7 @@ void main() {
           recoveryActionTaken: false,
           wasTimeboxed: false,
           timestamp: DateTime.now(),
+          updatedAt: DateTime.now(),
         ),
       ];
       final action = WeeklyActionEngine.generateWeeklyAction(

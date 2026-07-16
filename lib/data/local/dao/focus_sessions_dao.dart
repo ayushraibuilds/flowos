@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../database/app_database.dart';
 import '../tables/focus_sessions_table.dart';
@@ -10,14 +12,42 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
     with _$FocusSessionsDaoMixin {
   FocusSessionsDao(super.db);
 
+  final _uuid = const Uuid();
+
+  Future<void> _recordOutboxUpsert(String id) async {
+    final session = await getById(id);
+    if (session != null) {
+      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
+        id: Value(_uuid.v4()),
+        entityTable: const Value('focus_sessions'),
+        entityId: Value(id),
+        operation: const Value('upsert'),
+        serializedData: Value(jsonEncode(session.toJson())),
+      ));
+    }
+  }
+
   /// Insert a new session
-  Future<void> insertSession(FocusSessionsCompanion entry) =>
-      into(focusSessions).insert(entry);
+  Future<void> insertSession(FocusSessionsCompanion entry) async {
+    await transaction(() async {
+      await into(focusSessions).insert(entry);
+      await _recordOutboxUpsert(entry.id.value);
+    });
+  }
 
   /// Update a session (e.g., when completed)
-  Future<void> updateSession(FocusSessionsCompanion entry) =>
-      (update(focusSessions)..where((s) => s.id.equals(entry.id.value)))
-          .write(entry);
+  Future<void> updateSession(FocusSessionsCompanion entry) async {
+    await transaction(() async {
+      await (update(focusSessions)..where((s) => s.id.equals(entry.id.value))).write(entry);
+      await _recordOutboxUpsert(entry.id.value);
+    });
+  }
+
+  // ─── Sync Bypass ───────────────────────────────────────────────
+
+  Future<void> insertSessionFromSync(FocusSessionsCompanion entry) => into(focusSessions).insert(entry);
+  Future<void> updateSessionFromSync(FocusSessionsCompanion entry) =>
+      (update(focusSessions)..where((s) => s.id.equals(entry.id.value))).write(entry);
 
   /// Get all sessions for a date range
   Future<List<FocusSession>> getByDateRange(
@@ -73,10 +103,10 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
         sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes));
   }
 
-  /// Get sessions started since a given timestamp (for sync push).
+  /// Get sessions modified since a given timestamp (for sync push).
   Future<List<FocusSession>> getModifiedSince(DateTime since) =>
       (select(focusSessions)
-            ..where((s) => s.startedAt.isBiggerOrEqualValue(since))
-            ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
+            ..where((s) => s.updatedAt.isBiggerOrEqualValue(since))
+            ..orderBy([(s) => OrderingTerm.desc(s.updatedAt)]))
           .get();
 }

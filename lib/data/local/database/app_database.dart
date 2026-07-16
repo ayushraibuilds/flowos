@@ -39,6 +39,8 @@ import '../tables/processed_notification_batches_table.dart';
 import '../dao/notification_daily_counts_dao.dart';
 import '../tables/daily_scores_table.dart';
 import '../dao/daily_scores_dao.dart';
+import '../tables/sync_outbox_table.dart';
+import '../dao/sync_outbox_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -63,6 +65,7 @@ part 'app_database.g.dart';
     NotificationDailyCounts,
     ProcessedNotificationBatches,
     DailyScores,
+    SyncOutbox,
   ],
   daos: [
     TasksDao,
@@ -81,6 +84,7 @@ part 'app_database.g.dart';
     SleepSchedulesDao,
     NotificationDailyCountsDao,
     DailyScoresDao,
+    SyncOutboxDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -90,7 +94,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -173,8 +177,24 @@ class AppDatabase extends _$AppDatabase {
             SELECT MAX(r2.generated_at)
             FROM daily_reports r2
             WHERE r2.date = r1.date
-          )
         ''');
+      }
+      if (from < 9) {
+        await m.createTable(syncOutbox);
+        await m.addColumn(dailyPlans, dailyPlans.updatedAt);
+        await m.addColumn(dailyPlans, dailyPlans.deletedAt);
+        await m.addColumn(dailyReports, dailyReports.updatedAt);
+        await m.addColumn(dailyReports, dailyReports.deletedAt);
+        await m.addColumn(focusSessions, focusSessions.createdAt);
+        await m.addColumn(focusSessions, focusSessions.updatedAt);
+        await m.addColumn(focusSessions, focusSessions.deletedAt);
+        await m.addColumn(scrollLogs, scrollLogs.updatedAt);
+        await m.addColumn(scrollLogs, scrollLogs.deletedAt);
+        await m.addColumn(energyCheckIns, energyCheckIns.createdAt);
+        await m.addColumn(energyCheckIns, energyCheckIns.updatedAt);
+        await m.addColumn(energyCheckIns, energyCheckIns.deletedAt);
+        await m.addColumn(achievements, achievements.updatedAt);
+        await m.addColumn(achievements, achievements.deletedAt);
       }
     },
   );
@@ -200,6 +220,7 @@ class AppDatabase extends _$AppDatabase {
         batch.deleteWhere(notificationDailyCounts, (_) => const Constant(true));
         batch.deleteWhere(processedNotificationBatches, (_) => const Constant(true));
         batch.deleteWhere(dailyScores, (_) => const Constant(true));
+        batch.deleteWhere(syncOutbox, (_) => const Constant(true));
       });
     });
   }

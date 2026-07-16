@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 import '../database/app_database.dart';
 import '../tables/xp_ledger_table.dart';
@@ -10,9 +12,35 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
     with _$XpLedgerDaoMixin {
   XpLedgerDao(super.db);
 
+  final _uuid = const Uuid();
+
+  Future<XpLedgerEntry?> getById(String id) =>
+      (select(xpLedgerEntries)..where((e) => e.id.equals(id))).getSingleOrNull();
+
+  Future<void> _recordOutboxUpsert(String id) async {
+    final entry = await getById(id);
+    if (entry != null) {
+      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
+        id: Value(_uuid.v4()),
+        entityTable: const Value('xp_ledger'),
+        entityId: Value(id),
+        operation: const Value('upsert'),
+        serializedData: Value(jsonEncode(entry.toJson())),
+      ));
+    }
+  }
+
   /// APPEND ONLY — the only write operation allowed on the ledger.
-  Future<void> appendEntry(XpLedgerEntriesCompanion entry) =>
-      into(xpLedgerEntries).insert(entry);
+  Future<void> appendEntry(XpLedgerEntriesCompanion entry) async {
+    await transaction(() async {
+      await into(xpLedgerEntries).insert(entry);
+      await _recordOutboxUpsert(entry.id.value);
+    });
+  }
+
+  // ─── Sync Bypass ───────────────────────────────────────────────
+
+  Future<void> appendEntryFromSync(XpLedgerEntriesCompanion entry) => into(xpLedgerEntries).insert(entry);
 
   /// Get lifetime XP (sum of all pointsDelta)
   Future<int> getLifetimeXP() async {

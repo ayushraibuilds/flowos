@@ -7,7 +7,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 void main() {
   group('RhythmEngine Tests', () {
     test('Returns null if sessions count is less than threshold', () {
-      final sessions = List.generate(4, (i) => FocusSession(
+      final sessions = List<FocusSession>.generate(4, (i) => FocusSession(
         id: 'session_$i',
         sessionType: SessionTypeColumn.pomodoro,
         durationMinutes: 25,
@@ -18,6 +18,8 @@ void main() {
         qualityScore: 'A',
         pauseCount: 0,
         appBackgroundCount: 0,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
       ));
 
       final rec = RhythmEngine.generateRecommendation(sessions);
@@ -27,7 +29,7 @@ void main() {
     test('Returns null if distinct days count is less than threshold', () {
       // 10 sessions all logged on same day
       final now = DateTime.now();
-      final sessions = List.generate(10, (i) => FocusSession(
+      final sessions = List<FocusSession>.generate(10, (i) => FocusSession(
         id: 'session_$i',
         sessionType: SessionTypeColumn.pomodoro,
         durationMinutes: 25,
@@ -38,6 +40,8 @@ void main() {
         qualityScore: 'B',
         pauseCount: 0,
         appBackgroundCount: 0,
+        createdAt: now,
+        updatedAt: now,
       ));
 
       final rec = RhythmEngine.generateRecommendation(sessions);
@@ -63,6 +67,8 @@ void main() {
           qualityScore: 'A',
           pauseCount: 0,
           appBackgroundCount: 0,
+          createdAt: date,
+          updatedAt: date,
         ));
       }
 
@@ -80,6 +86,8 @@ void main() {
           qualityScore: 'C',
           pauseCount: 0,
           appBackgroundCount: 0,
+          createdAt: date,
+          updatedAt: date,
         ));
       }
 
