@@ -233,6 +233,14 @@ class MainActivity : FlutterActivity() {
                         NotificationCountStore.wipeAll(this)
                         result.success(null)
                     }
+                    "startForegroundService" -> {
+                        FocusSessionForegroundService.start(this)
+                        result.success(null)
+                    }
+                    "stopForegroundService" -> {
+                        FocusSessionForegroundService.stop(this)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }

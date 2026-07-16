@@ -110,18 +110,41 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
       carePoints: scoreRecord.carePoints,
     );
   } else {
-    // Calculate live fallback
-    scoreResult = DailyScoreCalculator.calculate(
-      focusMinutes: focusMinutes,
-      mitsCompleted: mitsCompleted,
-      scrollMinutes: scrollMinutes,
-      scrollBudget: budget,
-      intentionCompleted: intentionCompleted,
-      shutdownCompleted: shutdownCompleted,
-      energyCheckIns: energyCheckIns,
-      recoveryActions: recoveryActions,
-      attentionCoverage: todayAttention.coverage,
-    );
+    final hasEngagedToday = focusMinutes > 0 ||
+        mitsCompleted > 0 ||
+        intentionCompleted ||
+        shutdownCompleted ||
+        energyCheckIns > 0 ||
+        recoveryActions > 0;
+
+    if (!hasEngagedToday) {
+      scoreResult = DailyScoreResult(
+        score: 0,
+        grade: null,
+        message: "Your day hasn't started yet — set an intention or start a focus session.",
+        isIncomplete: true,
+        availableWeight: 1.0,
+        coverageLabel: "Incomplete",
+        scoringVersion: XpConstants.currentScoringVersion,
+        focusPoints: 0.0,
+        intentPoints: 0.0,
+        attentionPoints: null,
+        carePoints: 0.0,
+      );
+    } else {
+      // Calculate live fallback
+      scoreResult = DailyScoreCalculator.calculate(
+        focusMinutes: focusMinutes,
+        mitsCompleted: mitsCompleted,
+        scrollMinutes: scrollMinutes,
+        scrollBudget: budget,
+        intentionCompleted: intentionCompleted,
+        shutdownCompleted: shutdownCompleted,
+        energyCheckIns: energyCheckIns,
+        recoveryActions: recoveryActions,
+        attentionCoverage: todayAttention.coverage,
+      );
+    }
   }
 
   return DashboardScore(

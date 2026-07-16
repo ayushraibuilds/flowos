@@ -180,6 +180,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
+  if (message.type === 'TEMPORARY_BYPASS') {
+    (async () => {
+      const { focusActive = false } = await chrome.storage.local.get('focusActive');
+      if (focusActive) {
+        await disableFocusBlocking();
+        // Rearm in 30 seconds (0.5 minutes)
+        await chrome.alarms.create('rearm-blocking', { delayInMinutes: 0.5 });
+      }
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
   if (message.type === 'SYNC_FOCUS_STATE') {
     (async () => {
       await syncFocusState();
@@ -275,6 +288,12 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'sync-focus-state') {
     await syncFocusState();
   }
+  if (alarm.name === 'rearm-blocking') {
+    const { focusActive = false } = await chrome.storage.local.get('focusActive');
+    if (focusActive) {
+      await enableFocusBlocking();
+    }
+  }
 });
 
 // ─── Supabase Sync ──────────────────────────────────────────────
@@ -319,11 +338,11 @@ async function syncToSupabase() {
       device_id: 'chrome-extension',
     }));
 
-    const res = await fetch(`${supabaseUrl}/rest/v1/browsing_sessions`, {
+    const res = await fetch(`${config.supabaseUrl}/rest/v1/browsing_sessions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabasePublishableKey,
+        'apikey': config.supabasePublishableKey,
         'Authorization': `Bearer ${accessToken}`,
         'Prefer': 'return=minimal',
       },

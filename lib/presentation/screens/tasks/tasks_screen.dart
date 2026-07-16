@@ -53,19 +53,35 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     ),
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          _buildSmallButton('🧠 Brain Dump', () => context.push('/brain-dump')),
-                          const SizedBox(width: AppSpacing.xs),
-                          _buildSmallButton('🎰 Roulette', _runTaskRoulette),
-                          const SizedBox(width: AppSpacing.xs),
-                          _buildSmallButton('⚡ Match Energy', () {
-                            setState(() => _matchEnergy = !_matchEnergy);
-                          }, isSelected: _matchEnergy),
-                        ],
+                    child: ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Colors.black,
+                            Colors.black,
+                            Colors.transparent
+                          ],
+                          stops: [0.0, 0.08, 0.92, 1.0],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ).createShader(bounds);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            _buildSmallButton('🧠 Brain Dump', () => context.push('/brain-dump')),
+                            const SizedBox(width: AppSpacing.xs),
+                            _buildSmallButton('🎰 Roulette', _runTaskRoulette),
+                            const SizedBox(width: AppSpacing.xs),
+                            _buildSmallButton('⚡ Match Energy', () {
+                              setState(() => _matchEnergy = !_matchEnergy);
+                            }, isSelected: _matchEnergy),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -239,6 +255,48 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                   onDelete: () => _deleteTask(task),
                   onTap: () => _startDeepWork(task),
                 )),
+
+            if (incomplete.length < 3) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.background2,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    width: 0.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('💡', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          'Focus Tip',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Have items on your mind? Use the Brain Dump to let AI organize your thoughts into actionable tasks sorted by energy levels.',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             // Completed section
             if (completed.isNotEmpty) ...[

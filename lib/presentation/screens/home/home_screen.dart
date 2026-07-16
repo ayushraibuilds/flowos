@@ -363,7 +363,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             Text(
-              'Level ${level + 1}',
+              'Next: Lv ${level + 1}',
               style: AppTypography.caption.copyWith(
                 color: AppColors.textTertiary,
               ),

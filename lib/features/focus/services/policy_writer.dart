@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/effective_policy.dart';
 
@@ -12,6 +13,7 @@ abstract class PolicyWriter {
 
 class SharedPrefsPolicyWriter implements PolicyWriter {
   static const _key = 'flowos_active_policies';
+  static const _channel = MethodChannel('flowos/device_attention');
 
   const SharedPrefsPolicyWriter();
 
@@ -38,6 +40,12 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
     );
 
     await prefs.setString(_key, updated.toPrefsJson());
+
+    if (policy.source == PolicySource.focus) {
+      try {
+        await _channel.invokeMethod('startForegroundService');
+      } catch (_) {}
+    }
   }
 
   @override
@@ -51,6 +59,12 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
     );
 
     await prefs.setString(_key, updated.toPrefsJson());
+
+    if (source == PolicySource.focus) {
+      try {
+        await _channel.invokeMethod('stopForegroundService');
+      } catch (_) {}
+    }
 
     if (source == PolicySource.focus) {
       final sessionId = current.focus?.sessionId;

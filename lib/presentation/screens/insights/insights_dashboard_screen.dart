@@ -272,6 +272,8 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           data: (sessions) => FocusSessionTimeline(sessions: sessions),
         ),
         const SizedBox(height: AppSpacing.xxl),
+        _buildUnlockAttemptsSection(),
+        const SizedBox(height: AppSpacing.xxl),
 
         // App distraction impact list
         Text('App Impact', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
@@ -476,6 +478,8 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           orElse: () => const SizedBox.shrink(),
         ),
         const SizedBox(height: AppSpacing.xxl),
+        _buildUnlockAttemptsSection(),
+        const SizedBox(height: AppSpacing.xxl),
 
         // distracting app list in 7 days
         Text('Watchlist App Usage', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
@@ -551,6 +555,8 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           },
           orElse: () => const SizedBox.shrink(),
         ),
+        const SizedBox(height: AppSpacing.xxl),
+        _buildUnlockAttemptsSection(),
       ],
     );
   }
@@ -565,6 +571,96 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           Text(value, style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
         ],
       ),
+    );
+  }
+
+  Widget _buildUnlockAttemptsSection() {
+    final attemptsAsync = ref.watch(insightUnlockAttemptsProvider);
+
+    return attemptsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('Error: $err')),
+      data: (data) {
+        if (!data.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final formattedHour = data.peakHour >= 0
+            ? DateFormat('h a').format(DateTime(2020, 1, 1, data.peakHour))
+            : '—';
+
+        return Card(
+          color: AppColors.background2,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+            side: BorderSide(color: AppColors.emerald.withValues(alpha: 0.1)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.shield_outlined, color: AppColors.emerald, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Focus Protection Insights',
+                      style: AppTypography.monoSmall.copyWith(
+                        color: AppColors.emerald,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Total Intercepts', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      '${data.totalAttempts}',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Most Blocked Target', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      data.mostBlockedTarget,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Peak Distraction Hour', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      formattedHour,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

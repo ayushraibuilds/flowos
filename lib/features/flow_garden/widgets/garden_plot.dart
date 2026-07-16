@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../models/garden_day.dart';
+import 'garden_object_painter.dart';
 
 /// Shared, lightweight garden canvas used both on Home and in the full garden.
 class GardenPlot extends StatelessWidget {
@@ -98,18 +99,14 @@ class GardenPlot extends StatelessWidget {
                       duration: const Duration(milliseconds: 850),
                       curve: Curves.elasticOut,
                       scale: isGrowing ? 1.24 : 1,
-                      child: Text(
-                        object.emoji,
-                        style: TextStyle(
-                          fontSize: object.kind == GardenObjectKind.tree
-                              ? 42
-                              : 30,
-                          shadows: [
-                            Shadow(
-                              color: AppColors.emerald.withValues(alpha: 0.35),
-                              blurRadius: 12,
-                            ),
-                          ],
+                      child: SizedBox(
+                        width: object.kind == GardenObjectKind.tree ? 48 : 36,
+                        height: object.kind == GardenObjectKind.tree ? 48 : 36,
+                        child: CustomPaint(
+                          painter: GardenObjectPainter(
+                            kind: object.kind,
+                            emoji: object.emoji,
+                          ),
                         ),
                       ),
                     ),

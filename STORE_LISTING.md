@@ -20,6 +20,12 @@ Every task has an energy level — Deep, Medium, or Light. FlowOS helps you matc
 **⏱️ Focus Sessions with XP**
 Start focus sessions (Pomodoro or 90-min Deep Work mode) and earn XP for every minute of focused work. Track quality, not just time.
 
+**🌱 Grow Your Flow Garden**
+Every focused session plants a seed in your Flow Garden. Watch flowers bloom and trees grow as you complete your goals, turning your focus into a living visual representation of your progress.
+
+**🛡️ App Shielding & Focus Protection**
+Block distracting apps (like Instagram, TikTok, or YouTube) on Android during active focus sessions. Choose between Gentle (helpful prompts) or Firm (strict accessibility shields) to protect your attention block.
+
 **🔥 Streaks & Achievements**
 Build daily streaks, unlock achievements, and level up. FlowOS gamifies the boring parts of productivity without turning it into guiltware.
 
@@ -67,7 +73,7 @@ Everyone / 4+
 - Ambient sounds (binaural, rain, café, forest)
 - Unlockable themes
 - Cloud sync (Apple & Google Sign-In)
-- Chrome extension companion (coming soon)
+- Fully paired Chrome Extension companion for site blocking and desktop productivity syncing
 
 ---
 

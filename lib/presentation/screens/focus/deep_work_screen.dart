@@ -39,11 +39,11 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   
   String _selectedSound = 'none';
   final _sounds = [
-    (key: 'none', emoji: '🔇', label: 'Silent'),
-    (key: 'binaural', emoji: '🧠', label: 'Binaural'),
-    (key: 'rain', emoji: '🌧️', label: 'Rain'),
-    (key: 'cafe', emoji: '☕', label: 'Café'),
-    (key: 'piano', emoji: '🎹', label: 'Piano'),
+    (key: 'none', icon: Icons.volume_off_rounded, label: 'Silent'),
+    (key: 'binaural', icon: Icons.psychology_rounded, label: 'Binaural'),
+    (key: 'rain', icon: Icons.water_drop_rounded, label: 'Rain'),
+    (key: 'cafe', icon: Icons.coffee_rounded, label: 'Café'),
+    (key: 'piano', icon: Icons.music_note_rounded, label: 'Piano'),
   ];
 
   bool _wasBackgrounded = false;
@@ -482,9 +482,10 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                           ),
                         ),
                         child: Center(
-                          child: Text(
-                            s.emoji,
-                            style: const TextStyle(fontSize: 20),
+                          child: Icon(
+                            s.icon,
+                            size: 20,
+                            color: isActive ? AppColors.emerald : AppColors.textSecondary,
                           ),
                         ),
                       ),

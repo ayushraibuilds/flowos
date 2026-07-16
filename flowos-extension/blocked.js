@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await chrome.storage.local.set({ escapeHatchCount: escapeHatchCount + 1 });
 
     // Disable blocking temporarily (30 seconds)
-    await chrome.runtime.sendMessage({ type: 'TOGGLE_FOCUS' });
+    await chrome.runtime.sendMessage({ type: 'TEMPORARY_BYPASS', seconds: 30 });
 
     // Go back (the site will now load)
     history.back();

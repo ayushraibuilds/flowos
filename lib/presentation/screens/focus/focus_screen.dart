@@ -40,7 +40,10 @@ class FocusScreen extends ConsumerStatefulWidget {
   ConsumerState<FocusScreen> createState() => _FocusScreenState();
 }
 
-class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingObserver {
+class _FocusScreenState extends ConsumerState<FocusScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+  late AnimationController _breatheController;
+  late Animation<double> _breatheAnimation;
+
   // Config state
   int _selectedSessionType = 0; // 0=Classic, 1=DeskTime, 2=Deep Work, 3=Flowtime
   final _sessionTypes = [
@@ -52,11 +55,11 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
 
   String _selectedSound = 'none';
   final _sounds = [
-    (key: 'none', emoji: '🔇', label: 'Silent'),
-    (key: 'binaural', emoji: '🧠', label: 'Binaural'),
-    (key: 'rain', emoji: '🌧️', label: 'Rain'),
-    (key: 'cafe', emoji: '☕', label: 'Café'),
-    (key: 'piano', emoji: '🎹', label: 'Piano'),
+    (key: 'none', icon: Icons.volume_off_rounded, label: 'Silent'),
+    (key: 'binaural', icon: Icons.psychology_rounded, label: 'Binaural'),
+    (key: 'rain', icon: Icons.water_drop_rounded, label: 'Rain'),
+    (key: 'cafe', icon: Icons.coffee_rounded, label: 'Café'),
+    (key: 'piano', icon: Icons.music_note_rounded, label: 'Piano'),
   ];
 
   bool _wasBackgrounded = false;
@@ -67,6 +70,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+    _breatheAnimation = Tween<double>(begin: 0.98, end: 1.02).animate(
+      CurvedAnimation(parent: _breatheController, curve: Curves.easeInOut),
+    );
 
     if (widget.durationMinutes != null) {
       if (widget.durationMinutes == 25) _selectedSessionType = 0;
@@ -85,6 +96,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _breatheController.dispose();
     super.dispose();
   }
 
@@ -496,174 +508,210 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with WidgetsBindingOb
 
     return Scaffold(
       backgroundColor: AppColors.background0,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(flex: 2),
-            SizedBox(
-              width: ringSize,
-              height: ringSize,
-              child: CustomPaint(
-                painter: _TimerRingPainter(progress: progress),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _formatTime(timeVal),
-                        style: AppTypography.monoLarge.copyWith(
-                          color: AppColors.textPrimary,
+      body: Stack(
+        children: [
+          // Ambient breathing radial background glow
+          AnimatedBuilder(
+            animation: _breatheAnimation,
+            builder: (context, child) {
+              return Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.emerald.withValues(
+                          alpha: active.phase == FocusTimerPhase.running
+                              ? 0.08 * _breatheAnimation.value
+                              : 0.04),
+                      Colors.transparent,
+                    ],
+                    radius: 1.4,
+                  ),
+                ),
+              );
+            },
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                const Spacer(flex: 2),
+                AnimatedBuilder(
+                  animation: _breatheAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: active.phase == FocusTimerPhase.running ? _breatheAnimation.value : 1.0,
+                      child: child,
+                    );
+                  },
+                  child: SizedBox(
+                    width: ringSize,
+                    height: ringSize,
+                    child: CustomPaint(
+                      painter: _TimerRingPainter(progress: progress),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _formatTime(timeVal),
+                              style: AppTypography.monoLarge.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              active.sessionType == SessionTypeColumn.deepWork
+                                  ? '🌳 Growing Deep Tree'
+                                  : active.sessionType == SessionTypeColumn.pomodoro
+                                      ? '🌱 Growing Focus Flower'
+                                      : '🌿 Flowing',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        active.sessionType == SessionTypeColumn.deepWork
-                            ? 'Deep Work'
-                            : active.sessionType == SessionTypeColumn.pomodoro
-                                ? 'Classic'
-                                : 'Flowtime',
-                        style: AppTypography.bodySmall.copyWith(
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                Text(
+                  '+$liveXP XP so far',
+                  style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
+                ),
+                if (_showReturnCue) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  GestureDetector(
+                    onTap: () => setState(() => _showReturnCue = false),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.focusBlue.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                      ),
+                      child: Text(
+                        'Welcome back. Your focus is still here. Tap to continue.',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+                const Spacer(flex: 1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_sounds.length, (i) {
+                    final s = _sounds[i];
+                    final isActive = s.key == active.selectedSound;
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(focusTimerNotifierProvider.notifier).selectSound(s.key);
+                      },
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isActive
+                              ? AppColors.emerald.withValues(alpha: 0.15)
+                              : AppColors.background2,
+                          border: Border.all(
+                            color: isActive ? AppColors.emerald : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            s.icon,
+                            size: 20,
+                            color: isActive ? AppColors.emerald : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _togglePause(active),
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.textTertiary,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          active.phase == FocusTimerPhase.paused
+                              ? Icons.play_arrow_rounded
+                              : Icons.pause_rounded,
+                          color: AppColors.textSecondary,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xxl),
+                    GestureDetector(
+                      onTap: isFlowtime ? _onComplete : _requestStopSession,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.dangerCoral.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          isFlowtime ? Icons.check_rounded : Icons.stop_rounded,
+                          color: isFlowtime
+                              ? AppColors.emerald.withValues(alpha: 0.8)
+                              : AppColors.dangerCoral.withValues(alpha: 0.7),
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                if (active.pauseCount > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      active.pauseCount.clamp(0, 5),
+                      (i) => Container(
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
                           color: AppColors.textTertiary,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxl),
-            Text(
-              '+$liveXP XP so far',
-              style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
-            ),
-            if (_showReturnCue) ...[
-              const SizedBox(height: AppSpacing.md),
-              GestureDetector(
-                onTap: () => setState(() => _showReturnCue = false),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.focusBlue.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                  ),
-                  child: Text(
-                    'Welcome back. Your focus is still here. Tap to continue.',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ],
-            const Spacer(flex: 1),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_sounds.length, (i) {
-                final s = _sounds[i];
-                final isActive = s.key == active.selectedSound;
-                return GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    ref.read(focusTimerNotifierProvider.notifier).selectSound(s.key);
-                  },
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isActive
-                          ? AppColors.emerald.withValues(alpha: 0.15)
-                          : AppColors.background2,
-                      border: Border.all(
-                        color: isActive ? AppColors.emerald : Colors.transparent,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        s.emoji,
-                        style: const TextStyle(fontSize: 20),
-                      ),
                     ),
                   ),
-                );
-              }),
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: () => _togglePause(active),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.textTertiary,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Icon(
-                      active.phase == FocusTimerPhase.paused
-                          ? Icons.play_arrow_rounded
-                          : Icons.pause_rounded,
-                      color: AppColors.textSecondary,
-                      size: 28,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xxl),
-                GestureDetector(
-                  onTap: isFlowtime ? _onComplete : _requestStopSession,
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.dangerCoral.withValues(alpha: 0.5),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Icon(
-                      isFlowtime ? Icons.check_rounded : Icons.stop_rounded,
-                      color: isFlowtime
-                          ? AppColors.emerald.withValues(alpha: 0.8)
-                          : AppColors.dangerCoral.withValues(alpha: 0.7),
-                      size: 28,
-                    ),
-                  ),
-                ),
+                const SizedBox(height: AppSpacing.lg),
               ],
             ),
-            const SizedBox(height: AppSpacing.xxxl),
-            if (active.pauseCount > 0)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  active.pauseCount.clamp(0, 5),
-                  (i) => Container(
-                    width: 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ),
-              ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

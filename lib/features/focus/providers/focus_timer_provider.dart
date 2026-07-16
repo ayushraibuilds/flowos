@@ -10,6 +10,7 @@ import '../models/focus_timer_stage.dart';
 import '../services/focus_session_service.dart';
 import '../services/policy_writer.dart';
 import '../models/effective_policy.dart';
+import '../../sync/providers/sync_providers.dart';
 
 /// Notifier managing unified Focus and Deep Work timer state machine.
 class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
@@ -281,6 +282,8 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     state = newState;
     await _saveToPrefs(newState);
     _startTickers();
+    // Trigger immediate push to sync the active session state
+    _ref.read(syncEngineProvider).schedulePush();
     return true;
   }
 
@@ -312,6 +315,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       final writer = const SharedPrefsPolicyWriter();
       await writer.deactivatePolicy(PolicySource.focus);
     } catch (_) {}
+
+    // Trigger immediate push to sync the active session state
+    _ref.read(syncEngineProvider).schedulePush();
   }
 
   /// Resume current paused timer session.
@@ -358,6 +364,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       final writer = const SharedPrefsPolicyWriter();
       await writer.activatePolicy(policy);
     } catch (_) {}
+
+    // Trigger immediate push to sync the active session state
+    _ref.read(syncEngineProvider).schedulePush();
   }
 
   /// Stop session prematurely (cancellation/stop pipeline).
@@ -382,6 +391,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     final updated = current.copyWith(phase: FocusTimerPhase.stopped);
     state = updated;
     await _saveToPrefs(updated);
+
+    // Trigger immediate push to sync the active session state
+    _ref.read(syncEngineProvider).schedulePush();
     return result;
   }
 
@@ -411,6 +423,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     );
     state = updated;
     await _saveToPrefs(updated);
+
+    // Trigger immediate push to sync the active session state
+    _ref.read(syncEngineProvider).schedulePush();
     return result;
   }
 

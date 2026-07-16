@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../attention/providers/app_picker_providers.dart';
 import '../models/focus_protection.dart';
 
-class FocusProtectionSelector extends StatelessWidget {
+class FocusProtectionSelector extends ConsumerWidget {
   final FocusProtectionLevel value;
   final ValueChanged<FocusProtectionLevel> onChanged;
 
@@ -16,7 +18,23 @@ class FocusProtectionSelector extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final protectedAppsAsync = ref.watch(protectedAppsStreamProvider);
+    final protectedApps = protectedAppsAsync.valueOrNull ?? [];
+    final focusProtectedCount = protectedApps.where((a) => a.protectsFocus).length;
+    final hasProtectedApps = focusProtectedCount > 0;
+
+    final String description = switch (value) {
+      FocusProtectionLevel.softReturn =>
+        'A kind cue welcomes you back; your timer keeps moving.',
+      FocusProtectionLevel.pauseAndProtect => hasProtectedApps
+        ? 'Your timer pauses when you leave FlowOS. Your $focusProtectedCount Protected App(s) will also redirect you back.'
+        : 'Your timer pauses when you leave FlowOS. (Add apps to your Protected list in settings to block them during focus.)',
+      FocusProtectionLevel.intentionalExit => hasProtectedApps
+        ? 'Pause on leave, a 5-second reflection before exiting, and blocking active for your $focusProtectedCount Protected App(s).'
+        : 'Pause on leave, a 5-second reflection before exiting. (Add apps to your Protected list in settings to block them.)',
+    };
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -69,7 +87,7 @@ class FocusProtectionSelector extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            value.description,
+            description,
             style: AppTypography.caption.copyWith(
               color: AppColors.textSecondary,
               height: 1.35,

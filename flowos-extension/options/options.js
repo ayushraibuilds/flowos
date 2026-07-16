@@ -23,8 +23,7 @@ async function loadSettings() {
     'email', 'accessToken', 'customCategories',
   ]);
 
-  // Remove legacy, user-entered infrastructure settings from earlier builds.
-  await chrome.storage.local.remove(['supabaseUrl', 'supabaseKey']);
+  // Legacy manual url/key removal is disabled to prevent wiping paired connection settings.
 
   document.getElementById('email').value = email || '';
   const loginButton = document.getElementById('loginBtn');

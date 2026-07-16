@@ -278,3 +278,74 @@ final insightsCompletionFunnelProvider = FutureProvider<({
     completed: completed,
   );
 });
+
+/// Aggregates focus protection unlock attempts statistics for the selected period
+final insightUnlockAttemptsProvider = FutureProvider<({
+  bool hasData,
+  String mostBlockedTarget,
+  int totalAttempts,
+  int peakHour,
+})>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final period = ref.watch(insightPeriodProvider);
+
+  final now = DateTime.now();
+  final midnightToday = DateTime(now.year, now.month, now.day);
+  final DateTime start;
+
+  switch (period) {
+    case InsightPeriod.today:
+      start = midnightToday;
+      break;
+    case InsightPeriod.week:
+      start = midnightToday.subtract(const Duration(days: 6));
+      break;
+    case InsightPeriod.month:
+      start = midnightToday.subtract(const Duration(days: 29));
+      break;
+  }
+  final end = midnightToday.add(const Duration(days: 1));
+
+  final attempts = await (db.select(db.unlockAttempts)
+        ..where((t) =>
+            t.timestamp.isBiggerOrEqualValue(start) &
+            t.timestamp.isSmallerThanValue(end)))
+      .get();
+
+  if (attempts.isEmpty) {
+    return (
+      hasData: false,
+      mostBlockedTarget: '',
+      totalAttempts: 0,
+      peakHour: -1,
+    );
+  }
+
+  // Find the target with most blocked attempts
+  final Map<String, int> targetCounts = {};
+  for (final a in attempts) {
+    targetCounts[a.target] = (targetCounts[a.target] ?? 0) + 1;
+  }
+  
+  final sortedTargets = targetCounts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  final mostBlocked = sortedTargets.first.key;
+
+  // Find the peak hour of day
+  final Map<int, int> hourCounts = {};
+  for (final a in attempts) {
+    final hour = a.timestamp.hour;
+    hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
+  }
+  
+  final sortedHours = hourCounts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  final peakHour = sortedHours.first.key;
+
+  return (
+    hasData: true,
+    mostBlockedTarget: mostBlocked,
+    totalAttempts: attempts.length,
+    peakHour: peakHour,
+  );
+});

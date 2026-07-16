@@ -46,8 +46,11 @@ class StreakService {
       // First day ever
       await prefs.setInt(_keyStreak, 1);
     } else {
-      final lastDate = DateTime.parse(lastActive);
-      final daysSince = DateTime.now().difference(lastDate).inDays;
+      final lastDateLocal = DateTime.parse(lastActive);
+      final lastDateUtc = DateTime.utc(lastDateLocal.year, lastDateLocal.month, lastDateLocal.day);
+      final now = DateTime.now();
+      final todayUtc = DateTime.utc(now.year, now.month, now.day);
+      final daysSince = todayUtc.difference(lastDateUtc).inDays;
 
       if (daysSince == 1) {
         // Consecutive day — increment streak
@@ -79,8 +82,11 @@ class StreakService {
     final lastActive = prefs.getString(_keyLastActive);
     if (lastActive == null) return;
 
-    final lastDate = DateTime.parse(lastActive);
-    final daysSince = DateTime.now().difference(lastDate).inDays;
+    final lastDateLocal = DateTime.parse(lastActive);
+    final lastDateUtc = DateTime.utc(lastDateLocal.year, lastDateLocal.month, lastDateLocal.day);
+    final now = DateTime.now();
+    final todayUtc = DateTime.utc(now.year, now.month, now.day);
+    final daysSince = todayUtc.difference(lastDateUtc).inDays;
     final wasPaused = prefs.getBool(_keyPaused) ?? false;
 
     if (daysSince >= 3) {
