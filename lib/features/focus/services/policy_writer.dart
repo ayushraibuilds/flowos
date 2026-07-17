@@ -6,6 +6,7 @@ import '../models/effective_policy.dart';
 abstract class PolicyWriter {
   Future<void> activatePolicy(SourcePolicy policy);
   Future<void> deactivatePolicy(PolicySource source);
+  Future<void> suspendPolicy(PolicySource source);
   Future<void> renewLease(PolicySource source, DateTime newActiveUntil);
   Future<void> grantScopedBreak(ScopedBreak scopedBreak);
   Future<ActivePolicies?> getActivePolicies();
@@ -46,6 +47,16 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
         await _channel.invokeMethod('startForegroundService');
       } catch (_) {}
     }
+  }
+
+  @override
+  Future<void> suspendPolicy(PolicySource source) async {
+    // Intentionally a no-op on the SharedPrefs/native side.
+    // The Dart timer is paused but the native policy + foreground service
+    // remain active, so blocking continues while the app is backgrounded.
+    //
+    // When resumeSession() fires, it calls activatePolicy() which refreshes
+    // the lease, so no stale-data risk.
   }
 
   @override
@@ -180,6 +191,11 @@ class FakePolicyWriter implements PolicyWriter {
       focus: policy.source == PolicySource.focus ? policy : policies.focus,
       sleep: policy.source == PolicySource.sleep ? policy : policies.sleep,
     );
+  }
+
+  @override
+  Future<void> suspendPolicy(PolicySource source) async {
+    // No-op for the fake policy writer
   }
 
   @override

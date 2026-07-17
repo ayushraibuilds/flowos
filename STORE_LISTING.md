@@ -26,6 +26,9 @@ Every focused session plants a seed in your Flow Garden. Watch flowers bloom and
 **🛡️ App Shielding & Focus Protection**
 Block distracting apps (like Instagram, TikTok, or YouTube) on Android during active focus sessions. Choose between Gentle (helpful prompts) or Firm (strict accessibility shields) to protect your attention block.
 
+**🌙 Sleep Mode Blocker**
+Schedule bedtime hours to block distracting apps automatically. Set custom rules for weekdays and weekends to protect your sleep schedule and build better wind-down routines.
+
 **🔥 Streaks & Achievements**
 Build daily streaks, unlock achievements, and level up. FlowOS gamifies the boring parts of productivity without turning it into guiltware.
 
@@ -51,7 +54,7 @@ Earn new themes as you level up: Deep Space, Dark Forest, Midnight Ice, Warm Sun
 Sign in with Apple or Google. Your data syncs across iOS and Android. Works fully offline.
 
 **🔒 Privacy First**
-Local-first storage. No ads. No tracking. AI insights processed through our backend — your data never goes directly to third parties.
+Local-first storage. No ads. On-device usage analysis stays on your phone — never sold or shared. AI insights processed securely through our backend — your data never goes directly to third parties.
 
 ---
 

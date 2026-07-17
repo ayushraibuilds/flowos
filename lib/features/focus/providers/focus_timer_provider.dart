@@ -313,10 +313,11 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     state = updated;
     await _saveToPrefs(updated);
 
-    // Call deactivatePolicy on focus only. Sleep deep/guard remains untouched.
+    // Suspend the Dart-side view of the policy but keep native protection alive.
+    // The foreground service continues renewing the lease independently.
     try {
       final writer = const SharedPrefsPolicyWriter();
-      await writer.deactivatePolicy(PolicySource.focus);
+      await writer.suspendPolicy(PolicySource.focus);
     } catch (_) {}
 
     // Trigger immediate push to sync the active session state

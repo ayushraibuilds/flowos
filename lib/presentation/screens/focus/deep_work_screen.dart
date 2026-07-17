@@ -195,19 +195,75 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     if (_isFinalizing) return;
     setState(() => _isFinalizing = true);
 
-    final active = ref.read(focusTimerNotifierProvider);
-    if (active == null) return;
+    try {
+      final active = ref.read(focusTimerNotifierProvider);
+      if (active == null) return;
 
-    final total = active.totalSeconds;
-    final elapsed = active.elapsedSeconds;
-    final actualMin = (elapsed / 60).round();
-    final pct = elapsed / total;
+      final total = active.totalSeconds;
+      final elapsed = active.elapsedSeconds;
+      final actualMin = (elapsed / 60).round();
+      final pct = elapsed / total;
 
-    final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
-    await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
+      final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
+      await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
 
-    if (mounted) {
-      if (pct >= 0.6 && actualMin >= 10) {
+      if (mounted) {
+        if (pct >= 0.6 && actualMin >= 10) {
+          for (final key in result.newlyUnlockedAchievements) {
+            final ach = allAchievements.firstWhere((a) => a.key == key);
+            CelebrationService.showAchievementToast(
+              context,
+              name: ach.name,
+              emoji: ach.emoji,
+            );
+          }
+          context.pushReplacement(
+            '/break',
+            extra: {
+              'xpEarned': result.xpEarned,
+              'qualityGrade': 'D',
+              'focusMinutes': actualMin,
+            },
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Session stopped. Unfinished sessions receive no credit.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          context.pop();
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isFinalizing = false);
+      }
+    }
+  }
+
+  Future<void> _onComplete() async {
+    if (_isFinalizing) return;
+    setState(() => _isFinalizing = true);
+
+    try {
+      HapticFeedback.heavyImpact();
+      final active = ref.read(focusTimerNotifierProvider);
+      if (active == null) return;
+      
+      final elapsed = active.elapsedSeconds;
+      final actualMin = (elapsed / 60).round();
+
+      final result = await ref.read(focusTimerNotifierProvider.notifier).completeSession();
+      await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
+      
+      final quality = (active.pauseCount + active.backgroundCount) == 0
+          ? 'A'
+          : (active.pauseCount + active.backgroundCount) <= 2
+          ? 'B'
+          : 'C';
+
+      if (mounted) {
         for (final key in result.newlyUnlockedAchievements) {
           final ach = allAchievements.firstWhere((a) => a.key == key);
           CelebrationService.showAchievementToast(
@@ -220,59 +276,15 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
           '/break',
           extra: {
             'xpEarned': result.xpEarned,
-            'qualityGrade': 'D',
+            'qualityGrade': quality,
             'focusMinutes': actualMin,
           },
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session stopped. Unfinished sessions receive no credit.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        context.pop();
       }
-    }
-  }
-
-  Future<void> _onComplete() async {
-    if (_isFinalizing) return;
-    setState(() => _isFinalizing = true);
-
-    HapticFeedback.heavyImpact();
-    final active = ref.read(focusTimerNotifierProvider);
-    if (active == null) return;
-    
-    final elapsed = active.elapsedSeconds;
-    final actualMin = (elapsed / 60).round();
-
-    final result = await ref.read(focusTimerNotifierProvider.notifier).completeSession();
-    await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
-    
-    final quality = (active.pauseCount + active.backgroundCount) == 0
-        ? 'A'
-        : (active.pauseCount + active.backgroundCount) <= 2
-        ? 'B'
-        : 'C';
-
-    if (mounted) {
-      for (final key in result.newlyUnlockedAchievements) {
-        final ach = allAchievements.firstWhere((a) => a.key == key);
-        CelebrationService.showAchievementToast(
-          context,
-          name: ach.name,
-          emoji: ach.emoji,
-        );
+    } finally {
+      if (mounted) {
+        setState(() => _isFinalizing = false);
       }
-      context.pushReplacement(
-        '/break',
-        extra: {
-          'xpEarned': result.xpEarned,
-          'qualityGrade': quality,
-          'focusMinutes': actualMin,
-        },
-      );
     }
   }
 

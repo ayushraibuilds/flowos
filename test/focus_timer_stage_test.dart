@@ -331,6 +331,32 @@ void main() {
       expect(active?.sleep, isNotNull); // Sleep policy remains fully active!
     });
 
+    test('Suspending focus session keeps focus blocker policy active', () async {
+      final writer = const SharedPrefsPolicyWriter();
+      
+      // Setup focus policy
+      final focusPolicy = SourcePolicy(
+        sessionId: 'session-456',
+        activeUntil: DateTime.now().add(const Duration(minutes: 10)),
+        selectedPackages: {'pkg.a'},
+        protectionMode: ProtectionMode.guard,
+        source: PolicySource.focus,
+        scopedBreaks: [],
+      );
+
+      await writer.activatePolicy(focusPolicy);
+
+      // Verify it is active
+      var active = await writer.getActivePolicies();
+      expect(active?.focus, isNotNull);
+
+      // Suspend Focus session (implicitly called on backgrounding)
+      await writer.suspendPolicy(PolicySource.focus);
+
+      active = await writer.getActivePolicies();
+      expect(active?.focus, isNotNull); // Focus policy remains active!
+    });
+
     test('GardenService reads exact persisted seed details', () async {
       final now = DateTime.now();
       final start = DateTime(now.year, now.month, now.day);
