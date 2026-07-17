@@ -1,4 +1,4 @@
-<![CDATA[# FlowOS
+# FlowOS
 
 > A personal operating system for time, energy, and attention.
 
@@ -597,4 +597,4 @@ This project is proprietary. All rights reserved.
 ---
 
 *Built with intention.*
-]]>
+
