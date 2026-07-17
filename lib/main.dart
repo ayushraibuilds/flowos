@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/focus/providers/nudge_provider.dart';
@@ -61,11 +62,33 @@ Future<void> main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
-  runApp(
-    const ProviderScope(
-      child: FlowOSApp(),
-    ),
-  );
+  const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+
+  if (sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = sentryDsn;
+        options.tracesSampleRate = 0.2;
+        options.environment = const String.fromEnvironment(
+          'SENTRY_ENV',
+          defaultValue: 'development',
+        );
+      },
+      appRunner: () => runApp(
+        const ProviderScope(
+          child: FlowOSApp(),
+        ),
+      ),
+    );
+  } else {
+    debugPrint('⚠️ Sentry DSN not configured — crash reporting disabled.');
+    debugPrint('   Run with: flutter run --dart-define=SENTRY_DSN=https://...');
+    runApp(
+      const ProviderScope(
+        child: FlowOSApp(),
+      ),
+    );
+  }
 }
 
 class FlowOSApp extends ConsumerStatefulWidget {

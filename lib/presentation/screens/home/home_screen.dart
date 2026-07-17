@@ -466,6 +466,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         label: 'Log Scroll',
         onTap: () => context.push('/scroll-tracker'),
       ),
+      (
+        icon: '📊',
+        label: 'Insights',
+        onTap: () => context.push('/insights'),
+      ),
     ];
 
     return Row(

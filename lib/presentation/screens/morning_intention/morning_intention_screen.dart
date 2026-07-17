@@ -33,6 +33,17 @@ class _MorningIntentionScreenState
   List<Task> _incompleteTasks = [];
   bool _saving = false;
 
+  final _inlineTitleController = TextEditingController();
+  int _inlineEnergy = 1; // 0=deep, 1=medium, 2=light
+  int _inlineMinutes = 25;
+  bool _showAddTaskForm = false;
+
+  @override
+  void dispose() {
+    _inlineTitleController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -163,33 +174,37 @@ class _MorningIntentionScreenState
               ),
               const SizedBox(height: AppSpacing.md),
               // MITs from real task list
-              if (_incompleteTasks.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppSpacing.xxl),
-                  decoration: BoxDecoration(
-                    color: AppColors.background2,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'No tasks yet',
-                        style: AppTypography.body.copyWith(
-                          color: AppColors.textTertiary,
-                        ),
+              if (_incompleteTasks.isEmpty && !_showAddTaskForm)
+                GestureDetector(
+                  onTap: () => setState(() => _showAddTaskForm = true),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.xxl),
+                    decoration: BoxDecoration(
+                      color: AppColors.background2,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      border: Border.all(
+                        color: AppColors.emerald.withValues(alpha: 0.2),
+                        width: 1,
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        'Add tasks first, then pick your MITs here',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textTertiary,
+                    ),
+                    child: Column(
+                      children: [
+                        const Text('📝', style: TextStyle(fontSize: 28)),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'No tasks yet — tap to add one',
+                          style: AppTypography.body.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                )
-              else
+                ),
+              if (_showAddTaskForm)
+                _buildInlineAddTaskForm(),
+              if (_incompleteTasks.isNotEmpty)
                 ..._incompleteTasks.map((task) {
                   final isSelected = _selectedMitIds.contains(task.id);
                   final energyEmoji = switch (task.energyLevel) {
@@ -270,6 +285,38 @@ class _MorningIntentionScreenState
                     ),
                   );
                 }),
+              if (_incompleteTasks.isNotEmpty && !_showAddTaskForm)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _showAddTaskForm = true),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: AppColors.background2,
+                        borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add, size: 16, color: AppColors.emerald),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            'Add a task',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.emerald,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               if (_selectedMitIds.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
@@ -382,5 +429,165 @@ class _MorningIntentionScreenState
     ));
 
     if (mounted) context.go('/home');
+  }
+
+  Widget _buildInlineAddTaskForm() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.background2,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _inlineTitleController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: 'Task title...',
+                    hintStyle: AppTypography.body.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _showAddTaskForm = false),
+                child: Icon(Icons.close, size: 18, color: AppColors.textTertiary),
+              ),
+            ],
+          ),
+          const Divider(color: Colors.white10, height: 16),
+          // Energy level chips
+          Row(
+            children: [
+              _inlineEnergyChip(0, '🔥', 'Deep'),
+              const SizedBox(width: AppSpacing.xs),
+              _inlineEnergyChip(1, '⚡', 'Med'),
+              const SizedBox(width: AppSpacing.xs),
+              _inlineEnergyChip(2, '🌿', 'Light'),
+              const Spacer(),
+              // Time stepper
+              GestureDetector(
+                onTap: () {
+                  if (_inlineMinutes > 5) setState(() => _inlineMinutes -= 5);
+                },
+                child: Container(
+                  width: 24, height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.background0,
+                  ),
+                  child: const Icon(Icons.remove, size: 14, color: Colors.white54),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: Text(
+                  '${_inlineMinutes}m',
+                  style: AppTypography.monoSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _inlineMinutes += 5),
+                child: Container(
+                  width: 24, height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.background0,
+                  ),
+                  child: const Icon(Icons.add, size: 14, color: Colors.white54),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            height: 36,
+            child: ElevatedButton(
+              onPressed: _saveInlineTask,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.emerald,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                ),
+                elevation: 0,
+              ),
+              child: const Text('Add Task'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _inlineEnergyChip(int index, String emoji, String label) {
+    final isSelected = _inlineEnergy == index;
+    return GestureDetector(
+      onTap: () => setState(() => _inlineEnergy = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.emerald.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.emerald
+                : Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Text(
+          '$emoji $label',
+          style: AppTypography.caption.copyWith(
+            color: isSelected ? AppColors.emerald : AppColors.textTertiary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveInlineTask() async {
+    final title = _inlineTitleController.text.trim();
+    if (title.isEmpty) return;
+    HapticFeedback.mediumImpact();
+    final db = ref.read(databaseProvider);
+    final id = _uuid.v4();
+    await db.tasksDao.insertTask(TasksCompanion(
+      id: Value(id),
+      title: Value(title),
+      energyLevel: Value(EnergyLevelColumn.values[_inlineEnergy]),
+      estimatedMinutes: Value(_inlineMinutes),
+      isMIT: const Value(false),
+      category: const Value(TaskCategoryColumn.personal),
+    ));
+    _inlineTitleController.clear();
+    setState(() {
+      _inlineEnergy = 1;
+      _inlineMinutes = 25;
+      _showAddTaskForm = false;
+    });
+    await _loadTasks();
   }
 }

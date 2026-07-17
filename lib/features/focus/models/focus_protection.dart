@@ -21,11 +21,11 @@ extension FocusProtectionLevelDetails on FocusProtectionLevel {
 
   String get description => switch (this) {
     FocusProtectionLevel.softReturn =>
-      'A kind cue welcomes you back; your timer keeps moving.',
+      'A kind cue welcomes you back; your timer keeps moving. No app blocking.',
     FocusProtectionLevel.pauseAndProtect =>
-      'Your timer pauses when you leave FlowOS, so you can return by choice.',
+      'Timer pauses on leave. Focus-protected apps are blocked and redirect you back.',
     FocusProtectionLevel.intentionalExit =>
-      'Pause on leave, plus a five-second reflection before ending a session.',
+      'Pause on leave, a five-second exit reflection, and focus-protected apps are blocked.',
   };
 
   bool get pausesWhenLeaving => this != FocusProtectionLevel.softReturn;

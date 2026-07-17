@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../repository/attention_data_repository.dart';
 import '../../../data/local/database/app_database.dart';
+import '../../../core/constants/distraction_packages.dart';
 
 final launchableAppsProvider = FutureProvider<List<Map<String, String>>>((ref) async {
   final platform = ref.watch(deviceAttentionPlatformProvider);
@@ -43,7 +44,7 @@ final legacySuggestionsProvider = FutureProvider<List<String>>((ref) async {
 
       final suggestions = <String>[];
       for (final label in distractions) {
-        final pkg = _mapLabelToPackageName(label);
+        final pkg = DistractionPackages.primaryPackage(label);
         if (pkg != null) {
           // Verify it's actually installed
           final isInstalled = launchable.any((app) => app['packageName'] == pkg);
@@ -57,15 +58,3 @@ final legacySuggestionsProvider = FutureProvider<List<String>>((ref) async {
   } catch (_) {}
   return [];
 });
-
-String? _mapLabelToPackageName(String label) {
-  return switch (label.toLowerCase()) {
-    'instagram' => 'com.instagram.android',
-    'youtube/shorts' || 'youtube' => 'com.google.android.youtube',
-    'tiktok' => 'com.zhiliaoapp.musically',
-    'x/twitter' || 'twitter' || 'x' => 'com.twitter.android',
-    'reddit' => 'com.reddit.frontpage',
-    'browser' => 'com.android.chrome',
-    _ => null,
-  };
-}

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../features/onboarding/providers/onboarding_providers.dart';
+import '../../../../core/constants/distraction_packages.dart';
 
 class ShapeFocusSheet extends ConsumerStatefulWidget {
   const ShapeFocusSheet({super.key});
@@ -23,16 +25,6 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
   late String _tempMode;
 
   final _goalsOptions = ['Deep work', 'Study', 'Rest', 'Less scrolling'];
-  final _distractionsOptions = [
-    'Instagram',
-    'YouTube/Shorts',
-    'TikTok',
-    'X/Twitter',
-    'Reddit',
-    'Browser',
-    'Games',
-    'Other'
-  ];
 
   @override
   void initState() {
@@ -66,15 +58,15 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                 child: Container(
                   width: 40,
                   height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                   decoration: BoxDecoration(
                     color: AppColors.textTertiary.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
               Text(
-                'Shape My Focus',
+                'Shape Focus Settings',
                 style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -84,9 +76,9 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              // 1. Focus Goals
+              // 1. Core Focus Goals
               Text(
-                'Focus Goals',
+                'Core Focus Goals',
                 style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -126,7 +118,7 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
-                children: _distractionsOptions.map((d) {
+                children: DistractionPackages.allOptions.map((d) {
                   final isSel = _tempDistractions.contains(d);
                   return FilterChip(
                     label: Text(d),
@@ -140,6 +132,11 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                       setState(() {
                         if (selected) {
                           _tempDistractions.add(d);
+                          if (d == 'Games' || d == 'Other') {
+                            if (context.mounted) {
+                              context.push('/app-picker');
+                            }
+                          }
                         } else {
                           _tempDistractions.remove(d);
                         }

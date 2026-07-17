@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../data/local/database/app_database.dart';
 import '../../focus/models/pending_trigger.dart';
+import '../../../core/constants/distraction_packages.dart';
 
 enum DataCoverage { complete, partial, manualOnly, notConnected, unsupported }
 
@@ -249,11 +250,21 @@ class AttentionDataRepository {
           final json = jsonDecode(rawProfile) as Map<String, dynamic>;
           final distractions = List<String>.from(json['distractions'] ?? []);
           for (final d in distractions) {
-            final pkg = _mapToPackageName(d);
-            if (pkg != null) watchlist.add(pkg);
+            final pkgs = DistractionPackages.allPackages(d);
+            watchlist.addAll(pkgs);
           }
         } catch (_) {}
       }
+
+      // Include all focus-protected apps from DB as distractions
+      try {
+        final dbApps = await _db.protectedAppsDao.getAll();
+        for (final app in dbApps) {
+          if (app.protectsFocus) {
+            watchlist.add(app.appRef);
+          }
+        }
+      } catch (_) {}
 
       for (final row in rawUsage) {
         final dateStr = row['date'] as String;
@@ -443,17 +454,7 @@ class AttentionDataRepository {
     return logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
   }
 
-  String? _mapToPackageName(String label) {
-    return switch (label.toLowerCase()) {
-      'instagram' => 'com.instagram.android',
-      'youtube/shorts' || 'youtube' => 'com.google.android.youtube',
-      'tiktok' => 'com.zhiliaoapp.musically',
-      'x/twitter' || 'twitter' || 'x' => 'com.twitter.android',
-      'reddit' => 'com.reddit.frontpage',
-      'browser' => 'com.android.chrome',
-      _ => null,
-    };
-  }
+
 
   String? _inferCategory(String packageName) {
     if (packageName.contains('instagram') ||

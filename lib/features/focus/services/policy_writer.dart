@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,7 +17,17 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
   static const _key = 'flowos_active_policies';
   static const _channel = MethodChannel('flowos/device_attention');
 
+  // Serialize all policy read-modify-write operations to prevent lost updates
+  static Future<void> _lock = Future.value();
+
   const SharedPrefsPolicyWriter();
+
+  static Future<T> _serialized<T>(Future<T> Function() fn) {
+    final prev = _lock;
+    final completer = Completer<void>();
+    _lock = completer.future;
+    return prev.then((_) => fn()).whenComplete(completer.complete);
+  }
 
   @override
   Future<ActivePolicies?> getActivePolicies() async {
@@ -31,7 +42,11 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
   }
 
   @override
-  Future<void> activatePolicy(SourcePolicy policy) async {
+  Future<void> activatePolicy(SourcePolicy policy) {
+    return _serialized(() => _activatePolicyImpl(policy));
+  }
+
+  Future<void> _activatePolicyImpl(SourcePolicy policy) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await getActivePolicies() ?? const ActivePolicies();
 
@@ -52,15 +67,14 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
   @override
   Future<void> suspendPolicy(PolicySource source) async {
     // Intentionally a no-op on the SharedPrefs/native side.
-    // The Dart timer is paused but the native policy + foreground service
-    // remain active, so blocking continues while the app is backgrounded.
-    //
-    // When resumeSession() fires, it calls activatePolicy() which refreshes
-    // the lease, so no stale-data risk.
   }
 
   @override
-  Future<void> deactivatePolicy(PolicySource source) async {
+  Future<void> deactivatePolicy(PolicySource source) {
+    return _serialized(() => _deactivatePolicyImpl(source));
+  }
+
+  Future<void> _deactivatePolicyImpl(PolicySource source) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await getActivePolicies() ?? const ActivePolicies();
 
@@ -97,7 +111,11 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
   }
 
   @override
-  Future<void> renewLease(PolicySource source, DateTime newActiveUntil) async {
+  Future<void> renewLease(PolicySource source, DateTime newActiveUntil) {
+    return _serialized(() => _renewLeaseImpl(source, newActiveUntil));
+  }
+
+  Future<void> _renewLeaseImpl(PolicySource source, DateTime newActiveUntil) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await getActivePolicies() ?? const ActivePolicies();
 
@@ -133,7 +151,11 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
   }
 
   @override
-  Future<void> grantScopedBreak(ScopedBreak scopedBreak) async {
+  Future<void> grantScopedBreak(ScopedBreak scopedBreak) {
+    return _serialized(() => _grantScopedBreakImpl(scopedBreak));
+  }
+
+  Future<void> _grantScopedBreakImpl(ScopedBreak scopedBreak) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await getActivePolicies() ?? const ActivePolicies();
 

@@ -162,8 +162,17 @@ class _FocusScreenState extends ConsumerState<FocusScreen> with TickerProviderSt
                       packageName: trigger.packageName,
                       minutes: minutes,
                     );
-                    ref.read(focusTimerNotifierProvider.notifier).resumeSession();
-                    setState(() => _showReturnCue = false);
+                    setState(() {
+                      _showReturnCue = false;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('$minutes-minute break granted. Timer paused.'),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    }
                   }
                 : null,
           );

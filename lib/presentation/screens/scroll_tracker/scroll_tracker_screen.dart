@@ -19,6 +19,8 @@ import '../../../features/xp/models/xp_calculator.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/xp/models/streak_service.dart';
 
+import '../../../core/constants/distraction_packages.dart';
+
 const _uuid = Uuid();
 
 /// Scroll Tracker — manual scroll time logging with live timer,
@@ -75,11 +77,13 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   }
 
   final _apps = [
-    (name: 'Instagram', emoji: '📸', color: Color(0xFFE4405F)),
-    (name: 'YouTube', emoji: '▶️', color: Color(0xFFFF0000)),
-    (name: 'Twitter/X', emoji: '🐦', color: Color(0xFF1DA1F2)),
-    (name: 'Reddit', emoji: '🤖', color: Color(0xFFFF4500)),
-    (name: 'TikTok', emoji: '🎵', color: Color(0xFF010101)),
+    (name: 'Instagram', emoji: '📸', color: const Color(0xFFE4405F)),
+    (name: 'YouTube/Shorts', emoji: '▶️', color: const Color(0xFFFF0000)),
+    (name: 'TikTok', emoji: '🎵', color: const Color(0xFF010101)),
+    (name: 'X/Twitter', emoji: '𝕏', color: const Color(0xFF000000)),
+    (name: 'Reddit', emoji: '🤖', color: const Color(0xFFFF4500)),
+    (name: 'Browser', emoji: '🌐', color: const Color(0xFF4285F4)),
+    (name: 'Games', emoji: '🎮', color: const Color(0xFF9C27B0)),
     (name: 'Other', emoji: '📱', color: AppColors.textTertiary),
   ];
 
@@ -102,6 +106,13 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
         _currentIntent = null;
       });
     } else {
+      // Open app picker for Games/Other to configure tracking/protection
+      if (appName == 'Games' || appName == 'Other') {
+        if (mounted) {
+          context.push('/app-picker');
+        }
+      }
+
       // Starting timer: run gate check
       final profile = ref.read(userProfileProvider);
       final isDistraction = profile.distractions.any((d) =>

@@ -46,6 +46,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xxl),
               // ─── Stats Grid ─────────────────────────────────────
               _buildStatsGrid(ref),
+              _buildStreakClarifier(ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Heatmap Calendar ───────────────────────────────
               _buildHeatmapCalendar(ref),
@@ -159,6 +160,24 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          ElevatedButton.icon(
+            onPressed: () => context.push('/insights'),
+            icon: const Icon(Icons.insights_rounded, size: 16),
+            label: const Text('View Insights'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.focusBlue.withValues(alpha: 0.1),
+              foregroundColor: AppColors.focusBlue,
+              side: BorderSide(
+                color: AppColors.focusBlue.withValues(alpha: 0.3),
+                width: 0.5,
+              ),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -235,6 +254,46 @@ class ProfileScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStreakClarifier(WidgetRef ref) {
+    final focusMinutes = ref.watch(lifetimeFocusMinutesProvider).valueOrNull ?? 0;
+    final tasksDone = ref.watch(totalCompletedTasksCountProvider).valueOrNull ?? 0;
+    final currentStreak = ref.watch(streakProvider).valueOrNull ?? 0;
+
+    if (focusMinutes > 0 || tasksDone > 0 || currentStreak == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.emerald.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+        ),
+        child: Row(
+          children: [
+            const Text('💡', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                'Streak day earned — morning check-in counts',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.emerald,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

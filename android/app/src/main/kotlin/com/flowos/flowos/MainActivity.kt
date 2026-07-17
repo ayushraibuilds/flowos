@@ -387,6 +387,22 @@ class MainActivity : FlutterActivity() {
         return flat != null && flat.contains(packageName)
     }
 
+    private val priorityPackages = setOf(
+        "com.instagram.android",
+        "com.google.android.youtube",
+        "com.zhiliaoapp.musically",       // TikTok
+        "com.twitter.android",
+        "com.reddit.frontpage",
+        "com.facebook.katana",
+        "com.snapchat.android",
+        "com.whatsapp",
+        "com.discord",
+        "com.android.chrome",
+        "com.sec.android.app.sbrowser",   // Samsung Internet
+        "org.mozilla.firefox",
+        "com.brave.browser"
+    )
+
     private fun getLaunchableAppsList(): List<Map<String, Any?>> {
         val pm = packageManager
         val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -403,7 +419,11 @@ class MainActivity : FlutterActivity() {
                 "label" to label
             ))
         }
-        return apps.sortedBy { (it["label"] as? String)?.lowercase() }
+        return apps.sortedWith(
+            compareBy<Map<String, Any?>>(
+                { if (priorityPackages.contains(it["packageName"])) 0 else 1 }
+            ).thenBy { (it["label"] as? String)?.lowercase() }
+        )
     }
 
     private fun loadAppIcon(packageName: String): ByteArray? {
