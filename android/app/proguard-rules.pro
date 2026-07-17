@@ -13,3 +13,7 @@
 -keep class com.flowos.flowos.FocusBlockerService { *; }
 -keep class com.flowos.flowos.FocusSessionForegroundService { *; }
 -keep class com.flowos.flowos.NotificationTrackerService { *; }
+
+# Ignore warnings about missing Play Core classes (used by Flutter deferred components if present)
+-dontwarn com.google.android.play.core.**
+
