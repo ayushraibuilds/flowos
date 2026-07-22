@@ -73,13 +73,21 @@ function renderTopSites(visits) {
 
     const row = document.createElement('div');
     row.className = 'site-row';
-    row.innerHTML = `
-      <span class="site-domain">
-        <span class="site-dot ${site.category}"></span>
-        ${site.domain}
-      </span>
-      <span class="site-time">${minutes}m</span>
-    `;
+
+    const domainSpan = document.createElement('span');
+    domainSpan.className = 'site-domain';
+
+    const dotSpan = document.createElement('span');
+    dotSpan.className = `site-dot ${site.category}`;
+    domainSpan.appendChild(dotSpan);
+    domainSpan.appendChild(document.createTextNode(` ${site.domain}`));
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'site-time';
+    timeSpan.textContent = `${minutes}m`;
+
+    row.appendChild(domainSpan);
+    row.appendChild(timeSpan);
     container.appendChild(row);
   }
 

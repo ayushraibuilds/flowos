@@ -166,16 +166,8 @@ class SyncEngine {
         final local = await _db.tasksDao.getById(id);
         if (local == null) {
           await _db.tasksDao.insertTaskFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.tasksDao.updateTaskFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.tasksDao.updateTaskFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.tasksDao.updateTaskFromSync(server);
         }
         break;
 
@@ -184,16 +176,8 @@ class SyncEngine {
         final local = await _db.focusSessionsDao.getById(id);
         if (local == null) {
           await _db.focusSessionsDao.insertSessionFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.focusSessionsDao.updateSessionFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.focusSessionsDao.updateSessionFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.focusSessionsDao.updateSessionFromSync(server);
         }
         break;
 
@@ -202,16 +186,8 @@ class SyncEngine {
         final local = await _db.dailyPlansDao.getById(id);
         if (local == null) {
           await _db.dailyPlansDao.insertPlanFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.dailyPlansDao.updatePlanFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.dailyPlansDao.updatePlanFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.dailyPlansDao.updatePlanFromSync(server);
         }
         break;
 
@@ -220,16 +196,8 @@ class SyncEngine {
         final local = await _db.dailyReportsDao.getById(id);
         if (local == null) {
           await _db.dailyReportsDao.insertReportFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.dailyReportsDao.updateReportFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.dailyReportsDao.updateReportFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.dailyReportsDao.updateReportFromSync(server);
         }
         break;
 
@@ -238,16 +206,8 @@ class SyncEngine {
         final local = await _db.scrollLogsDao.getById(id);
         if (local == null) {
           await _db.scrollLogsDao.insertLogFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.scrollLogsDao.updateLogFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.scrollLogsDao.updateLogFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.scrollLogsDao.updateLogFromSync(server);
         }
         break;
 
@@ -256,16 +216,8 @@ class SyncEngine {
         final local = await _db.energyCheckInsDao.getById(id);
         if (local == null) {
           await _db.energyCheckInsDao.insertCheckInFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.energyCheckInsDao.updateCheckInFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.energyCheckInsDao.updateCheckInFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.energyCheckInsDao.updateCheckInFromSync(server);
         }
         break;
 
@@ -274,16 +226,8 @@ class SyncEngine {
         final local = await _db.achievementsDao.getById(id);
         if (local == null) {
           await _db.achievementsDao.insertAchievementFromSync(server);
-        } else {
-          final serverUpdated = DateTime.parse(row['updated_at'] as String);
-          if (serverUpdated.isAfter(local.updatedAt)) {
-            await _db.achievementsDao.updateAchievementFromSync(server);
-          } else if (serverUpdated.isAtSameMomentAs(local.updatedAt)) {
-            final serverDev = row['device_id'] as String? ?? '';
-            if (serverDev.compareTo(SupabaseConfig.deviceId) > 0) {
-              await _db.achievementsDao.updateAchievementFromSync(server);
-            }
-          }
+        } else if (_shouldUpdateLocal(local.updatedAt, row)) {
+          await _db.achievementsDao.updateAchievementFromSync(server);
         }
         break;
 
@@ -303,6 +247,16 @@ class SyncEngine {
         }
         break;
     }
+  }
+
+  bool _shouldUpdateLocal(DateTime localUpdatedAt, Map<String, dynamic> serverRow) {
+    final serverUpdated = DateTime.parse(serverRow['updated_at'] as String);
+    if (serverUpdated.isAfter(localUpdatedAt)) return true;
+    if (serverUpdated.isAtSameMomentAs(localUpdatedAt)) {
+      final serverDev = serverRow['device_id'] as String? ?? '';
+      return serverDev.compareTo(SupabaseConfig.deviceId) > 0;
+    }
+    return false;
   }
 
   // ═══════════════════════════════════════════════════════════════

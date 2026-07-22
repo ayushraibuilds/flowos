@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -86,7 +87,9 @@ class FocusSessionService {
       );
 
       await _policyWriter.activatePolicy(policy);
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('FocusSessionService: Failed to activate protection policy: $e\n$st');
+    }
 
     return sessionId;
   }
@@ -105,7 +108,9 @@ class FocusSessionService {
     // Deactivate accessibility blocker
     try {
       await _policyWriter.deactivatePolicy(PolicySource.focus);
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('FocusSessionService: Failed to deactivate policy on completeSession: $e\n$st');
+    }
 
     final actualMin = (elapsedSeconds / 60).round();
     final interrupts = pauseCount + backgroundCount;
@@ -197,7 +202,9 @@ class FocusSessionService {
     // Deactivate accessibility blocker
     try {
       await _policyWriter.deactivatePolicy(PolicySource.focus);
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('FocusSessionService: Failed to deactivate policy on stopSession: $e\n$st');
+    }
 
     final actualMin = (elapsedSeconds / 60).round();
     final pct = totalSeconds > 0 ? (elapsedSeconds / totalSeconds) : 0.0;

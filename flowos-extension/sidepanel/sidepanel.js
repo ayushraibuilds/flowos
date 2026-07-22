@@ -80,23 +80,42 @@ function renderTimeline(visits) {
     return;
   }
 
-  container.innerHTML = todayVisits.map(v => {
+  container.textContent = '';
+  for (const v of todayVisits) {
     const time = new Date(v.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const durationMs = v.duration || (Date.now() - v.startTime);
     const minutes = Math.round(durationMs / 60000);
     const durationStr = minutes < 1 ? '<1m' : `${minutes}m`;
 
-    return `
-      <div class="timeline-item">
-        <div class="timeline-dot ${v.category}"></div>
-        <div class="timeline-info">
-          <div class="timeline-domain">${v.domain}</div>
-          <div class="timeline-time">${time}</div>
-        </div>
-        <div class="timeline-duration">${durationStr}</div>
-      </div>
-    `;
-  }).join('');
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
+
+    const dot = document.createElement('div');
+    dot.className = `timeline-dot ${v.category}`;
+
+    const info = document.createElement('div');
+    info.className = 'timeline-info';
+
+    const domainDiv = document.createElement('div');
+    domainDiv.className = 'timeline-domain';
+    domainDiv.textContent = v.domain;
+
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'timeline-time';
+    timeDiv.textContent = time;
+
+    info.appendChild(domainDiv);
+    info.appendChild(timeDiv);
+
+    const durationDiv = document.createElement('div');
+    durationDiv.className = 'timeline-duration';
+    durationDiv.textContent = durationStr;
+
+    item.appendChild(dot);
+    item.appendChild(info);
+    item.appendChild(durationDiv);
+    container.appendChild(item);
+  }
 }
 
 function renderTopSites(visits) {
@@ -120,21 +139,41 @@ function renderTopSites(visits) {
     .slice(0, 10);
 
   if (sorted.length === 0) {
-    container.innerHTML = '<div class="empty-state">No data yet</div>';
+    container.textContent = '';
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No data yet';
+    container.appendChild(empty);
     return;
   }
 
-  container.innerHTML = sorted.map((site, i) => {
+  container.textContent = '';
+  sorted.forEach((site, i) => {
     const minutes = Math.round(site.totalMs / 60000);
-    return `
-      <div class="site-row">
-        <span class="site-rank">${i + 1}</span>
-        <span class="site-dot ${site.category}"></span>
-        <span class="site-domain">${site.domain}</span>
-        <span class="site-time">${minutes}m</span>
-      </div>
-    `;
-  }).join('');
+    const row = document.createElement('div');
+    row.className = 'site-row';
+
+    const rank = document.createElement('span');
+    rank.className = 'site-rank';
+    rank.textContent = `${i + 1}`;
+
+    const dot = document.createElement('span');
+    dot.className = `site-dot ${site.category}`;
+
+    const domain = document.createElement('span');
+    domain.className = 'site-domain';
+    domain.textContent = site.domain;
+
+    const time = document.createElement('span');
+    time.className = 'site-time';
+    time.textContent = `${minutes}m`;
+
+    row.appendChild(rank);
+    row.appendChild(dot);
+    row.appendChild(domain);
+    row.appendChild(time);
+    container.appendChild(row);
+  });
 }
 
 function setupListeners() {

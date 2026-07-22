@@ -177,6 +177,7 @@ class AppDatabase extends _$AppDatabase {
             SELECT MAX(r2.generated_at)
             FROM daily_reports r2
             WHERE r2.date = r1.date
+          )
         ''');
       }
       if (from < 9) {

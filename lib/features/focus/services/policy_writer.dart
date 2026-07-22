@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/effective_policy.dart';
@@ -37,7 +38,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
       if (jsonStr != null && jsonStr.isNotEmpty) {
         return ActivePolicies.fromPrefsJson(jsonStr);
       }
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('SharedPrefsPolicyWriter: Failed to parse active policies: $e\n$st');
+    }
     return const ActivePolicies();
   }
 
@@ -60,7 +63,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
     if (policy.source == PolicySource.focus) {
       try {
         await _channel.invokeMethod('startForegroundService');
-      } catch (_) {}
+      } catch (e, st) {
+        debugPrint('SharedPrefsPolicyWriter: startForegroundService failed: $e\n$st');
+      }
     }
   }
 
@@ -88,7 +93,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
     if (source == PolicySource.focus) {
       try {
         await _channel.invokeMethod('stopForegroundService');
-      } catch (_) {}
+      } catch (e, st) {
+        debugPrint('SharedPrefsPolicyWriter: stopForegroundService failed: $e\n$st');
+      }
     }
 
     if (source == PolicySource.focus) {
@@ -104,7 +111,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
               return m['sessionId'] == sessionId;
             });
             await prefs.setString(nudgeKey, jsonEncode(list));
-          } catch (_) {}
+          } catch (e, st) {
+            debugPrint('SharedPrefsPolicyWriter: Failed to clear nudge events: $e\n$st');
+          }
         }
       }
     }
