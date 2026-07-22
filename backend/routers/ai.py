@@ -21,7 +21,7 @@ RATE_LIMIT_BRAIN_DUMP = os.getenv("RATE_LIMIT_BRAIN_DUMP", "10/minute")
 RATE_LIMIT_WEEKLY_REVIEW = os.getenv("RATE_LIMIT_WEEKLY_REVIEW", "5/minute")
 
 
-def _escape_prompt_text(text: str) -> str:
+def _escape_prompt_text(text: Optional[str]) -> str:
     """Escape prompt template formatting characters and block delimiters to mitigate prompt injection."""
     if not text:
         return ""
@@ -140,14 +140,17 @@ async def generate_break_suggestion(req: BreakSuggestionRequest, request: Reques
                     if f["content_type"] == content_type.value]
         fallback = random.choice(matching) if matching else random.choice(FALLBACK_BREAK_SUGGESTIONS)
         return BreakSuggestionResponse(
-            **fallback,
+            content_type=BreakContentType(fallback["content_type"]),
+            content=str(fallback["content"]),
+            answer=fallback.get("answer"),
+            source=fallback.get("source"),
             prompt_version=PROMPT_VERSION,
         )
 
     try:
         return BreakSuggestionResponse(
             content_type=BreakContentType(result.get("content_type", content_type.value)),
-            content=result["content"],
+            content=str(result.get("content", "")),
             answer=result.get("answer"),
             source=result.get("source"),
             prompt_version=PROMPT_VERSION,
@@ -155,7 +158,13 @@ async def generate_break_suggestion(req: BreakSuggestionRequest, request: Reques
     except Exception as e:
         logger.error(f"Failed to parse break suggestion: {e}")
         fallback = random.choice(FALLBACK_BREAK_SUGGESTIONS)
-        return BreakSuggestionResponse(**fallback, prompt_version=PROMPT_VERSION)
+        return BreakSuggestionResponse(
+            content_type=BreakContentType(fallback["content_type"]),
+            content=str(fallback["content"]),
+            answer=fallback.get("answer"),
+            source=fallback.get("source"),
+            prompt_version=PROMPT_VERSION,
+        )
 
 
 # ─── Brain Dump ───────────────────────────────────────────────────

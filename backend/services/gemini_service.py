@@ -12,7 +12,7 @@ import logging
 import asyncio
 import time
 import re
-from typing import Optional
+from typing import Optional, Any
 
 from google import genai
 from google.genai import types
@@ -31,7 +31,7 @@ def _get_client() -> genai.Client:
         # Enforce HTTP timeout client-side at 10.0 seconds
         _client = genai.Client(
             api_key=api_key,
-            http_options={'timeout': 10.0}
+            http_options=types.HttpOptions(timeout=10.0)
         )
     return _client
 
@@ -71,7 +71,7 @@ _breaker = CircuitBreaker()
 
 # ─── Output Sanitizer ─────────────────────────────────────────────
 
-def _sanitize_string(val) -> any:
+def _sanitize_string(val: Any) -> Any:
     """Recursively strip markdown links, HTML, and script code from output fields."""
     if isinstance(val, str):
         # 1. Strip markdown links: [text](url) -> text (removes external redirection urls)
@@ -142,6 +142,7 @@ async def generate_json(
     # Retry loop with max 3 attempts
     max_retries = 3
     for attempt in range(1, max_retries + 1):
+        text = ""
         try:
             # Run the synchronous GenAI SDK generate_content call in a separate thread.
             # Free up the main loop thread to continue serving FastAPI routes/rate limiting.

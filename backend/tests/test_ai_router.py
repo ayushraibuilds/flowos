@@ -10,11 +10,11 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 try:
-    from backend.routers.ai import _escape_prompt_text
-    from backend.models.schemas import DailyReportRequest
+    from backend.routers.ai import _escape_prompt_text  # type: ignore
+    from backend.models.schemas import DailyReportRequest  # type: ignore
 except ImportError:
-    from routers.ai import _escape_prompt_text
-    from models.schemas import DailyReportRequest
+    from routers.ai import _escape_prompt_text  # type: ignore
+    from models.schemas import DailyReportRequest  # type: ignore
 
 
 class TestAIRouter(unittest.TestCase):
