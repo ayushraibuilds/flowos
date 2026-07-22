@@ -41,7 +41,9 @@ object TriggerStore {
                 if (currentPackage == packageName && !claimed && (now - triggeredAt < EXPIRY_MS)) {
                     return false
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("FlowOS", "Error checking existing trigger in TriggerStore", e)
+            }
         }
 
         // Apply redirect rate limiting
@@ -66,7 +68,9 @@ object TriggerStore {
                 lastRedirectTime = now
                 return true
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.e("FlowOS", "Error writing trigger in TriggerStore", e)
+        }
         return false
     }
 
@@ -96,7 +100,9 @@ object TriggerStore {
                     "bypassAllowed" to bypassAllowed
                 )
             }
-        } catch (e: Exception) {}
+        } catch (e: Exception) {
+            android.util.Log.e("FlowOS", "Error claiming trigger in TriggerStore", e)
+        }
         return null
     }
 }

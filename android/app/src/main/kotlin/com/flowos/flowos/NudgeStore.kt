@@ -49,7 +49,9 @@ object NudgeStore {
                 }
                 newArray.put(newEvent)
                 prefs.edit().putString("flutter.flowos_nudge_events", newArray.toString()).commit()
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("FlowOS", "Error recording nudge in NudgeStore", e)
+            }
         }
     }
 
@@ -88,7 +90,9 @@ object NudgeStore {
                         "expiresAt" to claimedNudge.optLong("expiresAt")
                     )
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("FlowOS", "Error claiming nudge in NudgeStore", e)
+            }
             return null
         }
     }
@@ -107,7 +111,9 @@ object NudgeStore {
                     }
                 }
                 prefs.edit().putString("flutter.flowos_nudge_events", newArray.toString()).commit()
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("FlowOS", "Error clearing session nudges in NudgeStore", e)
+            }
         }
     }
 }

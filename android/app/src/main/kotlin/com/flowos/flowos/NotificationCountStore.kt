@@ -24,7 +24,7 @@ object NotificationCountStore {
             root.put(dayStr, dayObj)
             prefs.edit().putString(KEY_PENDING, root.toString()).commit()
         } catch (e: Exception) {
-            // Fail-safe
+            android.util.Log.e("FlowOS", "Error recording notification count", e)
         }
     }
 
@@ -61,6 +61,7 @@ object NotificationCountStore {
             }
             return batchPkg.toString()
         } catch (e: Exception) {
+            android.util.Log.e("FlowOS", "Error starting in-flight notification batch", e)
             return null
         }
     }
@@ -89,7 +90,7 @@ object NotificationCountStore {
             editor.putString(KEY_UNACKED, newUnackedArr.toString())
             editor.commit()
         } catch (e: Exception) {
-            // Fail-safe
+            android.util.Log.e("FlowOS", "Error acknowledging notification batch", e)
         }
     }
 
@@ -110,7 +111,7 @@ object NotificationCountStore {
                 }
             }
         } catch (e: Exception) {
-            // Fail-safe
+            android.util.Log.e("FlowOS", "Error getting unacknowledged notification batches", e)
         }
         return result
     }

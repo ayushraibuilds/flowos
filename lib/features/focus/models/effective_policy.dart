@@ -45,6 +45,7 @@ class SourcePolicy {
   final ProtectionMode protectionMode;
   final PolicySource source;
   final List<ScopedBreak> scopedBreaks;
+  final DateTime? maxActiveUntil;
 
   const SourcePolicy({
     required this.sessionId,
@@ -53,6 +54,7 @@ class SourcePolicy {
     required this.protectionMode,
     required this.source,
     required this.scopedBreaks,
+    this.maxActiveUntil,
   });
 
   Map<String, dynamic> toJson() => {
@@ -62,6 +64,7 @@ class SourcePolicy {
         'protectionMode': protectionMode.name,
         'source': source.name,
         'scopedBreaks': scopedBreaks.map((b) => b.toJson()).toList(),
+        'maxActiveUntil': maxActiveUntil?.millisecondsSinceEpoch,
       };
 
   factory SourcePolicy.fromJson(Map<String, dynamic> json) => SourcePolicy(
@@ -73,6 +76,9 @@ class SourcePolicy {
         scopedBreaks: (json['scopedBreaks'] as List? ?? [])
             .map((b) => ScopedBreak.fromJson(Map<String, dynamic>.from(b)))
             .toList(),
+        maxActiveUntil: json['maxActiveUntil'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(json['maxActiveUntil'] as int)
+            : null,
       );
 
   bool get isExpired => DateTime.now().isAfter(activeUntil);

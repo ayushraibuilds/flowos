@@ -237,7 +237,20 @@ class FocusBlockerService : AccessibilityService() {
                 if (telephonyManager != null && telephonyManager.callState != TelephonyManager.CALL_STATE_IDLE) {
                     return true
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("FlowOS", "Error checking telephony call state", e)
+            }
+        }
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
+            if (audioManager != null) {
+                val mode = audioManager.mode
+                if (mode == android.media.AudioManager.MODE_IN_CALL || mode == android.media.AudioManager.MODE_IN_COMMUNICATION) {
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FlowOS", "Error checking audio mode for VoIP call", e)
         }
         return false
     }
@@ -347,7 +360,7 @@ class FocusBlockerService : AccessibilityService() {
 
     private fun redirectUser(packageName: String) {
         val launchIntent = packageManager.getLaunchIntentForPackage(this.packageName)?.apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
             putExtra("blocked_app_trigger", packageName)
         }
         if (launchIntent != null) {

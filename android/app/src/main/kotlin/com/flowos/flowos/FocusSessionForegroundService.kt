@@ -43,12 +43,28 @@ class FocusSessionForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        if (!hasActiveFocusPolicy(prefs)) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+
         val notification = createNotification("Focus session active", "FlowOS is keeping your focus protected.")
         startForeground(NOTIFICATION_ID, notification)
         
         startLeaseRenewer()
         
         return START_STICKY
+    }
+
+    private fun hasActiveFocusPolicy(prefs: SharedPreferences): Boolean {
+        val activePoliciesJson = prefs.getString("flutter.flowos_active_policies", null) ?: return false
+        return try {
+            val root = JSONObject(activePoliciesJson)
+            root.optJSONObject("focus") != null
+        } catch (e: Exception) {
+            false
+        }
     }
 
     override fun onDestroy() {
@@ -112,8 +128,21 @@ class FocusSessionForegroundService : Service() {
                     return
                 }
 
-                // Renew focus lease by updating activeUntil to now + 2 minutes
-                val newActiveUntil = System.currentTimeMillis() + 120000L // 2 minutes in ms
+                val now = System.currentTimeMillis()
+                val maxUntil = focus.optLong("maxActiveUntil", 0L)
+                if (maxUntil > 0L && now >= maxUntil) {
+                    // Maximum lease ceiling reached (e.g. 4 hours max per session) — stop extending
+                    android.util.Log.w("FlowOS", "Focus session maxActiveUntil ceiling reached. Stopping foreground service.")
+                    stopSelf()
+                    return
+                }
+
+                // Renew focus lease by updating activeUntil to now + 2 minutes, clamped to maxUntil
+                var newActiveUntil = now + 120000L // 2 minutes in ms
+                if (maxUntil > 0L && newActiveUntil > maxUntil) {
+                    newActiveUntil = maxUntil
+                }
+
                 focus.put("activeUntil", newActiveUntil)
                 
                 // Synchronously write back to shared preferences inside lock
@@ -129,6 +158,7 @@ class FocusSessionForegroundService : Service() {
                 manager.notify(NOTIFICATION_ID, notification)
                 
             } catch (e: Exception) {
+                android.util.Log.e("FlowOS", "Error in FocusSessionForegroundService renewLease", e)
                 stopSelf()
             }
         }

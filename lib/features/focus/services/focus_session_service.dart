@@ -84,6 +84,7 @@ class FocusSessionService {
         protectionMode: protectionMode,
         source: PolicySource.focus,
         scopedBreaks: [],
+        maxActiveUntil: DateTime.now().add(const Duration(hours: 4)),
       );
 
       await _policyWriter.activatePolicy(policy);
