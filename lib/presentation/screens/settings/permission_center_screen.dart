@@ -20,6 +20,7 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
   bool _audioEnabled = true; // Always active by default
   bool _usageStatsEnabled = false;
   bool _accessibilityEnabled = false;
+  bool _batteryOptEnabled = true;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
         setState(() {
           _usageStatsEnabled = states.usageAccess;
           _accessibilityEnabled = states.accessibility;
+          _batteryOptEnabled = states.batteryOptimizationIgnored;
         });
       }
     } catch (_) {}
@@ -63,6 +65,8 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
       } else {
         await platform.openAccessibilitySettings();
       }
+    } else if (type == 'battery') {
+      await platform.openBatteryOptimizationSettings();
     }
   }
 
@@ -125,7 +129,18 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           ),
           const SizedBox(height: AppSpacing.lg),
 
-          // 4. iOS Screen Time (Placeholder)
+          // 4. Battery Optimization Exemption (Android)
+          _buildPermissionCard(
+            title: 'Unrestricted Battery Usage (Android)',
+            status: _batteryOptEnabled,
+            why: 'Ensures background lease renewal stays active on OEM devices (Xiaomi, Samsung, OnePlus) during long focus sessions.',
+            limitation: 'May require setting battery usage to Unrestricted in system app settings.',
+            actionLabel: _batteryOptEnabled ? 'Configure Settings' : 'Exempt FlowOS',
+            onPressed: () => _requestPermission('battery'),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 5. iOS Screen Time (Placeholder)
           _buildPermissionCard(
             title: 'iOS Screen Time & Shields',
             status: false,

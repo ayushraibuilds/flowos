@@ -20,6 +20,7 @@ class FocusSessionForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "focus_session_channel"
         private const val NOTIFICATION_ID = 1001
+        private val WRITE_LOCK = Any()
         
         fun start(context: Context) {
             val intent = Intent(context, FocusSessionForegroundService::class.java)
@@ -94,40 +95,42 @@ class FocusSessionForegroundService : Service() {
     }
 
     private fun renewLease(prefs: SharedPreferences) {
-        val activePoliciesJson = prefs.getString("flutter.flowos_active_policies", null)
-        if (activePoliciesJson == null || activePoliciesJson.isEmpty()) {
-            // No active policies, stop service
-            stopSelf()
-            return
-        }
-
-        try {
-            val root = JSONObject(activePoliciesJson)
-            val focus = root.optJSONObject("focus")
-            if (focus == null) {
-                // No active focus policy
+        synchronized(WRITE_LOCK) {
+            val activePoliciesJson = prefs.getString("flutter.flowos_active_policies", null)
+            if (activePoliciesJson == null || activePoliciesJson.isEmpty()) {
+                // No active policies, stop service
                 stopSelf()
                 return
             }
 
-            // Renew focus lease by updating activeUntil to now + 2 minutes
-            val newActiveUntil = System.currentTimeMillis() + 120000L // 2 minutes in ms
-            focus.put("activeUntil", newActiveUntil)
-            
-            // Write back to shared preferences
-            prefs.edit().putString("flutter.flowos_active_policies", root.toString()).apply()
-            
-            // Update the notification text
-            val mode = focus.optString("protectionMode", "focus")
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val notification = createNotification(
-                "Focus session is running",
-                "FlowOS is protecting your time. Protection level: ${mode.uppercase()}."
-            )
-            manager.notify(NOTIFICATION_ID, notification)
-            
-        } catch (e: Exception) {
-            stopSelf()
+            try {
+                val root = JSONObject(activePoliciesJson)
+                val focus = root.optJSONObject("focus")
+                if (focus == null) {
+                    // No active focus policy
+                    stopSelf()
+                    return
+                }
+
+                // Renew focus lease by updating activeUntil to now + 2 minutes
+                val newActiveUntil = System.currentTimeMillis() + 120000L // 2 minutes in ms
+                focus.put("activeUntil", newActiveUntil)
+                
+                // Synchronously write back to shared preferences inside lock
+                prefs.edit().putString("flutter.flowos_active_policies", root.toString()).commit()
+                
+                // Update the notification text
+                val mode = focus.optString("protectionMode", "focus")
+                val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                val notification = createNotification(
+                    "Focus session is running",
+                    "FlowOS is protecting your time. Protection level: ${mode.uppercase()}."
+                )
+                manager.notify(NOTIFICATION_ID, notification)
+                
+            } catch (e: Exception) {
+                stopSelf()
+            }
         }
     }
 }

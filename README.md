@@ -536,6 +536,17 @@ Pass to Flutter via:
 flutter run --dart-define-from-file=.env
 ```
 
+### Production Release Build (with Sentry Crash Reporting)
+
+To enable production crash reporting via Sentry:
+
+```bash
+flutter build apk --release \
+  --dart-define=SENTRY_DSN=https://your-dsn@sentry.io/project \
+  --dart-define=SENTRY_ENV=production \
+  --dart-define-from-file=.env
+```
+
 ### Backend (`backend/.env`)
 
 ```bash

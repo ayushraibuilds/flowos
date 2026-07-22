@@ -16,12 +16,14 @@ class PermissionStates {
   final bool usageAccess;
   final bool accessibility;
   final bool notificationAccess;
+  final bool batteryOptimizationIgnored;
   final String platformSupport;
 
   const PermissionStates({
     required this.usageAccess,
     required this.accessibility,
     required this.notificationAccess,
+    this.batteryOptimizationIgnored = true,
     required this.platformSupport,
   });
 }
@@ -53,6 +55,7 @@ class DeviceAttentionPlatform {
         usageAccess: true,
         accessibility: true,
         notificationAccess: true,
+        batteryOptimizationIgnored: true,
         platformSupport: 'ios',
       );
     }
@@ -64,6 +67,7 @@ class DeviceAttentionPlatform {
           usageAccess: res['usageAccess'] as bool? ?? false,
           accessibility: res['accessibility'] as bool? ?? false,
           notificationAccess: res['notificationAccess'] as bool? ?? false,
+          batteryOptimizationIgnored: res['batteryOptimizationIgnored'] as bool? ?? true,
           platformSupport: res['platformSupport'] as String? ?? 'android',
         );
       }
@@ -72,6 +76,7 @@ class DeviceAttentionPlatform {
       usageAccess: false,
       accessibility: false,
       notificationAccess: false,
+      batteryOptimizationIgnored: false,
       platformSupport: 'android',
     );
   }
@@ -94,6 +99,13 @@ class DeviceAttentionPlatform {
     if (!Platform.isAndroid) return;
     try {
       await _channel.invokeMethod('openNotificationListenerSettings');
+    } catch (_) {}
+  }
+
+  Future<void> openBatteryOptimizationSettings() async {
+    if (!Platform.isAndroid) return;
+    try {
+      await _channel.invokeMethod('openBatteryOptimizationSettings');
     } catch (_) {}
   }
 

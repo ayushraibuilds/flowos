@@ -12,6 +12,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/onboarding/providers/onboarding_providers.dart';
 import '../../../features/attention/widgets/scroll_intent_sheet.dart';
+import '../../../features/attention/widgets/distraction_app_icon.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/attention/widgets/attention_radar_card.dart';
@@ -19,7 +20,7 @@ import '../../../features/xp/models/xp_calculator.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/xp/models/streak_service.dart';
 
-import '../../../core/constants/distraction_packages.dart';
+import '../../widgets/flow_atmosphere_panel.dart';
 
 const _uuid = Uuid();
 
@@ -77,14 +78,46 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   }
 
   final _apps = [
-    (name: 'Instagram', emoji: '📸', color: const Color(0xFFE4405F)),
-    (name: 'YouTube/Shorts', emoji: '▶️', color: const Color(0xFFFF0000)),
-    (name: 'TikTok', emoji: '🎵', color: const Color(0xFF010101)),
-    (name: 'X/Twitter', emoji: '𝕏', color: const Color(0xFF000000)),
-    (name: 'Reddit', emoji: '🤖', color: const Color(0xFFFF4500)),
-    (name: 'Browser', emoji: '🌐', color: const Color(0xFF4285F4)),
-    (name: 'Games', emoji: '🎮', color: const Color(0xFF9C27B0)),
-    (name: 'Other', emoji: '📱', color: AppColors.textTertiary),
+    (
+      name: 'Instagram',
+      icon: DistractionAppIconType.instagram,
+      color: const Color(0xFFE4405F),
+    ),
+    (
+      name: 'YouTube/Shorts',
+      icon: DistractionAppIconType.youtube,
+      color: const Color(0xFFFF4F56),
+    ),
+    (
+      name: 'TikTok',
+      icon: DistractionAppIconType.tiktok,
+      color: const Color(0xFFEC4F8C),
+    ),
+    (
+      name: 'X/Twitter',
+      icon: DistractionAppIconType.x,
+      color: const Color(0xFFE2E9F7),
+    ),
+    (
+      name: 'Reddit',
+      icon: DistractionAppIconType.reddit,
+      color: const Color(0xFFFF663F),
+    ),
+    (
+      name: 'Browser',
+      icon: DistractionAppIconType.browser,
+      color: const Color(0xFF5DA9FF),
+    ),
+    (
+      name: 'Games',
+      icon: DistractionAppIconType.games,
+      color: const Color(0xFFB780FF),
+    ),
+    (
+      name: 'Other',
+      icon: DistractionAppIconType.other,
+      color: AppColors.textTertiary,
+    ),
   ];
 
   @override
@@ -111,13 +144,15 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
         if (mounted) {
           context.push('/app-picker');
         }
+        return;
       }
 
       // Starting timer: run gate check
       final profile = ref.read(userProfileProvider);
-      final isDistraction = profile.distractions.any((d) =>
-        d.toLowerCase().contains(appName.toLowerCase()) ||
-        appName.toLowerCase().contains(d.toLowerCase())
+      final isDistraction = profile.distractions.any(
+        (d) =>
+            d.toLowerCase().contains(appName.toLowerCase()) ||
+            appName.toLowerCase().contains(d.toLowerCase()),
       );
       final forceIntent = profile.protectionMode == 'firm' || isDistraction;
 
@@ -137,7 +172,8 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
             if (mounted) context.push('/rest');
             return;
           }
-        } else if (chosenIntent == 'scrolling' && profile.protectionMode == 'firm') {
+        } else if (chosenIntent == 'scrolling' &&
+            profile.protectionMode == 'firm') {
           final proceed = await _showBreathingPauseDialog();
           if (!proceed) return;
         }
@@ -160,15 +196,17 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     final db = ref.read(databaseProvider);
     final impact = (minutes ~/ 10) * XpConstants.scrollCostPer10Min;
 
-    await db.scrollLogsDao.insertLog(ScrollLogsCompanion(
-      id: Value(_uuid.v4()),
-      appName: Value(appName),
-      durationMinutes: Value(minutes),
-      dailyScoreImpact: Value(impact),
-      intent: Value(intent),
-      wasTimeboxed: Value(false),
-      plannedMinutes: Value(null),
-    ));
+    await db.scrollLogsDao.insertLog(
+      ScrollLogsCompanion(
+        id: Value(_uuid.v4()),
+        appName: Value(appName),
+        durationMinutes: Value(minutes),
+        dailyScoreImpact: Value(impact),
+        intent: Value(intent),
+        wasTimeboxed: Value(false),
+        plannedMinutes: Value(null),
+      ),
+    );
 
     // Refresh budget display
     await _loadBudget();
@@ -180,11 +218,12 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   void _quickLog() async {
     HapticFeedback.mediumImpact();
     final appName = 'Quick Log';
-    
+
     final profile = ref.read(userProfileProvider);
-    final isDistraction = profile.distractions.any((d) =>
-      d.toLowerCase().contains(appName.toLowerCase()) ||
-      appName.toLowerCase().contains(d.toLowerCase())
+    final isDistraction = profile.distractions.any(
+      (d) =>
+          d.toLowerCase().contains(appName.toLowerCase()) ||
+          appName.toLowerCase().contains(d.toLowerCase()),
     );
     final forceIntent = profile.protectionMode == 'firm' || isDistraction;
 
@@ -204,7 +243,8 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
           if (mounted) context.push('/rest');
           return;
         }
-      } else if (chosenIntent == 'scrolling' && profile.protectionMode == 'firm') {
+      } else if (chosenIntent == 'scrolling' &&
+          profile.protectionMode == 'firm') {
         final proceed = await _showBreathingPauseDialog();
         if (!proceed) return;
       }
@@ -225,11 +265,17 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false), // Proceed to scroll
-            child: Text('Scroll anyway', style: TextStyle(color: AppColors.textTertiary)),
+            child: Text(
+              'Scroll anyway',
+              style: TextStyle(color: AppColors.textTertiary),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true), // Divert to rest
-            child: Text('Try Breathing Space', style: TextStyle(color: AppColors.emerald)),
+            child: Text(
+              'Try Breathing Space',
+              style: TextStyle(color: AppColors.emerald),
+            ),
           ),
         ],
       ),
@@ -265,6 +311,34 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: AppSpacing.lg),
+            FlowAtmospherePanel(
+              accent: AppColors.warningAmber,
+              height: 138,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Notice your attention.',
+                      style: AppTypography.h2.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Naming a scroll is the first small pause before it takes your time.',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
             // ─── Attention Budget ────────────────────────────────
             AttentionRadarCard(budgetMinutes: _budget),
             const SizedBox(height: AppSpacing.xxl),
@@ -295,7 +369,6 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
     );
   }
 
-
   Widget _buildAppGrid() {
     return GridView.builder(
       shrinkWrap: true,
@@ -310,43 +383,75 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
       itemBuilder: (context, i) {
         final app = _apps[i];
         final isActive = _activeApp == app.name;
-        return GestureDetector(
-          onTap: () => _toggleApp(app.name),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? app.color.withValues(alpha: 0.15)
-                  : AppColors.background2,
+        return Semantics(
+          button: true,
+          selected: isActive,
+          label: isActive
+              ? '${app.name}, tracking ${_formatElapsed(_elapsedSeconds)}'
+              : 'Track ${app.name}',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _toggleApp(app.name),
               borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-              border: Border.all(
-                color: isActive ? app.color : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(app.emoji, style: const TextStyle(fontSize: 28)),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  app.name,
-                  style: AppTypography.caption.copyWith(
-                    color: isActive ? app.color : AppColors.textSecondary,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? app.color.withValues(alpha: 0.15)
+                      : AppColors.background2,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                  border: Border.all(
+                    color: isActive
+                        ? app.color
+                        : Colors.white.withValues(alpha: .05),
+                    width: isActive ? 1.5 : .5,
                   ),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: app.color.withValues(alpha: .18),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : null,
                 ),
-                if (isActive) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    _formatElapsed(_elapsedSeconds),
-                    style: AppTypography.monoSmall.copyWith(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    DistractionAppIcon(
+                      type: app.icon,
                       color: app.color,
-                      fontSize: 12,
+                      size: 31,
                     ),
-                  ),
-                ],
-              ],
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      app.name.replaceAll('/Shorts', ''),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.caption.copyWith(
+                        color: isActive ? app.color : AppColors.textSecondary,
+                        fontWeight: isActive
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                    if (isActive) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        _formatElapsed(_elapsedSeconds),
+                        style: AppTypography.monoSmall.copyWith(
+                          color: app.color,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -379,7 +484,9 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
                     activeTrackColor: AppColors.warningAmber,
                     inactiveTrackColor: AppColors.background0,
                     thumbColor: AppColors.warningAmber,
-                    overlayColor: AppColors.warningAmber.withValues(alpha: 0.12),
+                    overlayColor: AppColors.warningAmber.withValues(
+                      alpha: 0.12,
+                    ),
                     trackHeight: 4,
                   ),
                   child: Slider(
@@ -469,10 +576,7 @@ class _ScrollTrackerScreenState extends ConsumerState<ScrollTrackerScreen> {
   void _showRecoverySheet(BuildContext context, String app, int minutes) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => RecoveryActionSheet(
-        appName: app,
-        minutes: minutes,
-      ),
+      builder: (context) => RecoveryActionSheet(appName: app, minutes: minutes),
     );
   }
 }
@@ -492,10 +596,25 @@ class RecoveryActionSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actions = [
-      (emoji: '🧘', label: '60s Breathing', desc: 'Quick reset', type: 'breathing'),
+      (
+        emoji: '🧘',
+        label: '60s Breathing',
+        desc: 'Quick reset',
+        type: 'breathing',
+      ),
       (emoji: '🚶', label: '5-min Walk', desc: 'Move your body', type: 'walk'),
-      (emoji: '✅', label: 'Tiny Task', desc: 'Easiest incomplete task', type: 'tinyTask'),
-      (emoji: '⏱️', label: '15-min Focus', desc: 'Mini sprint', type: 'focusSprint'),
+      (
+        emoji: '✅',
+        label: 'Tiny Task',
+        desc: 'Easiest incomplete task',
+        type: 'tinyTask',
+      ),
+      (
+        emoji: '⏱️',
+        label: '15-min Focus',
+        desc: 'Mini sprint',
+        type: 'focusSprint',
+      ),
     ];
 
     return Container(
@@ -528,69 +647,73 @@ class RecoveryActionSheet extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xxl),
           // Recovery action buttons
-          ...actions.map((action) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () async {
-                  HapticFeedback.mediumImpact();
-                  final db = ref.read(databaseProvider);
-                  final xpCalc = XpCalculator(db.xpLedgerDao);
-                  await xpCalc.awardBounceBackBonus(action.type);
-                  
-                  // Record streak activity & check achievements
-                  await StreakService.recordActivity();
-                  await AchievementChecker.runCheck(db);
-                  
-                  if (context.mounted) {
-                    Navigator.pop(context, action.type);
-                  }
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.lg,
+          ...actions.map(
+            (action) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    HapticFeedback.mediumImpact();
+                    final db = ref.read(databaseProvider);
+                    final xpCalc = XpCalculator(db.xpLedgerDao);
+                    await xpCalc.awardBounceBackBonus(action.type);
+
+                    // Record streak activity & check achievements
+                    await StreakService.recordActivity();
+                    await AchievementChecker.runCheck(db);
+
+                    if (context.mounted) {
+                      Navigator.pop(context, action.type);
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.lg,
+                    ),
+                    side: BorderSide(
+                      color: AppColors.recoveryTeal.withValues(alpha: 0.5),
+                    ),
+                    foregroundColor: AppColors.recoveryTeal,
                   ),
-                  side: BorderSide(color: AppColors.recoveryTeal.withValues(alpha: 0.5)),
-                  foregroundColor: AppColors.recoveryTeal,
-                ),
-                child: Row(
-                  children: [
-                    Text(action.emoji, style: const TextStyle(fontSize: 24)),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            action.label,
-                            style: AppTypography.body.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: [
+                      Text(action.emoji, style: const TextStyle(fontSize: 24)),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              action.label,
+                              style: AppTypography.body.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          Text(
-                            action.desc,
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.textSecondary,
+                            Text(
+                              action.desc,
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Text(
-                      '+25 XP',
-                      style: AppTypography.monoSmall.copyWith(
-                        color: AppColors.emerald,
-                        fontSize: 12,
+                      Text(
+                        '+25 XP',
+                        style: AppTypography.monoSmall.copyWith(
+                          color: AppColors.emerald,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          )),
+          ),
           // Skip
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -674,7 +797,10 @@ class _BreathingPauseDialogState extends State<_BreathingPauseDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false), // Cancel scrolling
-          child: Text('Cancel scroll request', style: TextStyle(color: AppColors.dangerCoral)),
+          child: Text(
+            'Cancel scroll request',
+            style: TextStyle(color: AppColors.dangerCoral),
+          ),
         ),
       ],
     );

@@ -109,6 +109,7 @@ class MainActivity : FlutterActivity() {
                             "usageAccess" to hasUsageStatsPermission(),
                             "accessibility" to isAccessibilityServiceEnabled(),
                             "notificationAccess" to isNotificationServiceEnabled(),
+                            "batteryOptimizationIgnored" to isIgnoringBatteryOptimizations(),
                             "platformSupport" to "android"
                         ))
                     }
@@ -122,6 +123,17 @@ class MainActivity : FlutterActivity() {
                     }
                     "openNotificationListenerSettings" -> {
                         startActivity(Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"))
+                        result.success(null)
+                    }
+                    "openBatteryOptimizationSettings" -> {
+                        requestIgnoreBatteryOptimizations()
+                        result.success(null)
+                    }
+                    "isIgnoringBatteryOptimizations" -> {
+                        result.success(isIgnoringBatteryOptimizations())
+                    }
+                    "requestIgnoreBatteryOptimizations" -> {
+                        requestIgnoreBatteryOptimizations()
                         result.success(null)
                     }
                     "getLaunchableApps" -> {
@@ -254,6 +266,30 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         ioScope.cancel()
         super.onDestroy()
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            return powerManager.isIgnoringBatteryOptimizations(packageName)
+        }
+        return true
+    }
+
+    private fun requestIgnoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun hasUsageStatsPermission(): Boolean {

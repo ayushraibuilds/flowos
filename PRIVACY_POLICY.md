@@ -43,7 +43,7 @@ To power the app blocking and daily scoring features, FlowOS integrates with loc
 
 ## Data Storage & Security
 
-- **Local First:** All data is stored locally on your device first using an encrypted SQLite database
+- **Local First:** All data is stored locally on your device first using a local SQLite database
 - **Cloud Sync (Optional):** If you sign in, data is synced to Supabase with Row-Level Security (RLS) — you can only access your own data
 - **Encryption:** All data in transit uses HTTPS/TLS encryption
 - **AI Processing:** AI requests are processed through our backend proxy. We do not send your data directly to third-party AI providers from your device

@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../features/flow_garden/models/garden_day.dart';
 import '../../../features/flow_garden/providers/garden_providers.dart';
 import '../../../features/flow_garden/widgets/garden_plot.dart';
+import '../../../features/flow_garden/widgets/garden_object_painter.dart';
 import '../../widgets/flow_surface.dart';
 
 /// The Garden is a visual record of care. Quiet or missed days become rest,
@@ -127,6 +128,8 @@ class GardenScreen extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (week) {
         final season = GardenSeason.forDate(DateTime.now());
+        final allResting =
+            week.isNotEmpty && week.every((day) => day.isResting);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -155,17 +158,51 @@ class GardenScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              height: 160,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: week.length,
-                separatorBuilder: (_, __) =>
+            if (allResting)
+              FlowSurface(
+                variant: FlowSurfaceVariant.standard,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Row(
+                  children: [
+                    const RestingMoonArtwork(size: 52),
                     const SizedBox(width: AppSpacing.md),
-                itemBuilder: (context, index) =>
-                    _LandscapeCard(day: week[index]),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'A quiet season is still a season.',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Your garden begins whenever you are ready to return.',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                height: 164,
+                child: ListView.separated(
+                  padding: const EdgeInsets.only(right: AppSpacing.xl),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: week.length,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: AppSpacing.sm),
+                  itemBuilder: (context, index) =>
+                      _LandscapeCard(day: week[index]),
+                ),
               ),
-            ),
           ],
         );
       },
@@ -222,7 +259,7 @@ class _LandscapeCard extends StatelessWidget {
     const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final label = isToday ? 'Today' : weekdayLabels[day.date.weekday - 1];
     return SizedBox(
-      width: 126,
+      width: 136,
       child: FlowSurface(
         variant: FlowSurfaceVariant.standard,
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -236,18 +273,29 @@ class _LandscapeCard extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Text(
-              day.isResting
-                  ? '🌙'
-                  : day.objects.map((object) => object.emoji).take(3).join(' '),
-              style: const TextStyle(fontSize: 22),
-            ),
+            if (day.isResting)
+              const RestingMoonArtwork(size: 34)
+            else
+              SizedBox(
+                height: 36,
+                child: Row(
+                  children: day.objects
+                      .take(3)
+                      .map(
+                        (object) => Padding(
+                          padding: const EdgeInsets.only(right: 2),
+                          child: GardenObjectArtwork(object: object, size: 30),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               day.isCompleted
                   ? 'Saved landscape'
                   : day.isResting
-                  ? 'Resting plot'
+                  ? _restingLabel(day.date.weekday)
                   : 'In progress',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -260,6 +308,12 @@ class _LandscapeCard extends StatelessWidget {
       ),
     );
   }
+
+  String _restingLabel(int weekday) => switch (weekday % 3) {
+    0 => 'Quiet roots',
+    1 => 'Gentle pause',
+    _ => 'Resting soil',
+  };
 }
 
 class _ObjectChip extends StatelessWidget {
@@ -279,9 +333,18 @@ class _ObjectChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
-      child: Text(
-        '${object.emoji} ${object.detail ?? object.title}',
-        style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GardenObjectArtwork(object: object, size: 20),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            object.detail ?? object.title,
+            style: AppTypography.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

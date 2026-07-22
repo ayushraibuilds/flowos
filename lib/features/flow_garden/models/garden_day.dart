@@ -12,6 +12,7 @@ class GardenObject {
   final String seedEmoji;
   final String title;
   final String? detail;
+  final int? focusMinutes;
   final double x;
   final double y;
 
@@ -24,6 +25,7 @@ class GardenObject {
     required this.x,
     required this.y,
     this.detail,
+    this.focusMinutes,
   });
 
   static GardenObject fromFocusSession({
@@ -47,6 +49,7 @@ class GardenObject {
       seedEmoji: isTree ? '🌰' : '🌱',
       title: isTree ? 'Deep-root tree' : 'Focus flower',
       detail: taskTitle?.trim().isEmpty ?? true ? null : taskTitle,
+      focusMinutes: actualMinutes,
       x: x,
       y: y,
     );
@@ -70,6 +73,7 @@ class GardenObject {
       seedEmoji: isTree ? '🌰' : '🌱',
       title: isTree ? 'Deep-root tree' : 'Focus flower',
       detail: taskTitle?.trim().isEmpty ?? true ? null : taskTitle,
+      focusMinutes: session.actualMinutes,
       x: x,
       y: y,
     );
@@ -83,13 +87,7 @@ class GardenObject {
   }
 }
 
-enum GardenVitality {
-  flourishing,
-  growing,
-  thirsty,
-  recovering,
-  resting,
-}
+enum GardenVitality { flourishing, growing, thirsty, recovering, resting }
 
 class GardenDay {
   final DateTime date;

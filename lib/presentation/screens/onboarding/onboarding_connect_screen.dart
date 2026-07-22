@@ -29,6 +29,7 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
     with WidgetsBindingObserver {
   bool _usagePermissionActive = false;
   bool _accessibilityPermissionActive = false;
+  bool _batteryOptPermissionActive = true;
   bool _syncingUsage = false;
   String? _syncMessage;
 
@@ -66,6 +67,7 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
       setState(() {
         _usagePermissionActive = states.usageAccess;
         _accessibilityPermissionActive = states.accessibility;
+        _batteryOptPermissionActive = states.batteryOptimizationIgnored;
       });
 
       // If Usage Access just turned true, trigger async 7-day sync
@@ -129,6 +131,12 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
       } else {
         await platform.openAccessibilitySettings();
       }
+    } catch (_) {}
+  }
+
+  Future<void> _requestBatteryOptPermission() async {
+    try {
+      await ref.read(deviceAttentionPlatformProvider).openBatteryOptimizationSettings();
     } catch (_) {}
   }
 
@@ -265,6 +273,13 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
                         description: 'Apply your focus shields to selected apps during focus sessions.',
                         status: _accessibilityPermissionActive,
                         onTap: _requestAccessibilityPermission,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildPermissionCard(
+                        title: 'Unrestricted Battery Usage (Optional)',
+                        description: 'Keep focus session protection active on aggressive battery managers (Xiaomi, Samsung, OnePlus).',
+                        status: _batteryOptPermissionActive,
+                        onTap: _requestBatteryOptPermission,
                       ),
                     ] else ...[
                       // iOS Placeholder

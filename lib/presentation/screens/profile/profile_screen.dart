@@ -9,15 +9,26 @@ import '../../../core/constants/xp_constants.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../features/flow_garden/providers/garden_providers.dart';
+import '../../../features/flow_garden/widgets/garden_object_painter.dart';
 import '../../../features/xp/providers/xp_providers.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 
 /// Live Provider for the last 28 days of focus sessions
-final last28DaysSessionsProvider = FutureProvider<List<FocusSession>>((ref) async {
+final last28DaysSessionsProvider = FutureProvider<List<FocusSession>>((
+  ref,
+) async {
   final db = ref.watch(databaseProvider);
   final now = DateTime.now();
-  final start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 27));
-  final end = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+  final start = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).subtract(const Duration(days: 27));
+  final end = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).add(const Duration(days: 1));
   return db.focusSessionsDao.getByDateRange(start, end);
 });
 
@@ -70,7 +81,9 @@ class ProfileScreen extends ConsumerWidget {
     final nextLevelXp = XpConstants.xpForLevel(level + 1);
     final xpInLevel = lifetimeXp - levelBaseXp;
     final xpNeededInLevel = nextLevelXp - levelBaseXp;
-    final progress = xpNeededInLevel > 0 ? (xpInLevel / xpNeededInLevel).clamp(0.0, 1.0) : 1.0;
+    final progress = xpNeededInLevel > 0
+        ? (xpInLevel / xpNeededInLevel).clamp(0.0, 1.0)
+        : 1.0;
 
     return Container(
       width: double.infinity,
@@ -184,16 +197,21 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildStatsGrid(WidgetRef ref) {
-    final focusMinutes = ref.watch(lifetimeFocusMinutesProvider).valueOrNull ?? 0;
-    final tasksDone = ref.watch(totalCompletedTasksCountProvider).valueOrNull ?? 0;
+    final focusMinutes =
+        ref.watch(lifetimeFocusMinutesProvider).valueOrNull ?? 0;
+    final tasksDone =
+        ref.watch(totalCompletedTasksCountProvider).valueOrNull ?? 0;
     final bestStreak = ref.watch(bestStreakProvider).valueOrNull ?? 0;
     final currentStreak = ref.watch(streakProvider).valueOrNull ?? 0;
-    final recoveries = ref.watch(lifetimeRecoveriesCountProvider).valueOrNull ?? 0;
+    final recoveries =
+        ref.watch(lifetimeRecoveriesCountProvider).valueOrNull ?? 0;
     final achievements = ref.watch(achievementsProvider).valueOrNull ?? [];
     final unlockedAchievementsCount = achievements.length;
 
     final focusHours = focusMinutes ~/ 60;
-    final focusHoursStr = focusHours > 0 ? '${focusHours}h' : '${focusMinutes}m';
+    final focusHoursStr = focusHours > 0
+        ? '${focusHours}h'
+        : '${focusMinutes}m';
 
     final stats = [
       (icon: '⏱️', value: focusHoursStr, label: 'Focus Time'),
@@ -217,7 +235,10 @@ class ProfileScreen extends ConsumerWidget {
       itemBuilder: (context, i) {
         final stat = stats[i];
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
             color: AppColors.background2,
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
@@ -258,8 +279,10 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildStreakClarifier(WidgetRef ref) {
-    final focusMinutes = ref.watch(lifetimeFocusMinutesProvider).valueOrNull ?? 0;
-    final tasksDone = ref.watch(totalCompletedTasksCountProvider).valueOrNull ?? 0;
+    final focusMinutes =
+        ref.watch(lifetimeFocusMinutesProvider).valueOrNull ?? 0;
+    final tasksDone =
+        ref.watch(totalCompletedTasksCountProvider).valueOrNull ?? 0;
     final currentStreak = ref.watch(streakProvider).valueOrNull ?? 0;
 
     if (focusMinutes > 0 || tasksDone > 0 || currentStreak == 0) {
@@ -298,20 +321,26 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildHeatmapCalendar(WidgetRef ref) {
-    final last28DaysSessions = ref.watch(last28DaysSessionsProvider).valueOrNull ?? [];
+    final last28DaysSessions =
+        ref.watch(last28DaysSessionsProvider).valueOrNull ?? [];
 
     final dailyMinutes = List<int>.filled(28, 0);
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
 
     for (final s in last28DaysSessions) {
-      final sessionDay = DateTime(s.startedAt.year, s.startedAt.month, s.startedAt.day);
+      final sessionDay = DateTime(
+        s.startedAt.year,
+        s.startedAt.month,
+        s.startedAt.day,
+      );
       final difference = todayStart.difference(sessionDay).inDays;
       if (difference >= 0 && difference < 28) {
         final gridIndex = 27 - difference;
         dailyMinutes[gridIndex] += s.actualMinutes;
       }
     }
+    final hasActivity = dailyMinutes.any((minutes) => minutes > 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,41 +360,71 @@ class ProfileScreen extends ConsumerWidget {
               width: 0.5,
             ),
           ),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              crossAxisSpacing: 6,
-              mainAxisSpacing: 6,
-            ),
-            itemCount: 28,
-            itemBuilder: (context, i) {
-              final mins = dailyMinutes[i];
-              final Color cellColor;
-              if (mins == 0) {
-                cellColor = AppColors.background0;
-              } else if (mins < 25) {
-                cellColor = AppColors.emerald.withValues(alpha: 0.2);
-              } else if (mins < 60) {
-                cellColor = AppColors.emerald.withValues(alpha: 0.45);
-              } else if (mins < 120) {
-                cellColor = AppColors.emerald.withValues(alpha: 0.7);
-              } else {
-                cellColor = AppColors.emerald;
-              }
-
-              return Tooltip(
-                message: mins > 0 ? '$mins mins focused' : 'No focus sessions',
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: cellColor,
-                    borderRadius: BorderRadius.circular(4),
+          child: hasActivity
+              ? GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    crossAxisSpacing: 6,
+                    mainAxisSpacing: 6,
                   ),
+                  itemCount: 28,
+                  itemBuilder: (context, i) {
+                    final mins = dailyMinutes[i];
+                    final Color cellColor;
+                    if (mins == 0) {
+                      cellColor = AppColors.background0;
+                    } else if (mins < 25) {
+                      cellColor = AppColors.emerald.withValues(alpha: 0.2);
+                    } else if (mins < 60) {
+                      cellColor = AppColors.emerald.withValues(alpha: 0.45);
+                    } else if (mins < 120) {
+                      cellColor = AppColors.emerald.withValues(alpha: 0.7);
+                    } else {
+                      cellColor = AppColors.emerald;
+                    }
+
+                    return Tooltip(
+                      message: mins > 0
+                          ? '$mins mins focused'
+                          : 'No focus sessions',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cellColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    );
+                  },
+                )
+              : Row(
+                  children: [
+                    const RestingMoonArtwork(size: 48),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your first focus block will light this up.',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'There is no streak to catch up with — begin with the next small block.',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -386,7 +445,9 @@ class ProfileScreen extends ConsumerWidget {
           data: (dbList) {
             // Map static metadata configurations with database unlock statuses
             final list = allAchievements.map((info) {
-              final isUnlocked = dbList.any((a) => a.achievementKey == info.key.name);
+              final isUnlocked = dbList.any(
+                (a) => a.achievementKey == info.key.name,
+              );
               return (info: info, isUnlocked: isUnlocked);
             }).toList();
 
@@ -395,7 +456,8 @@ class ProfileScreen extends ConsumerWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: AppSpacing.md),
                 itemBuilder: (context, i) {
                   final badge = list[i];
                   return Container(
@@ -403,7 +465,9 @@ class ProfileScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
                       color: AppColors.background2,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                       border: Border.all(
                         color: badge.isUnlocked
                             ? AppColors.emerald.withValues(alpha: 0.3)
@@ -418,7 +482,9 @@ class ProfileScreen extends ConsumerWidget {
                           badge.isUnlocked ? badge.info.emoji : '🔒',
                           style: TextStyle(
                             fontSize: 28,
-                            color: !badge.isUnlocked ? AppColors.textTertiary : null,
+                            color: !badge.isUnlocked
+                                ? AppColors.textTertiary
+                                : null,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
