@@ -183,18 +183,18 @@ function setupListeners() {
 
   // Clear data
   document.getElementById('clearDataBtn').addEventListener('click', async () => {
-    if (!confirm('This will delete all browsing data. Continue?')) return;
+    if (!confirm('This will wipe all browsing data, settings, and pairing tokens. Continue?')) return;
 
-    await chrome.storage.local.set({
-      visits: [],
-      flowScore: 0,
-      todayStats: { productive: 0, neutral: 0, distracting: 0 },
-      syncQueue: [],
-      lastSyncTime: 0,
+    await chrome.storage.local.clear();
+    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const existingIds = existingRules.map(r => r.id);
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: existingIds,
     });
 
-    document.getElementById('clearStatus').textContent = '✅ Data cleared';
+    document.getElementById('clearStatus').textContent = '✅ All storage and settings cleared';
     document.getElementById('clearStatus').className = 'status success';
+    await loadSettings();
   });
 
   // Pair mobile app

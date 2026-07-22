@@ -3,6 +3,16 @@
 
 importScripts('config.js');
 
+// ─── Storage Lock Mutex ─────────────────────────────────────────
+
+let storageLockChain = Promise.resolve();
+
+function withStorageLock(fn) {
+  const result = storageLockChain.then(() => fn());
+  storageLockChain = result.catch(() => {});
+  return result;
+}
+
 // ─── Constants ──────────────────────────────────────────────────
 
 const SYNC_INTERVAL_MINUTES = 5;
@@ -59,32 +69,41 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   const domain = url.hostname.replace('www.', '');
   const timestamp = Date.now();
 
-  // Get current visit tracking
-  const { visits = [] } = await chrome.storage.local.get('visits');
+  await withStorageLock(async () => {
+    const { visits = [] } = await chrome.storage.local.get('visits');
 
-  // Close previous visit for this tab
-  const prevIndex = visits.findLastIndex(v => v.tabId === tabId && !v.endTime);
-  if (prevIndex >= 0) {
-    visits[prevIndex].endTime = timestamp;
-    visits[prevIndex].duration = timestamp - visits[prevIndex].startTime;
-  }
+    // Close previous visit for this tab (or update if same domain)
+    const prevIndex = visits.findLastIndex(v => v.tabId === tabId && !v.endTime);
+    if (prevIndex >= 0) {
+      const prev = visits[prevIndex];
+      if (prev.domain === domain) {
+        // Same domain navigation — update url/title without splitting visit duration
+        prev.url = tab.url;
+        prev.title = tab.title || domain;
+        await chrome.storage.local.set({ visits });
+        return;
+      }
+      prev.endTime = timestamp;
+      prev.duration = timestamp - prev.startTime;
+    }
 
-  // Start new visit
-  const category = await categorize(domain);
-  visits.push({
-    tabId,
-    domain,
-    url: tab.url,
-    title: tab.title || domain,
-    category,
-    startTime: timestamp,
-    endTime: null,
-    duration: 0,
+    // Start new visit
+    const category = await categorize(domain);
+    visits.push({
+      tabId,
+      domain,
+      url: tab.url,
+      title: tab.title || domain,
+      category,
+      startTime: timestamp,
+      endTime: null,
+      duration: 0,
+    });
+
+    // Keep last 500 visits max
+    const trimmed = visits.slice(-500);
+    await chrome.storage.local.set({ visits: trimmed });
   });
-
-  // Keep last 500 visits max
-  const trimmed = visits.slice(-500);
-  await chrome.storage.local.set({ visits: trimmed });
 
   // Update today's stats
   await updateTodayStats();
@@ -92,16 +111,22 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
 // Close visit when tab closes
 chrome.tabs.onRemoved.addListener(async (tabId) => {
-  const { visits = [] } = await chrome.storage.local.get('visits');
-  const openIndex = visits.findLastIndex(v => v.tabId === tabId && !v.endTime);
-  if (openIndex >= 0) {
-    visits[openIndex].endTime = Date.now();
-    visits[openIndex].duration = Date.now() - visits[openIndex].startTime;
-    await chrome.storage.local.set({ visits });
-  }
+  await withStorageLock(async () => {
+    const { visits = [] } = await chrome.storage.local.get('visits');
+    const openIndex = visits.findLastIndex(v => v.tabId === tabId && !v.endTime);
+    if (openIndex >= 0) {
+      visits[openIndex].endTime = Date.now();
+      visits[openIndex].duration = Date.now() - visits[openIndex].startTime;
+      await chrome.storage.local.set({ visits });
+    }
+  });
 });
 
 // ─── Categorization ─────────────────────────────────────────────
+
+function matchesDomainList(domain, list) {
+  return list.some(d => domain === d || domain.endsWith('.' + d));
+}
 
 async function categorize(domain) {
   const { customCategories = {} } = await chrome.storage.local.get('customCategories');
@@ -126,39 +151,68 @@ async function categorize(domain) {
     'ebay.com', 'buzzfeed.com', '9gag.com', 'imgur.com',
   ];
 
-  if (productive.some(p => domain.includes(p))) return 'productive';
-  if (distracting.some(d => domain.includes(d))) return 'distracting';
+  if (matchesDomainList(domain, productive)) return 'productive';
+  if (matchesDomainList(domain, distracting)) return 'distracting';
   return 'neutral';
 }
 
 // ─── Today's Stats ──────────────────────────────────────────────
 
 async function updateTodayStats() {
-  const { visits = [] } = await chrome.storage.local.get('visits');
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  await withStorageLock(async () => {
+    const { visits = [] } = await chrome.storage.local.get('visits');
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-  const todayVisits = visits.filter(v => v.startTime >= todayStart.getTime());
+    const todayVisits = visits.filter(v => v.startTime >= todayStart.getTime());
 
-  const stats = { productive: 0, neutral: 0, distracting: 0 };
-  for (const v of todayVisits) {
-    const duration = v.duration || (Date.now() - v.startTime);
-    const minutes = duration / 60000;
-    stats[v.category] = (stats[v.category] || 0) + minutes;
-  }
+    // Deduplicate overlapping visits per domain so multi-tabs don't double-count
+    const domainIntervals = {};
+    for (const v of todayVisits) {
+      const start = v.startTime;
+      const end = v.endTime || Date.now();
+      if (!domainIntervals[v.domain]) {
+        domainIntervals[v.domain] = { category: v.category, intervals: [] };
+      }
+      domainIntervals[v.domain].intervals.push([start, end]);
+    }
 
-  // Calculate Flow Score (productive / (productive + distracting) * 100)
-  const total = stats.productive + stats.distracting;
-  const flowScore = total > 0 ? Math.round((stats.productive / total) * 100) : 100;
+    const stats = { productive: 0, neutral: 0, distracting: 0 };
 
-  await chrome.storage.local.set({ todayStats: stats, flowScore });
+    for (const { category, intervals } of Object.values(domainIntervals)) {
+      if (intervals.length === 0) continue;
+      // Sort and merge overlapping intervals
+      intervals.sort((a, b) => a[0] - b[0]);
+      const merged = [intervals[0]];
+      for (let i = 1; i < intervals.length; i++) {
+        const last = merged[merged.length - 1];
+        const current = intervals[i];
+        if (current[0] <= last[1]) {
+          last[1] = Math.max(last[1], current[1]);
+        } else {
+          merged.push(current);
+        }
+      }
+      let totalMs = 0;
+      for (const [s, e] of merged) {
+        totalMs += (e - s);
+      }
+      stats[category] = (stats[category] || 0) + (totalMs / 60000);
+    }
 
-  // Update badge
-  const grade = flowScore >= 90 ? 'A' : flowScore >= 75 ? 'B' :
-                flowScore >= 60 ? 'C' : flowScore >= 40 ? 'D' : 'F';
+    // Calculate Flow Score (productive / (productive + distracting) * 100)
+    const total = stats.productive + stats.distracting;
+    const flowScore = total > 0 ? Math.round((stats.productive / total) * 100) : 100;
 
-  await chrome.action.setBadgeText({ text: grade });
-  await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS[grade] });
+    await chrome.storage.local.set({ todayStats: stats, flowScore });
+
+    // Update badge
+    const grade = flowScore >= 90 ? 'A' : flowScore >= 75 ? 'B' :
+                  flowScore >= 60 ? 'C' : flowScore >= 40 ? 'D' : 'F';
+
+    await chrome.action.setBadgeText({ text: grade });
+    await chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS[grade] });
+  });
 }
 
 // ─── Focus Mode (Block distracting sites) ───────────────────────
@@ -167,13 +221,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'TOGGLE_FOCUS') {
     (async () => {
       const { focusActive = false } = await chrome.storage.local.get('focusActive');
+      const now = Date.now();
       if (focusActive) {
         await disableFocusBlocking();
-        await chrome.storage.local.set({ focusActive: false });
+        await chrome.storage.local.set({ focusActive: false, lastManualToggleAt: now });
         sendResponse({ focusActive: false });
       } else {
         await enableFocusBlocking();
-        await chrome.storage.local.set({ focusActive: true });
+        await chrome.storage.local.set({ focusActive: true, lastManualToggleAt: now });
         sendResponse({ focusActive: true });
       }
     })();
@@ -182,10 +237,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'TEMPORARY_BYPASS') {
     (async () => {
+      // Validate sender origin: must strictly originate from our own extension blocked.html page
+      const blockedPageUrl = chrome.runtime.getURL('blocked.html');
+      if (!sender.url || !sender.url.startsWith(blockedPageUrl)) {
+        sendResponse({ ok: false, error: 'Unauthorized sender' });
+        return;
+      }
+
+      const domain = message.domain;
       const { focusActive = false } = await chrome.storage.local.get('focusActive');
-      if (focusActive) {
-        await disableFocusBlocking();
-        // Rearm in 30 seconds (0.5 minutes)
+      if (focusActive && domain) {
+        // Create a temporary high-priority allow rule (ID 9999) for this specific target domain only
+        const allowRule = {
+          id: 9999,
+          priority: 100,
+          action: { type: 'allow' },
+          condition: {
+            urlFilter: `*://${domain}/*`,
+            resourceTypes: ['main_frame'],
+          },
+        };
+        await chrome.declarativeNetRequest.updateDynamicRules({
+          removeRuleIds: [9999],
+          addRules: [allowRule],
+        });
+        // Rearm (remove allow rule) in 30 seconds
         await chrome.alarms.create('rearm-blocking', { delayInMinutes: 0.5 });
       }
       sendResponse({ ok: true });
@@ -204,7 +280,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_STATE') {
     (async () => {
       const state = await chrome.storage.local.get([
-        'flowScore', 'todayStats', 'focusActive', 'visits',
+        'flowScore', 'todayStats', 'focusActive', 'visits', 'protectionMode',
       ]);
       sendResponse(state);
     })();
@@ -241,20 +317,23 @@ async function enableFocusBlocking() {
   ];
   known.forEach(d => distractingDomains.add(d));
 
-  // Create dynamic blocking rules
+  // Create dynamic blocking rules with original target URL encoded in query string
   const rules = [...distractingDomains].map((domain, i) => ({
     id: i + 1,
     priority: 1,
-    action: { type: 'redirect', redirect: { extensionPath: '/blocked.html' } },
+    action: {
+      type: 'redirect',
+      redirect: { extensionPath: `/blocked.html?url=${encodeURIComponent(`https://${domain}`)}` },
+    },
     condition: {
       urlFilter: `*://${domain}/*`,
       resourceTypes: ['main_frame'],
     },
   }));
 
-  // Remove old rules, add new ones
+  // Remove old rules, add new ones (preserve bypass rule 9999 if active)
   const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-  const existingIds = existingRules.map(r => r.id);
+  const existingIds = existingRules.map(r => r.id).filter(id => id !== 9999);
 
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: existingIds,
@@ -289,10 +368,10 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     await syncFocusState();
   }
   if (alarm.name === 'rearm-blocking') {
-    const { focusActive = false } = await chrome.storage.local.get('focusActive');
-    if (focusActive) {
-      await enableFocusBlocking();
-    }
+    // Remove temporary bypass allow rule (ID 9999)
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [9999],
+    });
   }
 });
 
@@ -406,10 +485,13 @@ async function getValidSession(supabaseUrl, supabasePublishableKey) {
 // ─── Focus Session Active State Sync ───────────────────────────
 
 async function syncFocusState() {
-  const { isPaired = false, userId, focusActive = false } =
-    await chrome.storage.local.get(['isPaired', 'userId', 'focusActive']);
+  const { isPaired = false, userId, focusActive = false, lastManualToggleAt = 0 } =
+    await chrome.storage.local.get(['isPaired', 'userId', 'focusActive', 'lastManualToggleAt']);
 
   if (!isPaired || !userId) return;
+
+  // Respect manual override: skip sync if manual toggle happened within last 5 minutes
+  if (Date.now() - lastManualToggleAt < 5 * 60 * 1000) return;
 
   const config = await getSupabaseConfig();
   if (!config.supabaseUrl || !config.supabasePublishableKey) return;
@@ -429,6 +511,9 @@ async function syncFocusState() {
     if (res.ok) {
       const activeSessions = await res.json();
       const hasActive = activeSessions && activeSessions.length > 0;
+      const protectionMode = activeSessions && activeSessions[0]?.protection_mode ? activeSessions[0].protection_mode : 'guard';
+
+      await chrome.storage.local.set({ protectionMode });
 
       if (hasActive && !focusActive) {
         await enableFocusBlocking();

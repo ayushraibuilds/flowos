@@ -4,8 +4,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDashboard();
   setupListeners();
 
-  // Auto-refresh every 30 seconds
-  setInterval(loadDashboard, 30000);
+  // Auto-refresh every 30 seconds (paused when panel is hidden)
+  let refreshInterval = setInterval(loadDashboard, 30000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      clearInterval(refreshInterval);
+    } else {
+      loadDashboard();
+      clearInterval(refreshInterval);
+      refreshInterval = setInterval(loadDashboard, 30000);
+    }
+  });
 });
 
 async function loadDashboard() {

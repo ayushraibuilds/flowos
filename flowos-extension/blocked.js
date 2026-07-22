@@ -11,21 +11,48 @@ const quotes = [
   { text: "Starve your distractions, feed your focus.", author: "Unknown" },
 ];
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Random quote
   const quote = quotes[Math.floor(Math.random() * quotes.length)];
   document.getElementById('quoteText').textContent = `"${quote.text}"`;
   document.getElementById('quoteAuthor').textContent = `— ${quote.author}`;
 
-  // Go back
+  // Parse original target URL from query parameter
+  const params = new URLSearchParams(window.location.search);
+  const originalUrl = params.get('url');
+  let targetDomain = '';
+  if (originalUrl) {
+    try {
+      targetDomain = new URL(originalUrl).hostname.replace('www.', '');
+    } catch (_) {}
+  }
+
+  // Check protection mode (nudge, guard, deep)
+  const { protectionMode = 'guard' } = await chrome.storage.local.get('protectionMode');
+  const overrideBtn = document.getElementById('overrideBtn');
+  if (protectionMode === 'deep' && overrideBtn) {
+    overrideBtn.style.display = 'none';
+    const subtitle = document.querySelector('.subtitle');
+    if (subtitle) {
+      subtitle.textContent = 'Deep Work Mode is active. Bypasses are disabled for this session.';
+    }
+  }
+
+  // Go back button
   document.getElementById('goBackBtn').addEventListener('click', () => {
-    history.back();
+    if (history.length > 1) {
+      history.back();
+    } else {
+      window.close();
+    }
   });
 
-  // Override
-  document.getElementById('overrideBtn').addEventListener('click', () => {
-    document.getElementById('overrideWarning').style.display = 'block';
-  });
+  // Override button
+  if (overrideBtn) {
+    overrideBtn.addEventListener('click', () => {
+      document.getElementById('overrideWarning').style.display = 'block';
+    });
+  }
 
   // Confirm override
   document.getElementById('confirmOverride').addEventListener('click', async () => {
@@ -33,10 +60,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const { escapeHatchCount = 0 } = await chrome.storage.local.get('escapeHatchCount');
     await chrome.storage.local.set({ escapeHatchCount: escapeHatchCount + 1 });
 
-    // Disable blocking temporarily (30 seconds)
-    await chrome.runtime.sendMessage({ type: 'TEMPORARY_BYPASS', seconds: 30 });
+    // Send TEMPORARY_BYPASS message for this specific domain
+    await chrome.runtime.sendMessage({
+      type: 'TEMPORARY_BYPASS',
+      seconds: 30,
+      domain: targetDomain,
+    });
 
-    // Go back (the site will now load)
-    history.back();
+    // Navigate to original URL directly (or history.back as fallback)
+    if (originalUrl) {
+      window.location.href = originalUrl;
+    } else if (history.length > 1) {
+      history.back();
+    }
   });
 });
