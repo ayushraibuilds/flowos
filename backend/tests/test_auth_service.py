@@ -15,7 +15,10 @@ if str(root_dir) not in sys.path:
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-from backend.services.auth_service import get_current_user_id
+try:
+    from backend.services.auth_service import get_current_user_id
+except ImportError:
+    from services.auth_service import get_current_user_id
 
 SECRET = "super-secret-test-key-12345"
 
