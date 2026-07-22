@@ -385,4 +385,46 @@ class CloudMappers {
       timestamp: Value(DateTime.parse(row['timestamp'] as String)),
     );
   }
+
+  // ─── Daily Scores Mapper ───────────────────────────────────────────────────
+
+  static Map<String, dynamic> dailyScoreToCloud(DailyScore s, String userId, String? deviceId) {
+    final dayStr = s.day.toIso8601String().substring(0, 10);
+    return {
+      'id': dayStr,
+      'user_id': userId,
+      'day': dayStr,
+      'score': s.score,
+      'grade': s.grade,
+      'is_incomplete': s.isIncomplete,
+      'available_weight': s.availableWeight,
+      'scoring_version': s.scoringVersion,
+      'focus_points': s.focusPoints,
+      'intent_points': s.intentPoints,
+      'attention_points': s.attentionPoints,
+      'care_points': s.carePoints,
+      'computed_at': s.computedAt.toUtc().toIso8601String(),
+      'created_at': s.computedAt.toUtc().toIso8601String(),
+      'updated_at': s.computedAt.toUtc().toIso8601String(),
+      'device_id': deviceId,
+    };
+  }
+
+  static DailyScoresCompanion dailyScoreFromCloud(Map<String, dynamic> row) {
+    final dayDate = DateTime.parse(row['day'] as String);
+    final startOfDay = DateTime(dayDate.year, dayDate.month, dayDate.day);
+    return DailyScoresCompanion(
+      day: Value(startOfDay),
+      score: Value(row['score'] as int? ?? 0),
+      grade: Value(row['grade'] as String?),
+      isIncomplete: Value(row['is_incomplete'] as bool? ?? false),
+      availableWeight: Value((row['available_weight'] as num?)?.toDouble() ?? 1.0),
+      scoringVersion: Value(row['scoring_version'] as int? ?? 2),
+      focusPoints: Value((row['focus_points'] as num?)?.toDouble() ?? 0.0),
+      intentPoints: Value((row['intent_points'] as num?)?.toDouble() ?? 0.0),
+      attentionPoints: Value((row['attention_points'] as num?)?.toDouble()),
+      carePoints: Value((row['care_points'] as num?)?.toDouble() ?? 0.0),
+      computedAt: Value(DateTime.parse(row['computed_at'] as String? ?? row['created_at'] as String)),
+    );
+  }
 }

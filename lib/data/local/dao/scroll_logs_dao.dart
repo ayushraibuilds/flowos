@@ -38,8 +38,8 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Get today's total scroll minutes
-  Future<int> getDailyTotal() async {
-    final now = DateTime.now();
+  Future<int> getDailyTotal({DateTime? clock}) async {
+    final now = clock ?? DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final logs = await (select(
       scrollLogs,
@@ -48,8 +48,8 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Watch today's total
-  Stream<int> watchDailyTotal() {
-    final now = DateTime.now();
+  Stream<int> watchDailyTotal({DateTime? clock}) {
+    final now = clock ?? DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     return (select(scrollLogs)
           ..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull()))
@@ -58,8 +58,9 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Get last 7 days of data (for weekly chart)
-  Future<List<ScrollLog>> getWeeklyData() {
-    final start = DateTime.now().subtract(const Duration(days: 7));
+  Future<List<ScrollLog>> getWeeklyData({DateTime? clock}) {
+    final now = clock ?? DateTime.now();
+    final start = now.subtract(const Duration(days: 7));
     return (select(scrollLogs)
           ..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull())
           ..orderBy([(l) => OrderingTerm.asc(l.timestamp)]))
@@ -99,8 +100,8 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Get all scroll logs logged today
-  Future<List<ScrollLog>> getTodayLogs() {
-    final now = DateTime.now();
+  Future<List<ScrollLog>> getTodayLogs({DateTime? clock}) {
+    final now = clock ?? DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     return (select(
       scrollLogs,

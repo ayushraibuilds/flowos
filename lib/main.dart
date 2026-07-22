@@ -21,8 +21,12 @@ import 'features/notifications/services/notification_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize notifications
+  // Initialize and schedule notifications
   await NotificationService.initialize();
+  await NotificationService.scheduleEnergyCheckIns();
+  await NotificationService.scheduleReportReminder();
+  await NotificationService.scheduleWeeklyReview();
+  await NotificationService.scheduleStreakWarning();
 
   // Initialize Supabase (skip if not configured — local-first mode)
   // Load SharedPreferences earlier

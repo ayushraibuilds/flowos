@@ -29,6 +29,7 @@ class XpCalculator {
     required int actualMinutes,
     required String? taskId,
     required int streakDays,
+    String? qualityScore,
   }) async {
     // Base XP by session type
     int baseXP = switch (sessionType) {
@@ -39,8 +40,8 @@ class XpCalculator {
 
     // Partial credit: if completed < 100% but >= 60%, proportional XP
     final completionRatio = durationMinutes > 0
-        ? actualMinutes / durationMinutes
-        : 0.0;
+        ? (actualMinutes / durationMinutes).clamp(0.0, 1.0)
+        : 1.0;
 
     if (completionRatio < 0.6) {
       // Below 60% — no XP (attention cost recorded separately)
@@ -49,6 +50,17 @@ class XpCalculator {
       // 60-99% — proportional
       baseXP = (baseXP * completionRatio).round();
     }
+
+    // Quality modifier (A=1.0, B=0.85, C=0.70, D=0.50)
+    final quality = qualityScore ?? 'A';
+    final qualityMultiplier = switch (quality) {
+      'A' => 1.0,
+      'B' => 0.85,
+      'C' => 0.70,
+      'D' => 0.50,
+      _ => 1.0,
+    };
+    baseXP = (baseXP * qualityMultiplier).round();
 
     // Standalone session multiplier (no task attached = 60% XP)
     if (taskId == null) {
@@ -74,7 +86,7 @@ class XpCalculator {
       pointsDelta: Value(baseXP),
       sourceEntityId: Value(sessionId),
       explanation: Value(
-        'Completed ${actualMinutes}m ${sessionType.name} session'
+        'Completed ${actualMinutes}m ${sessionType.name} session (Quality: $quality)'
         '${taskId == null ? " (standalone)" : ""}'
         '${streakDays >= 7 ? " · ${streakMultiplier}x streak" : ""}',
       ),

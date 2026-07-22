@@ -75,14 +75,10 @@ class NotificationService {
       final androidPlugin =
           _plugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.createNotificationChannel(
-          _toAndroidChannel(_focusChannel));
-      await androidPlugin?.createNotificationChannel(
-          _toAndroidChannel(_checkinChannel));
-      await androidPlugin?.createNotificationChannel(
-          _toAndroidChannel(_reportChannel));
-      await androidPlugin?.createNotificationChannel(
-          _toAndroidChannel(_streakChannel));
+      await androidPlugin?.createNotificationChannel(_focusChannel);
+      await androidPlugin?.createNotificationChannel(_checkinChannel);
+      await androidPlugin?.createNotificationChannel(_reportChannel);
+      await androidPlugin?.createNotificationChannel(_streakChannel);
     }
 
     _initialized = true;
@@ -318,8 +314,4 @@ class NotificationService {
   static Future<void> cancelStreakWarning() async {
     await _plugin.cancel(300);
   }
-
-  /// Convert our const channel to the mutable type the plugin expects
-  static AndroidNotificationChannel _toAndroidChannel(
-      AndroidNotificationChannel c) => c;
 }

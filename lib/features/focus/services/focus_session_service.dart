@@ -12,7 +12,9 @@ import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/flow_garden/models/garden_day.dart';
+import '../../../features/xp/models/focus_quality_calculator.dart';
 import '../../../features/xp/models/streak_service.dart';
+import '../../../features/xp/models/xp_calculator.dart';
 import '../models/effective_policy.dart';
 import 'policy_writer.dart';
 
@@ -114,30 +116,28 @@ class FocusSessionService {
     }
 
     final actualMin = (elapsedSeconds / 60).round();
-    final interrupts = pauseCount + backgroundCount;
-    final quality = interrupts == 0
-        ? 'A'
-        : interrupts <= 2
-        ? 'B'
-        : 'C';
+    final existingSession = await _db.focusSessionsDao.getById(sessionId);
+    final targetMin = existingSession?.durationMinutes ?? (isFlowtime ? actualMin : 25);
+    final taskId = existingSession?.taskId;
 
-    final int xp;
-    if (isFlowtime) {
-      // Flowtime: 1.6 XP per minute, with quality modifiers
-      final double multiplier = quality == 'A'
-          ? 1.0
-          : quality == 'B'
-          ? 0.8
-          : 0.6;
-      xp = (actualMin * 1.6 * multiplier).round().clamp(1, 150);
-    } else {
-      // Countdown complete
-      final isDeepWork = type == SessionTypeColumn.deepWork;
-      final baseXP = isDeepWork
-          ? XpConstants.deepWorkComplete
-          : XpConstants.pomodoroComplete;
-      xp = quality == 'A' ? baseXP : (baseXP * 0.8).round();
-    }
+    final quality = FocusQualityCalculator.calculate(
+      durationMinutes: targetMin,
+      actualMinutes: actualMin,
+      pauseCount: pauseCount,
+      backgroundCount: backgroundCount,
+    );
+
+    final streak = await StreakService.getStreak();
+    final xpCalc = XpCalculator(_db.xpLedgerDao);
+    final xp = await xpCalc.awardSessionXP(
+      sessionId: sessionId,
+      sessionType: isFlowtime ? SessionTypeColumn.custom : type,
+      durationMinutes: targetMin,
+      actualMinutes: actualMin,
+      taskId: taskId,
+      streakDays: streak,
+      qualityScore: quality,
+    );
 
     // 1. Update session in DB
     await _db.focusSessionsDao.updateSession(
@@ -149,19 +149,6 @@ class FocusSessionService {
         xpEarned: Value(xp),
         qualityScore: Value(quality),
         completedAt: Value(DateTime.now()),
-      ),
-    );
-
-    // 2. Append XP ledger entry
-    await _db.xpLedgerDao.appendEntry(
-      XpLedgerEntriesCompanion(
-        id: Value(_uuid.v4()),
-        actionType: const Value(XpActionTypeColumn.focusComplete),
-        pointsDelta: Value(xp),
-        sourceEntityId: Value(sessionId),
-        explanation: Value(
-          'Completed ${actualMin}m ${isFlowtime ? "Flowtime" : type.name} session (Quality: $quality)',
-        ),
       ),
     );
 

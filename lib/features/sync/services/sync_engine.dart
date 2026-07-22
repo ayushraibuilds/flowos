@@ -75,6 +75,7 @@ class SyncEngine {
       pulledCount += await _pullTable('scroll_logs');
       pulledCount += await _pullTable('energy_checkins');
       pulledCount += await _pullTable('achievements');
+      pulledCount += await _pullTable('daily_scores');
       pulledCount += await _pullTable('xp_ledger');
       pulledCount += await _pullTable('unlock_attempts');
 
@@ -231,6 +232,16 @@ class SyncEngine {
         }
         break;
 
+      case 'daily_scores':
+        final server = CloudMappers.dailyScoreFromCloud(row);
+        final local = await _db.dailyScoresDao.getById(id);
+        if (local == null) {
+          await _db.dailyScoresDao.insertScoreFromSync(server);
+        } else if (_shouldUpdateLocal(local.computedAt, row)) {
+          await _db.dailyScoresDao.updateScoreFromSync(server);
+        }
+        break;
+
       case 'xp_ledger':
         final server = CloudMappers.xpLedgerFromCloud(row);
         final local = await _db.xpLedgerDao.getById(id);
@@ -336,6 +347,9 @@ class SyncEngine {
         case 'achievements':
           final a = Achievement.fromJson(data);
           return CloudMappers.achievementToCloud(a, userId);
+        case 'daily_scores':
+          final ds = DailyScore.fromJson(data);
+          return CloudMappers.dailyScoreToCloud(ds, userId, SupabaseConfig.deviceId);
         case 'unlock_attempts':
           final u = UnlockAttempt.fromJson(data);
           return CloudMappers.unlockAttemptToCloud(u, userId);

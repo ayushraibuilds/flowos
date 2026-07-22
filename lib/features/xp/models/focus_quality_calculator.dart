@@ -44,7 +44,7 @@ class FocusQualityCalculator {
     // Completion ratio (0-40 points)
     final completion = durationMinutes > 0
         ? actualMinutes / durationMinutes
-        : 0.0;
+        : 1.0;
     score -= (1 - completion.clamp(0, 1)) * 40;
 
     // Pause penalty (-5 per pause, max -20)

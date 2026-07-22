@@ -20,6 +20,7 @@ import '../../../features/focus/models/effective_policy.dart';
 import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
+import '../../../features/xp/models/focus_quality_calculator.dart';
 import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
@@ -257,11 +258,12 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       final result = await ref.read(focusTimerNotifierProvider.notifier).completeSession();
       await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
       
-      final quality = (active.pauseCount + active.backgroundCount) == 0
-          ? 'A'
-          : (active.pauseCount + active.backgroundCount) <= 2
-          ? 'B'
-          : 'C';
+      final quality = FocusQualityCalculator.calculate(
+        durationMinutes: (active.totalSeconds / 60).round(),
+        actualMinutes: actualMin,
+        pauseCount: active.pauseCount,
+        backgroundCount: active.backgroundCount,
+      );
 
       if (mounted) {
         for (final key in result.newlyUnlockedAchievements) {

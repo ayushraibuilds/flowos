@@ -43,6 +43,7 @@ void main() {
       final sessionId = await service.startSession(
         type: SessionTypeColumn.pomodoro,
         durationMinutes: 25,
+        taskId: 'task-123',
       );
 
       final result = await service.completeSession(
@@ -70,17 +71,19 @@ void main() {
       final sessionId = await service.startSession(
         type: SessionTypeColumn.pomodoro,
         durationMinutes: 25,
+        taskId: 'task-123',
       );
 
       final result = await service.completeSession(
         sessionId: sessionId,
         elapsedSeconds: 25 * 60,
-        pauseCount: 1, // 1 pause = quality B
+        pauseCount: 3, // 3 pauses = quality B
         backgroundCount: 0,
         type: SessionTypeColumn.pomodoro,
       );
 
-      final expectedXP = (XpConstants.pomodoroComplete * 0.8).round();
+      // Unified FocusQualityCalculator B = 0.85x multiplier
+      final expectedXP = (XpConstants.pomodoroComplete * 0.85).round();
       expect(result.xpEarned, expectedXP);
 
       final session = await db.focusSessionsDao.getById(sessionId);
@@ -92,6 +95,7 @@ void main() {
       final sessionId = await service.startSession(
         type: SessionTypeColumn.custom,
         durationMinutes: 0,
+        taskId: 'task-123',
       );
 
       final result = await service.completeSession(
