@@ -2,20 +2,33 @@
 
 import os
 import jwt
-from fastapi import Depends, HTTPException, status
+from typing import Optional
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 security = HTTPBearer()
 
-def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """FastAPI dependency to verify Supabase JWT and return authenticated user ID."""
-    token = credentials.credentials
-    jwt_secret = os.getenv("SUPABASE_JWT_SECRET") or os.getenv("JWT_SECRET")
-    if not jwt_secret:
+def _get_jwt_secret() -> str:
+    secret = os.getenv("SUPABASE_JWT_SECRET") or os.getenv("JWT_SECRET")
+    if not secret:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="JWT secret not configured on the server."
         )
+    return secret
+
+
+def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request = None,
+) -> str:
+    """FastAPI dependency to verify Supabase JWT and return authenticated user ID."""
+    if request is not None and hasattr(request, "state") and hasattr(request.state, "user_id") and request.state.user_id:
+        return request.state.user_id
+
+    token = credentials.credentials
+    jwt_secret = _get_jwt_secret()
+
     try:
         # Decode and verify claims (expiration, signature, algorithms, and audience)
         payload = jwt.decode(

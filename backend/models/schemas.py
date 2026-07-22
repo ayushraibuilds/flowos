@@ -77,7 +77,7 @@ class DailyReportRequest(BaseModel):
     shutdown_completed: bool = False
 
     # Config
-    private_mode: bool = False
+    private_mode: bool = True
     prompt_version: int = 1
 
 

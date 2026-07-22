@@ -6,6 +6,7 @@ POST /ai/brain-dump      → raw text → sorted tasks
 POST /ai/weekly-review   → weekly data → insights + questions
 """
 
+import os
 import random
 import logging
 from typing import Optional
@@ -13,6 +14,21 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from ..services.auth_service import get_current_user_id
 from ..services.limiter import limiter
+
+RATE_LIMIT_DAILY_REPORT = os.getenv("RATE_LIMIT_DAILY_REPORT", "5/minute")
+RATE_LIMIT_BREAK_SUGGESTION = os.getenv("RATE_LIMIT_BREAK_SUGGESTION", "10/minute")
+RATE_LIMIT_BRAIN_DUMP = os.getenv("RATE_LIMIT_BRAIN_DUMP", "10/minute")
+RATE_LIMIT_WEEKLY_REVIEW = os.getenv("RATE_LIMIT_WEEKLY_REVIEW", "5/minute")
+
+
+def _escape_prompt_text(text: str) -> str:
+    """Escape prompt template formatting characters and block delimiters to mitigate prompt injection."""
+    if not text:
+        return ""
+    escaped = text.replace("{", "(").replace("}", ")")
+    escaped = escaped.replace("---", "- - -")
+    return escaped
+
 
 from ..models.schemas import (
     DailyReportRequest, DailyReportResponse, DailyReportInsight,
@@ -35,7 +51,7 @@ router = APIRouter(prefix="/ai", tags=["AI"])
 # ─── Daily Report ────────────────────────────────────────────────
 
 @router.post("/daily-report", response_model=DailyReportResponse)
-@limiter.limit("5/minute")
+@limiter.limit(RATE_LIMIT_DAILY_REPORT)
 async def generate_daily_report(req: DailyReportRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Generate AI-powered daily report from productivity data."""
 
@@ -46,7 +62,8 @@ async def generate_daily_report(req: DailyReportRequest, request: Request, user_
         for t in req.task_summaries:
             status = "✅" if t.completed else "❌"
             mit = " (MIT)" if t.is_mit else ""
-            task_lines.append(f"  {status} {t.title}{mit} [{t.energy_level.value}]")
+            clean_title = _escape_prompt_text(t.title)
+            task_lines.append(f"  {status} {clean_title}{mit} [{t.energy_level.value}]")
         task_details = "\nTasks:\n" + "\n".join(task_lines)
 
     # Calculate grade
@@ -98,7 +115,7 @@ async def generate_daily_report(req: DailyReportRequest, request: Request, user_
 # ─── Break Suggestion ────────────────────────────────────────────
 
 @router.post("/break-suggestion", response_model=BreakSuggestionResponse)
-@limiter.limit("10/minute")
+@limiter.limit(RATE_LIMIT_BREAK_SUGGESTION)
 async def generate_break_suggestion(req: BreakSuggestionRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Generate a break content suggestion after a focus session."""
 
@@ -144,12 +161,14 @@ async def generate_break_suggestion(req: BreakSuggestionRequest, request: Reques
 # ─── Brain Dump ───────────────────────────────────────────────────
 
 @router.post("/brain-dump", response_model=BrainDumpResponse)
-@limiter.limit("10/minute")
+@limiter.limit(RATE_LIMIT_BRAIN_DUMP)
 async def process_brain_dump(req: BrainDumpRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Process raw brain dump text into sorted, actionable tasks."""
 
+    clean_raw_text = _escape_prompt_text(req.raw_text)
+
     prompt = PromptRenderer.render_brain_dump(
-        raw_text=req.raw_text,
+        raw_text=clean_raw_text,
         current_energy=str(req.current_energy) if req.current_energy else "unknown",
     )
 
@@ -178,7 +197,7 @@ async def process_brain_dump(req: BrainDumpRequest, request: Request, user_id: s
 # ─── Weekly Review ────────────────────────────────────────────────
 
 @router.post("/weekly-review", response_model=WeeklyReviewResponse)
-@limiter.limit("5/minute")
+@limiter.limit(RATE_LIMIT_WEEKLY_REVIEW)
 async def generate_weekly_review(req: WeeklyReviewRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Generate AI-powered weekly review with insights and reflection questions."""
 

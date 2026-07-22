@@ -21,6 +21,7 @@ def get_user_or_ip_key(request: Request) -> str:
                 payload = jwt.decode(token, jwt_secret, algorithms=["HS256"], options={"verify_signature": False})
                 user_id = payload.get("sub")
                 if user_id:
+                    request.state.user_id = user_id
                     return f"user:{user_id}"
         except Exception:
             pass

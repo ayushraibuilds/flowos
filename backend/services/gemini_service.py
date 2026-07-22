@@ -88,6 +88,11 @@ def _sanitize_string(val) -> any:
     return val
 
 
+class SafetyBlockException(Exception):
+    """Raised when Gemini blocks content due to safety filters."""
+    pass
+
+
 # ─── GenAI Thread Execution ───────────────────────────────────────
 
 def _generate_sync(client: genai.Client, model: str, prompt: str, temperature: float, max_tokens: int) -> str:
@@ -101,6 +106,11 @@ def _generate_sync(client: genai.Client, model: str, prompt: str, temperature: f
             response_mime_type="application/json",
         ),
     )
+    if response and hasattr(response, 'prompt_feedback') and getattr(response.prompt_feedback, 'block_reason', None):
+        block_reason = getattr(response.prompt_feedback, 'block_reason')
+        logger.warning(f"Gemini prompt safety block: {block_reason}")
+        raise SafetyBlockException(f"Content blocked: {block_reason}")
+
     if not response or not response.text:
         raise ValueError("Empty response received from model provider")
     return response.text
@@ -147,6 +157,10 @@ async def generate_json(
             
             # Recursively sanitize model output to block prompt injections from executing links/HTML
             return _sanitize_string(result)
+
+        except SafetyBlockException as e:
+            logger.warning(f"Gemini safety block encountered: {e}. Skipping retries.")
+            return {}
 
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error (attempt {attempt}/{max_retries}): {e}")

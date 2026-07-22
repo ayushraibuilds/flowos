@@ -39,6 +39,16 @@ app = FastAPI(
     description="AI proxy for FlowOS productivity app. All LLM calls are server-side.",
 )
 
+import time
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+    logger.info(f"{request.method} {request.url.path} {response.status_code} {duration:.3f}s")
+    return response
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
