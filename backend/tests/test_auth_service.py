@@ -1,9 +1,17 @@
 """Unit tests for backend/services/auth_service.py."""
 
 import os
+import sys
 import time
 import unittest
+from pathlib import Path
 import jwt
+
+# Ensure project root is in sys.path
+root_dir = Path(__file__).resolve().parent.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
