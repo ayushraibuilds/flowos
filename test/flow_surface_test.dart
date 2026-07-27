@@ -7,18 +7,16 @@ void main() {
     testWidgets('renders child content correctly', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: FlowSurface(
-              child: Text('Hello FlowOS'),
-            ),
-          ),
+          home: Scaffold(body: FlowSurface(child: Text('Hello FlowOS'))),
         ),
       );
 
       expect(find.text('Hello FlowOS'), findsOneWidget);
     });
 
-    testWidgets('applies standard variant decoration properties', (tester) async {
+    testWidgets('applies standard variant decoration properties', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

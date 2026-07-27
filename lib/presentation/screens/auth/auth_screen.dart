@@ -173,7 +173,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
                     child: Text(
                       'or',
                       style: AppTypography.caption.copyWith(
@@ -210,7 +212,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         filled: true,
                         fillColor: AppColors.background2,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusButton,
+                          ),
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: const EdgeInsets.all(AppSpacing.lg),
@@ -236,7 +240,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         filled: true,
                         fillColor: AppColors.background2,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusButton,
+                          ),
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: const EdgeInsets.all(AppSpacing.lg),
@@ -289,7 +295,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _isLogin ? "Don't have an account? " : 'Already have an account? ',
+                    _isLogin
+                        ? "Don't have an account? "
+                        : 'Already have an account? ',
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textTertiary,
                     ),
@@ -320,7 +328,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       return;
                     }
                     final authService = ref.read(authServiceProvider);
-                    await authService.resetPassword(_emailController.text.trim());
+                    await authService.resetPassword(
+                      _emailController.text.trim(),
+                    );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -375,7 +385,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
-          side: BorderSide(color: AppColors.textTertiary.withValues(alpha: 0.3)),
+          side: BorderSide(
+            color: AppColors.textTertiary.withValues(alpha: 0.3),
+          ),
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         ),
       ),

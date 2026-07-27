@@ -36,7 +36,8 @@ class AiException implements Exception {
   });
 
   bool get isLocalOrLoggedOut => type == AiErrorType.unauthenticated;
-  bool get isNetworkIssue => type == AiErrorType.offline || type == AiErrorType.timeout;
+  bool get isNetworkIssue =>
+      type == AiErrorType.offline || type == AiErrorType.timeout;
 
   @override
   String toString() => 'AiException($type, status: $statusCode): $message';

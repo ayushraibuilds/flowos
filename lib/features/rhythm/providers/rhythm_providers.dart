@@ -4,7 +4,9 @@ import '../../../data/local/database/app_database.dart';
 import '../models/rhythm_recommendation.dart';
 import '../services/rhythm_engine.dart';
 
-final rhythmRecommendationProvider = FutureProvider<RhythmRecommendation?>((ref) async {
+final rhythmRecommendationProvider = FutureProvider<RhythmRecommendation?>((
+  ref,
+) async {
   final db = ref.watch(databaseProvider);
   final end = DateTime.now();
   final start = end.subtract(const Duration(days: 28));
@@ -18,14 +20,17 @@ final rhythmRecommendationProvider = FutureProvider<RhythmRecommendation?>((ref)
   final dismissedId = prefs.getString('flowos_rhythm_dismissed_id');
   final dismissedUntil = prefs.getInt('flowos_rhythm_dismissed_until') ?? 0;
 
-  if (rec.id == dismissedId && DateTime.now().millisecondsSinceEpoch < dismissedUntil) {
+  if (rec.id == dismissedId &&
+      DateTime.now().millisecondsSinceEpoch < dismissedUntil) {
     return null;
   }
 
   return rec;
 });
 
-final rhythmRecommendationControllerProvider = Provider((ref) => RhythmRecommendationController(ref));
+final rhythmRecommendationControllerProvider = Provider(
+  (ref) => RhythmRecommendationController(ref),
+);
 
 class RhythmRecommendationController {
   final Ref _ref;
@@ -34,15 +39,19 @@ class RhythmRecommendationController {
   Future<void> dismissRecommendation(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('flowos_rhythm_dismissed_id', id);
-    final until = DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
+    final until = DateTime.now()
+        .add(const Duration(days: 7))
+        .millisecondsSinceEpoch;
     await prefs.setInt('flowos_rhythm_dismissed_until', until);
-    
+
     // Invalidate provider to trigger UI refresh
     _ref.invalidate(rhythmRecommendationProvider);
   }
 }
 
-final suggestedFocusWindowProvider = FutureProvider<({int start, int end})?>((ref) async {
+final suggestedFocusWindowProvider = FutureProvider<({int start, int end})?>((
+  ref,
+) async {
   final prefs = await SharedPreferences.getInstance();
   final start = prefs.getInt('flowos_suggested_focus_start');
   final end = prefs.getInt('flowos_suggested_focus_end');

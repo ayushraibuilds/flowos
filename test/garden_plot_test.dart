@@ -28,37 +28,56 @@ void main() {
     isProtected: false,
   );
 
-  testWidgets('a grown plant opens its focus record instead of starting focus', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MediaQuery(
-          data: const MediaQueryData(disableAnimations: true),
-          child: Scaffold(body: GardenPlot(day: gardenDay)),
-        ),
-      ),
-    );
-
-    await tester.tap(find.bySemanticsLabel(RegExp('Focus flower, grown from a 25-minute focus session')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('25 minutes of focus grew this flower.'), findsOneWidget);
-    expect(find.text('Task: Write the first draft'), findsOneWidget);
-    expect(find.text('Plant another'), findsOneWidget);
-  });
-
-  testWidgets('all distraction category illustrations paint without emoji assets', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Wrap(
-            children: DistractionAppIconType.values
-                .map((type) => DistractionAppIcon(type: type, color: Colors.white))
-                .toList(),
+  testWidgets(
+    'a grown plant opens its focus record instead of starting focus',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: Scaffold(body: GardenPlot(day: gardenDay)),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.byType(DistractionAppIcon), findsNWidgets(DistractionAppIconType.values.length));
-  });
+      await tester.tap(
+        find.bySemanticsLabel(
+          RegExp('Focus flower, grown from a 25-minute focus session'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('25 minutes of focus grew this flower.'),
+        findsOneWidget,
+      );
+      expect(find.text('Task: Write the first draft'), findsOneWidget);
+      expect(find.text('Plant another'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'all distraction category illustrations paint without emoji assets',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Wrap(
+              children: DistractionAppIconType.values
+                  .map(
+                    (type) =>
+                        DistractionAppIcon(type: type, color: Colors.white),
+                  )
+                  .toList(),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byType(DistractionAppIcon),
+        findsNWidgets(DistractionAppIconType.values.length),
+      );
+    },
+  );
 }

@@ -65,7 +65,9 @@ void main() {
     );
   }
 
-  testWidgets('focus action is available from a growing garden', (tester) async {
+  testWidgets('focus action is available from a growing garden', (
+    tester,
+  ) async {
     var focusTapped = false;
     await tester.pumpWidget(
       scene(

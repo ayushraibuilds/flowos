@@ -3,7 +3,6 @@ import 'package:flowos/data/local/database/app_database.dart';
 import 'package:flowos/features/onboarding/models/user_profile.dart';
 import 'package:flowos/features/reports/models/weekly_action.dart';
 import 'package:flowos/features/reports/services/weekly_action_engine.dart';
-import 'package:flowos/data/local/tables/focus_sessions_table.dart';
 
 void main() {
   group('WeeklyActionEngine Tests', () {

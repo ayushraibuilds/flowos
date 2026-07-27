@@ -2,8 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest_all.dart' as tz;
 import '../../../../presentation/navigation/app_router.dart';
+
+import 'timezone_service.dart';
 
 /// FlowOS Notification Service — smart, platform-aware notifications.
 ///
@@ -48,12 +49,11 @@ class NotificationService {
   static Future<void> initialize() async {
     if (_initialized) return;
 
-    tz.initializeTimeZones();
-    try {
-      tz.setLocalLocation(tz.getLocation('UTC'));
-    } catch (_) {}
+    await TimezoneService.initializeLocalTimezone();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -61,10 +61,7 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      ),
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
       onDidReceiveNotificationResponse: (response) {
         final payload = response.payload;
         if (payload != null && payload.isNotEmpty) {
@@ -75,9 +72,10 @@ class NotificationService {
 
     // Create Android notification channels
     if (Platform.isAndroid) {
-      final androidPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.createNotificationChannel(_focusChannel);
       await androidPlugin?.createNotificationChannel(_checkinChannel);
       await androidPlugin?.createNotificationChannel(_reportChannel);
@@ -90,8 +88,10 @@ class NotificationService {
   /// Explicitly request notification permissions from the user.
   static Future<bool> requestPermissions() async {
     if (Platform.isIOS) {
-      final iosImplementation = _plugin.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
+      final iosImplementation = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
       return await iosImplementation?.requestPermissions(
             alert: true,
             badge: true,
@@ -99,9 +99,12 @@ class NotificationService {
           ) ??
           false;
     } else if (Platform.isAndroid) {
-      final androidImplementation = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      return await androidImplementation?.requestNotificationsPermission() ?? false;
+      final androidImplementation = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await androidImplementation?.requestNotificationsPermission() ??
+          false;
     }
     return false;
   }
@@ -239,7 +242,13 @@ class NotificationService {
   }) async {
     try {
       final now = tz.TZDateTime.now(tz.local);
-      var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour);
+      var scheduledDate = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+      );
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
@@ -276,7 +285,13 @@ class NotificationService {
   }) async {
     try {
       final now = tz.TZDateTime.now(tz.local);
-      var scheduledDate = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour);
+      var scheduledDate = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+      );
 
       // Find next occurrence of the target weekday
       while (scheduledDate.weekday != weekday || scheduledDate.isBefore(now)) {
@@ -324,5 +339,23 @@ class NotificationService {
 
   static Future<void> cancelStreakWarning() async {
     await _plugin.cancel(300);
+  }
+
+  /// Reschedule all recurring notifications with updated device timezone or user preferences.
+  static Future<void> rescheduleAllNotifications({
+    int morningHour = 9,
+    int afternoonHour = 13,
+    int eveningHour = 17,
+    int reportHour = 21,
+  }) async {
+    await TimezoneService.initializeLocalTimezone();
+    await scheduleEnergyCheckIns(
+      morningHour: morningHour,
+      afternoonHour: afternoonHour,
+      eveningHour: eveningHour,
+    );
+    await scheduleReportReminder(hour: reportHour);
+    await scheduleWeeklyReview();
+    await scheduleStreakWarning();
   }
 }

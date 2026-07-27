@@ -38,8 +38,11 @@ class TaskCard extends StatelessWidget {
           color: AppColors.dangerCoral.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
         ),
-        child: const Icon(Icons.delete_rounded,
-            color: AppColors.dangerCoral, size: 24),
+        child: const Icon(
+          Icons.delete_rounded,
+          color: AppColors.dangerCoral,
+          size: 24,
+        ),
       ),
       confirmDismiss: (_) async {
         HapticFeedback.mediumImpact();
@@ -67,10 +70,12 @@ class TaskCard extends StatelessWidget {
             children: [
               // Checkbox
               GestureDetector(
-                onTap: task.isCompleted ? null : () {
-                  HapticFeedback.mediumImpact();
-                  onComplete();
-                },
+                onTap: task.isCompleted
+                    ? null
+                    : () {
+                        HapticFeedback.mediumImpact();
+                        onComplete();
+                      },
                 child: Container(
                   width: 28,
                   height: 28,
@@ -87,8 +92,11 @@ class TaskCard extends StatelessWidget {
                         : Colors.transparent,
                   ),
                   child: task.isCompleted
-                      ? Icon(Icons.check_rounded,
-                          size: 16, color: AppColors.emerald)
+                      ? Icon(
+                          Icons.check_rounded,
+                          size: 16,
+                          color: AppColors.emerald,
+                        )
                       : null,
                 ),
               ),
@@ -124,10 +132,7 @@ class TaskCard extends StatelessWidget {
                           const SizedBox(width: AppSpacing.sm),
                         ],
                         // Energy badge
-                        Text(
-                          energyEmoji,
-                          style: const TextStyle(fontSize: 12),
-                        ),
+                        Text(energyEmoji, style: const TextStyle(fontSize: 12)),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -186,14 +191,14 @@ class TaskCard extends StatelessWidget {
   }
 
   Color _energyColor(EnergyLevelColumn level) => switch (level) {
-        EnergyLevelColumn.deep => AppColors.energyDeep,
-        EnergyLevelColumn.medium => AppColors.energyMedium,
-        EnergyLevelColumn.light => AppColors.energyLight,
-      };
+    EnergyLevelColumn.deep => AppColors.energyDeep,
+    EnergyLevelColumn.medium => AppColors.energyMedium,
+    EnergyLevelColumn.light => AppColors.energyLight,
+  };
 
   String _energyEmoji(EnergyLevelColumn level) => switch (level) {
-        EnergyLevelColumn.deep => '🔥',
-        EnergyLevelColumn.medium => '⚡',
-        EnergyLevelColumn.light => '🌿',
-      };
+    EnergyLevelColumn.deep => '🔥',
+    EnergyLevelColumn.medium => '⚡',
+    EnergyLevelColumn.light => '🌿',
+  };
 }

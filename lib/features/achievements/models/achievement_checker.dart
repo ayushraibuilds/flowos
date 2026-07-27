@@ -4,7 +4,6 @@ import 'package:uuid/uuid.dart';
 import '../../../data/local/dao/achievements_dao.dart';
 import '../../../data/local/dao/xp_ledger_dao.dart';
 import '../../../data/local/dao/focus_sessions_dao.dart';
-import '../../../data/local/dao/scroll_logs_dao.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
 import '../../../core/constants/xp_constants.dart';
@@ -14,19 +13,19 @@ const _uuid = Uuid();
 
 /// All achievable badges in FlowOS.
 enum AchievementKey {
-  earlyBird,       // 🌅 MIT before 8 AM × 7 days
-  flowMaster,      // 🔥 5 consecutive 90-min sessions
-  digitalDetox,    // 📵 0 scroll for full day
-  tripleThreat,    // 🎯 All 3 MITs × 30 days
-  reader,          // 📚 25 break content reads
-  breathMaster,    // 🧘 14 breathing exercises
-  thousandXPDay,   // ⚡ 1000+ XP in single day
-  flowGod,         // 🌌 Level 51
+  earlyBird, // 🌅 MIT before 8 AM × 7 days
+  flowMaster, // 🔥 5 consecutive 90-min sessions
+  digitalDetox, // 📵 0 scroll for full day
+  tripleThreat, // 🎯 All 3 MITs × 30 days
+  reader, // 📚 25 break content reads
+  breathMaster, // 🧘 14 breathing exercises
+  thousandXPDay, // ⚡ 1000+ XP in single day
+  flowGod, // 🌌 Level 51
   consistencyKing, // 👑 30-day streak
-  nightOwl,        // 🦉 Deep Work after 10 PM
-  speedDemon,      // 💨 5 tasks < 1 hour
-  bounceBack,      // 🔄 10 recovery actions
-  ritualMaster,    // 🧘 20 focus rituals
+  nightOwl, // 🦉 Deep Work after 10 PM
+  speedDemon, // 💨 5 tasks < 1 hour
+  bounceBack, // 🔄 10 recovery actions
+  ritualMaster, // 🧘 20 focus rituals
 }
 
 /// Achievement metadata
@@ -46,19 +45,84 @@ class AchievementInfo {
 
 /// All achievement definitions
 const allAchievements = [
-  AchievementInfo(key: AchievementKey.earlyBird, emoji: '🌅', name: 'Early Bird', description: 'Complete a MIT before 8 AM for 7 days'),
-  AchievementInfo(key: AchievementKey.flowMaster, emoji: '🔥', name: 'Flow Master', description: 'Complete 5 consecutive 90-min sessions'),
-  AchievementInfo(key: AchievementKey.digitalDetox, emoji: '📵', name: 'Digital Detox', description: '0 scroll minutes for a full day'),
-  AchievementInfo(key: AchievementKey.tripleThreat, emoji: '🎯', name: 'Triple Threat', description: 'All 3 MITs for 30 consecutive days'),
-  AchievementInfo(key: AchievementKey.reader, emoji: '📚', name: 'Reader', description: 'Read 25 break content items'),
-  AchievementInfo(key: AchievementKey.breathMaster, emoji: '🧘', name: 'Breath Master', description: 'Complete 14 breathing exercises'),
-  AchievementInfo(key: AchievementKey.thousandXPDay, emoji: '⚡', name: '1000 XP Day', description: 'Earn 1000+ XP in a single day'),
-  AchievementInfo(key: AchievementKey.flowGod, emoji: '🌌', name: 'Flow God', description: 'Reach Level 51'),
-  AchievementInfo(key: AchievementKey.consistencyKing, emoji: '👑', name: 'Consistency King', description: 'Maintain a 30-day streak'),
-  AchievementInfo(key: AchievementKey.nightOwl, emoji: '🦉', name: 'Night Owl', description: 'Deep Work session after 10 PM'),
-  AchievementInfo(key: AchievementKey.speedDemon, emoji: '💨', name: 'Speed Demon', description: 'Complete 5 tasks in under 1 hour'),
-  AchievementInfo(key: AchievementKey.bounceBack, emoji: '🔄', name: 'Bounce Back', description: 'Use recovery action 10 times'),
-  AchievementInfo(key: AchievementKey.ritualMaster, emoji: '🧘', name: 'Ritual Master', description: 'Complete focus ritual 20 times'),
+  AchievementInfo(
+    key: AchievementKey.earlyBird,
+    emoji: '🌅',
+    name: 'Early Bird',
+    description: 'Complete a MIT before 8 AM for 7 days',
+  ),
+  AchievementInfo(
+    key: AchievementKey.flowMaster,
+    emoji: '🔥',
+    name: 'Flow Master',
+    description: 'Complete 5 consecutive 90-min sessions',
+  ),
+  AchievementInfo(
+    key: AchievementKey.digitalDetox,
+    emoji: '📵',
+    name: 'Digital Detox',
+    description: '0 scroll minutes for a full day',
+  ),
+  AchievementInfo(
+    key: AchievementKey.tripleThreat,
+    emoji: '🎯',
+    name: 'Triple Threat',
+    description: 'All 3 MITs for 30 consecutive days',
+  ),
+  AchievementInfo(
+    key: AchievementKey.reader,
+    emoji: '📚',
+    name: 'Reader',
+    description: 'Read 25 break content items',
+  ),
+  AchievementInfo(
+    key: AchievementKey.breathMaster,
+    emoji: '🧘',
+    name: 'Breath Master',
+    description: 'Complete 14 breathing exercises',
+  ),
+  AchievementInfo(
+    key: AchievementKey.thousandXPDay,
+    emoji: '⚡',
+    name: '1000 XP Day',
+    description: 'Earn 1000+ XP in a single day',
+  ),
+  AchievementInfo(
+    key: AchievementKey.flowGod,
+    emoji: '🌌',
+    name: 'Flow God',
+    description: 'Reach Level 51',
+  ),
+  AchievementInfo(
+    key: AchievementKey.consistencyKing,
+    emoji: '👑',
+    name: 'Consistency King',
+    description: 'Maintain a 30-day streak',
+  ),
+  AchievementInfo(
+    key: AchievementKey.nightOwl,
+    emoji: '🦉',
+    name: 'Night Owl',
+    description: 'Deep Work session after 10 PM',
+  ),
+  AchievementInfo(
+    key: AchievementKey.speedDemon,
+    emoji: '💨',
+    name: 'Speed Demon',
+    description: 'Complete 5 tasks in under 1 hour',
+  ),
+  AchievementInfo(
+    key: AchievementKey.bounceBack,
+    emoji: '🔄',
+    name: 'Bounce Back',
+    description: 'Use recovery action 10 times',
+  ),
+  AchievementInfo(
+    key: AchievementKey.ritualMaster,
+    emoji: '🧘',
+    name: 'Ritual Master',
+    description: 'Complete focus ritual 20 times',
+  ),
 ];
 
 /// Achievement Checker — runs after every XP-granting action.
@@ -75,9 +139,9 @@ class AchievementChecker {
     required XpLedgerDao xpLedgerDao,
     required this.sessionsDao,
     required AppDatabase db,
-  })  : _achievementsDao = achievementsDao,
-        _xpLedgerDao = xpLedgerDao,
-        _db = db;
+  }) : _achievementsDao = achievementsDao,
+       _xpLedgerDao = xpLedgerDao,
+       _db = db;
 
   /// Check all achievements and unlock any that are newly earned.
   /// Returns list of newly unlocked achievement keys.
@@ -108,21 +172,29 @@ class AchievementChecker {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final metric = await _db.deviceDayMetricsDao.getForDay(today, 'android');
-      final hasNative = metric != null && metric.coverageState != 'notConnected';
+      final hasNative =
+          metric != null && metric.coverageState != 'notConnected';
 
       int scrollToday = 0;
       if (hasNative) {
-        final nativeList = await _db.deviceUsageRecordsDao.getForRange(today, today);
+        final nativeList = await _db.deviceUsageRecordsDao.getForRange(
+          today,
+          today,
+        );
         scrollToday = nativeList
-            .where((r) => r.isDistracting == true && r.source == 'android_usage')
+            .where(
+              (r) => r.isDistracting == true && r.source == 'android_usage',
+            )
             .fold<int>(0, (sum, r) => sum + r.minutes);
       } else {
         final start = DateTime(now.year, now.month, now.day);
-        final logs = await (_db.select(_db.scrollLogs)
-              ..where((l) =>
-                  l.timestamp.isBiggerOrEqualValue(start) &
-                  l.appName.like('% [Auto]%').not()))
-            .get();
+        final logs =
+            await (_db.select(_db.scrollLogs)..where(
+                  (l) =>
+                      l.timestamp.isBiggerOrEqualValue(start) &
+                      l.appName.like('% [Auto]%').not(),
+                ))
+                .get();
         scrollToday = logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
       }
       return scrollToday == 0;
@@ -168,11 +240,13 @@ class AchievementChecker {
     final earned = await condition();
     if (!earned) return;
 
-    await _achievementsDao.unlock(AchievementsCompanion(
-      id: Value(_uuid.v4()),
-      achievementKey: Value(key.name),
-      unlockedAt: Value(DateTime.now()),
-    ));
+    await _achievementsDao.unlock(
+      AchievementsCompanion(
+        id: Value(_uuid.v4()),
+        achievementKey: Value(key.name),
+        unlockedAt: Value(DateTime.now()),
+      ),
+    );
 
     newlyUnlocked.add(key);
   }

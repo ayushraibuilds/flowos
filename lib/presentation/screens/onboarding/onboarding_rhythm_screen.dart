@@ -7,10 +7,7 @@ import '../../../core/theme/app_typography.dart';
 class OnboardingRhythmScreen extends StatefulWidget {
   final void Function(List<String> goals, int focusMinutes) onContinue;
 
-  const OnboardingRhythmScreen({
-    super.key,
-    required this.onContinue,
-  });
+  const OnboardingRhythmScreen({super.key, required this.onContinue});
 
   @override
   State<OnboardingRhythmScreen> createState() => _OnboardingRhythmScreenState();
@@ -52,19 +49,25 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       'Choose how you want to invest your attention.',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xxxl),
 
                     // Section 1: Goals Selection
                     Text(
                       'What are your main goals?',
-                      style: AppTypography.h3.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTypography.h3.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Select at least one priority.',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Wrap(
@@ -82,7 +85,9 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                               }
                             });
                           },
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusPill,
+                          ),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
@@ -93,7 +98,9 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                               color: isSelected
                                   ? AppColors.emerald.withValues(alpha: 0.1)
                                   : AppColors.background2,
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusPill,
+                              ),
                               border: Border.all(
                                 color: isSelected
                                     ? AppColors.emerald
@@ -103,8 +110,12 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                             child: Text(
                               goal,
                               style: AppTypography.body.copyWith(
-                                color: isSelected ? AppColors.emerald : AppColors.textSecondary,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.emerald
+                                    : AppColors.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -117,12 +128,16 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                     // Section 2: Preferred Focus Duration
                     Text(
                       'Default focus duration',
-                      style: AppTypography.h3.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTypography.h3.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       'We will start focus timers with this length.',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Row(
@@ -130,22 +145,30 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                         final isSelected = _preferredFocusMinutes == duration;
                         return Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
                             child: InkWell(
                               onTap: () {
                                 setState(() {
                                   _preferredFocusMinutes = duration;
                                 });
                               },
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusCard,
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.emerald.withValues(alpha: 0.1)
                                       : AppColors.background2,
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusCard,
+                                  ),
                                   border: Border.all(
                                     color: isSelected
                                         ? AppColors.emerald
@@ -156,8 +179,12 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                                   child: Text(
                                     '${duration}m',
                                     style: AppTypography.body.copyWith(
-                                      color: isSelected ? AppColors.emerald : AppColors.textSecondary,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                      color: isSelected
+                                          ? AppColors.emerald
+                                          : AppColors.textSecondary,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
                                     ),
                                   ),
                                 ),
@@ -182,7 +209,10 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                   onPressed: _isNextEnabled
                       ? () {
                           HapticFeedback.mediumImpact();
-                          widget.onContinue(_selectedGoals, _preferredFocusMinutes);
+                          widget.onContinue(
+                            _selectedGoals,
+                            _preferredFocusMinutes,
+                          );
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -191,13 +221,12 @@ class _OnboardingRhythmScreenState extends State<OnboardingRhythmScreen> {
                     disabledBackgroundColor: AppColors.background2,
                     disabledForegroundColor: AppColors.textTertiary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Continue',
-                    style: AppTypography.button,
-                  ),
+                  child: Text('Continue', style: AppTypography.button),
                 ),
               ),
             ),

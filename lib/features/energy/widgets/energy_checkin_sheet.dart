@@ -35,7 +35,9 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
   @override
   void initState() {
     super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 2));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 2),
+    );
     _selectedBucket = bucketFor(DateTime.now());
   }
 
@@ -67,7 +69,9 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
           _confettiController.play();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('🎉 3/3 daily check-ins done! +20 XP awarded!'),
+              content: const Text(
+                '🎉 3/3 daily check-ins done! +20 XP awarded!',
+              ),
               backgroundColor: AppColors.emerald,
             ),
           );
@@ -153,7 +157,9 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 "Tune in with yourself to match hard tasks to high energy.",
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -164,12 +170,16 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
                 children: TimeOfDayColumn.values.map((bucket) {
                   final isSelected = _selectedBucket == bucket;
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
                     child: ChoiceChip(
                       label: Text(
                         bucket.name[0].toUpperCase() + bucket.name.substring(1),
                         style: AppTypography.monoSmall.copyWith(
-                          color: isSelected ? AppColors.textInverse : AppColors.textSecondary,
+                          color: isSelected
+                              ? AppColors.textInverse
+                              : AppColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -203,12 +213,16 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.md,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? level.color.withAlpha(38)
                               : AppColors.background2,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusCard,
+                          ),
                           border: Border.all(
                             color: isSelected
                                 ? level.color
@@ -257,7 +271,9 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
                   foregroundColor: AppColors.textInverse,
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                    borderRadius: BorderRadius.circular(
+                      AppSpacing.radiusButton,
+                    ),
                   ),
                   elevation: 0,
                 ),
@@ -272,7 +288,9 @@ class _EnergyCheckInSheetState extends ConsumerState<EnergyCheckInSheet> {
                       )
                     : Text(
                         'Log Energy',
-                        style: AppTypography.h3.copyWith(color: AppColors.textInverse),
+                        style: AppTypography.h3.copyWith(
+                          color: AppColors.textInverse,
+                        ),
                       ),
               ),
               const SizedBox(height: AppSpacing.md),

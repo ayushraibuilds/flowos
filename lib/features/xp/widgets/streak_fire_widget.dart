@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_colors.dart';
-
 /// Code-native animated "fire" particle effect for streak milestones.
 ///
 /// Uses CustomPainter + AnimationController to render rising flame-like
@@ -38,10 +36,8 @@ class _StreakFireWidgetState extends State<StreakFireWidget>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    )..addStatusListener((status) {
+    _controller = AnimationController(vsync: this, duration: widget.duration)
+      ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           widget.onComplete?.call();
         }
@@ -125,7 +121,8 @@ class _FirePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final p in particles) {
       // Skip particles whose delay hasn't elapsed yet
-      final localProgress = (progress - p.delay).clamp(0.0, 1.0) /
+      final localProgress =
+          (progress - p.delay).clamp(0.0, 1.0) /
           (1.0 - p.delay).clamp(0.01, 1.0);
       if (localProgress <= 0) continue;
 

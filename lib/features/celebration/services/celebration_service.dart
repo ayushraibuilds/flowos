@@ -1,4 +1,3 @@
-import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -67,10 +66,7 @@ class CelebrationService {
           ),
           child: Row(
             children: [
-              Text(
-                emoji,
-                style: const TextStyle(fontSize: 24),
-              ),
+              Text(emoji, style: const TextStyle(fontSize: 24)),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -113,10 +109,8 @@ class CelebrationService {
     playSuccessPattern();
 
     final overlay = OverlayEntry(
-      builder: (ctx) => _StreakOverlay(
-        streakDays: streakDays,
-        onDismiss: () {},
-      ),
+      builder: (ctx) =>
+          _StreakOverlay(streakDays: streakDays, onDismiss: () {}),
     );
 
     Overlay.of(context).insert(overlay);
@@ -129,10 +123,7 @@ class CelebrationService {
 
   /// Show a quick XP float indicator above a widget position.
   /// Useful for inline "+25 XP" fly-up animations.
-  static void showXpFloat(
-    BuildContext context, {
-    required int xp,
-  }) {
+  static void showXpFloat(BuildContext context, {required int xp}) {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       SnackBar(
@@ -172,10 +163,7 @@ class _StreakOverlay extends StatefulWidget {
   final int streakDays;
   final VoidCallback onDismiss;
 
-  const _StreakOverlay({
-    required this.streakDays,
-    required this.onDismiss,
-  });
+  const _StreakOverlay({required this.streakDays, required this.onDismiss});
 
   @override
   State<_StreakOverlay> createState() => _StreakOverlayState();
@@ -220,10 +208,7 @@ class _StreakOverlayState extends State<_StreakOverlay>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    '🔥',
-                    style: TextStyle(fontSize: 48),
-                  ),
+                  const Text('🔥', style: TextStyle(fontSize: 48)),
                   const SizedBox(height: AppSpacing.md),
                   Text(
                     '${widget.streakDays}-Day Streak!',

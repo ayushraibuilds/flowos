@@ -64,14 +64,34 @@ class _MorningIntentionScreenState
     final greeting = now.hour < 12
         ? 'Good morning'
         : now.hour < 17
-            ? 'Good afternoon'
-            : 'Good evening';
+        ? 'Good afternoon'
+        : 'Good evening';
 
-    final weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
-        'Friday', 'Saturday', 'Sunday'];
-    final months = ['January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'];
-    final dateStr = '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+    final weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final dateStr =
+        '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
 
     return Scaffold(
       backgroundColor: AppColors.background0,
@@ -85,9 +105,7 @@ class _MorningIntentionScreenState
               // ─── Greeting ─────────────────────────────────────
               Text(
                 '$greeting.',
-                style: AppTypography.h1.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h1.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
@@ -120,9 +138,7 @@ class _MorningIntentionScreenState
               // ─── Energy Check-in ──────────────────────────────
               Text(
                 "How's your energy right now?",
-                style: AppTypography.h3.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.lg),
               Row(
@@ -182,7 +198,9 @@ class _MorningIntentionScreenState
                     padding: const EdgeInsets.all(AppSpacing.xxl),
                     decoration: BoxDecoration(
                       color: AppColors.background2,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                       border: Border.all(
                         color: AppColors.emerald.withValues(alpha: 0.2),
                         width: 1,
@@ -202,8 +220,7 @@ class _MorningIntentionScreenState
                     ),
                   ),
                 ),
-              if (_showAddTaskForm)
-                _buildInlineAddTaskForm(),
+              if (_showAddTaskForm) _buildInlineAddTaskForm(),
               if (_incompleteTasks.isNotEmpty)
                 ..._incompleteTasks.map((task) {
                   final isSelected = _selectedMitIds.contains(task.id);
@@ -231,7 +248,9 @@ class _MorningIntentionScreenState
                         color: isSelected
                             ? AppColors.emerald.withValues(alpha: 0.1)
                             : AppColors.background2,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusButton,
+                        ),
                         border: Border.all(
                           color: isSelected
                               ? AppColors.emerald
@@ -257,11 +276,18 @@ class _MorningIntentionScreenState
                               ),
                             ),
                             child: isSelected
-                                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.white,
+                                  )
                                 : null,
                           ),
                           const SizedBox(width: AppSpacing.md),
-                          Text(energyEmoji, style: const TextStyle(fontSize: 14)),
+                          Text(
+                            energyEmoji,
+                            style: const TextStyle(fontSize: 14),
+                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
@@ -292,10 +318,14 @@ class _MorningIntentionScreenState
                     onTap: () => setState(() => _showAddTaskForm = true),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.md,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.background2,
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusButton,
+                        ),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.06),
                           width: 0.5,
@@ -346,8 +376,11 @@ class _MorningIntentionScreenState
                             setState(() => _scrollBudget -= 5);
                           }
                         },
-                        icon: const Icon(Icons.remove_circle_outline,
-                            size: 20, color: AppColors.textSecondary),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
                         constraints: const BoxConstraints(),
                         padding: const EdgeInsets.all(4),
                       ),
@@ -361,8 +394,11 @@ class _MorningIntentionScreenState
                         onPressed: () {
                           setState(() => _scrollBudget += 5);
                         },
-                        icon: const Icon(Icons.add_circle_outline,
-                            size: 20, color: AppColors.textSecondary),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
                         constraints: const BoxConstraints(),
                         padding: const EdgeInsets.all(4),
                       ),
@@ -377,8 +413,14 @@ class _MorningIntentionScreenState
                 child: ElevatedButton(
                   onPressed: _saving ? null : _saveAndStart,
                   child: _saving
-                      ? const SizedBox(width: 20, height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text('Start Your Day'),
                 ),
               ),
@@ -399,16 +441,18 @@ class _MorningIntentionScreenState
     final planId = _uuid.v4();
 
     // P0-1 fix: Upsert today's plan (safe to call multiple times per day)
-    final savedPlanId = await db.dailyPlansDao.upsertToday(DailyPlansCompanion(
-      id: Value(planId),
-      date: Value(DateTime.now()),
-      mit1Id: Value(mitIds.isNotEmpty ? mitIds[0] : null),
-      mit2Id: Value(mitIds.length > 1 ? mitIds[1] : null),
-      mit3Id: Value(mitIds.length > 2 ? mitIds[2] : null),
-      morningEnergy: Value(_energy),
-      scrollBudgetMinutes: Value(_scrollBudget),
-      intentionCompleted: const Value(true),
-    ));
+    final savedPlanId = await db.dailyPlansDao.upsertToday(
+      DailyPlansCompanion(
+        id: Value(planId),
+        date: Value(DateTime.now()),
+        mit1Id: Value(mitIds.isNotEmpty ? mitIds[0] : null),
+        mit2Id: Value(mitIds.length > 1 ? mitIds[1] : null),
+        mit3Id: Value(mitIds.length > 2 ? mitIds[2] : null),
+        morningEnergy: Value(_energy),
+        scrollBudgetMinutes: Value(_scrollBudget),
+        intentionCompleted: const Value(true),
+      ),
+    );
 
     // P0-2 fix: Clear all existing MITs before setting today's new ones.
     // This prevents stale MITs from previous days accumulating.
@@ -420,13 +464,15 @@ class _MorningIntentionScreenState
     }
 
     // Award intention XP
-    await db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.focusRitualComplete),
-      pointsDelta: const Value(XpConstants.focusRitualComplete),
-      sourceEntityId: Value(savedPlanId),
-      explanation: const Value('Completed morning intention ritual'),
-    ));
+    await db.xpLedgerDao.appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.focusRitualComplete),
+        pointsDelta: const Value(XpConstants.focusRitualComplete),
+        sourceEntityId: Value(savedPlanId),
+        explanation: const Value('Completed morning intention ritual'),
+      ),
+    );
 
     if (mounted) context.go('/home');
   }
@@ -466,7 +512,11 @@ class _MorningIntentionScreenState
               ),
               GestureDetector(
                 onTap: () => setState(() => _showAddTaskForm = false),
-                child: Icon(Icons.close, size: 18, color: AppColors.textTertiary),
+                child: Icon(
+                  Icons.close,
+                  size: 18,
+                  color: AppColors.textTertiary,
+                ),
               ),
             ],
           ),
@@ -486,12 +536,17 @@ class _MorningIntentionScreenState
                   if (_inlineMinutes > 5) setState(() => _inlineMinutes -= 5);
                 },
                 child: Container(
-                  width: 24, height: 24,
+                  width: 24,
+                  height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.background0,
                   ),
-                  child: const Icon(Icons.remove, size: 14, color: Colors.white54),
+                  child: const Icon(
+                    Icons.remove,
+                    size: 14,
+                    color: Colors.white54,
+                  ),
                 ),
               ),
               Padding(
@@ -506,7 +561,8 @@ class _MorningIntentionScreenState
               GestureDetector(
                 onTap: () => setState(() => _inlineMinutes += 5),
                 child: Container(
-                  width: 24, height: 24,
+                  width: 24,
+                  height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.background0,
@@ -574,14 +630,16 @@ class _MorningIntentionScreenState
     HapticFeedback.mediumImpact();
     final db = ref.read(databaseProvider);
     final id = _uuid.v4();
-    await db.tasksDao.insertTask(TasksCompanion(
-      id: Value(id),
-      title: Value(title),
-      energyLevel: Value(EnergyLevelColumn.values[_inlineEnergy]),
-      estimatedMinutes: Value(_inlineMinutes),
-      isMIT: const Value(false),
-      category: const Value(TaskCategoryColumn.personal),
-    ));
+    await db.tasksDao.insertTask(
+      TasksCompanion(
+        id: Value(id),
+        title: Value(title),
+        energyLevel: Value(EnergyLevelColumn.values[_inlineEnergy]),
+        estimatedMinutes: Value(_inlineMinutes),
+        isMIT: const Value(false),
+        category: const Value(TaskCategoryColumn.personal),
+      ),
+    );
     _inlineTitleController.clear();
     setState(() {
       _inlineEnergy = 1;

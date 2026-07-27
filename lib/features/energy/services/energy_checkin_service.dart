@@ -10,15 +10,17 @@ class EnergyCheckInService {
   EnergyCheckInService({
     required AppDatabase db,
     required XpCalculator xpCalculator,
-  })  : _db = db,
-        _xpCalculator = xpCalculator;
+  }) : _db = db,
+       _xpCalculator = xpCalculator;
 
   /// Log energy and check for 3x bonus / achievements.
   /// Returns true if a 3x bonus was awarded.
   Future<bool> logEnergy(TimeOfDayColumn bucket, int value) async {
     // Count today's check-ins before inserting
     final beforeCount = await _db.energyCheckInsDao.countToday();
-    final hasExistingInBucket = await _db.energyCheckInsDao.getForBucket(bucket, DateTime.now()) != null;
+    final hasExistingInBucket =
+        await _db.energyCheckInsDao.getForBucket(bucket, DateTime.now()) !=
+        null;
 
     // Upsert
     await _db.energyCheckInsDao.upsertCheckIn(bucket, value);

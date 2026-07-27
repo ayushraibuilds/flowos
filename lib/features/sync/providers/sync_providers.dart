@@ -61,7 +61,10 @@ class SyncController {
   }
 }
 
-Future<void> _triggerSync(SyncEngine engine, StateController<SyncStatus> status) async {
+Future<void> _triggerSync(
+  SyncEngine engine,
+  StateController<SyncStatus> status,
+) async {
   status.state = SyncStatus.syncing;
   final result = await engine.fullSync();
   status.state = result.isPaused

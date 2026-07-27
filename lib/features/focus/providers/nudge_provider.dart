@@ -16,7 +16,8 @@ class CurrentNudgeNotifier extends StateNotifier<PendingNudge?> {
       if (nudge != null) {
         state = nudge;
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       _isChecking = false;
     }
   }
@@ -28,6 +29,6 @@ class CurrentNudgeNotifier extends StateNotifier<PendingNudge?> {
 
 final currentNudgeProvider =
     StateNotifierProvider<CurrentNudgeNotifier, PendingNudge?>((ref) {
-  final service = ref.watch(protectionPolicyServiceProvider);
-  return CurrentNudgeNotifier(service);
-});
+      final service = ref.watch(protectionPolicyServiceProvider);
+      return CurrentNudgeNotifier(service);
+    });

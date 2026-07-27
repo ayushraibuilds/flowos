@@ -85,9 +85,13 @@ class ActionCommitCard extends ConsumerWidget {
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
                   child: const Text('Different Change'),
@@ -107,7 +111,9 @@ class ActionCommitCard extends ConsumerWidget {
                     elevation: 0,
                     side: BorderSide(color: accentColor.withValues(alpha: 0.3)),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
                   child: const Text('Accept Change'),
@@ -125,7 +131,9 @@ class ActionCommitCard extends ConsumerWidget {
                 },
                 child: Text(
                   'Skip for now',
-                  style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ),
             ),
@@ -148,23 +156,39 @@ class ActionCommitCard extends ConsumerWidget {
             targetDate = targetDate.add(const Duration(days: 1));
           }
         }
-        final dateOnly = DateTime(targetDate.year, targetDate.month, targetDate.day);
-        
-        final plan = await db.dailyPlansDao.getByDateRange(dateOnly, dateOnly.add(const Duration(days: 1)));
+        final dateOnly = DateTime(
+          targetDate.year,
+          targetDate.month,
+          targetDate.day,
+        );
+
+        final plan = await db.dailyPlansDao.getByDateRange(
+          dateOnly,
+          dateOnly.add(const Duration(days: 1)),
+        );
         if (plan == null) {
-          await db.dailyPlansDao.insertPlan(DailyPlansCompanion(
-            id: Value(const Uuid().v4()),
-            date: Value(dateOnly),
-            intentionNote: Value('Commitment Focus: ${action.startHour ?? 9}:00 - ${action.endHour ?? 10}:00'),
-          ));
+          await db.dailyPlansDao.insertPlan(
+            DailyPlansCompanion(
+              id: Value(const Uuid().v4()),
+              date: Value(dateOnly),
+              intentionNote: Value(
+                'Commitment Focus: ${action.startHour ?? 9}:00 - ${action.endHour ?? 10}:00',
+              ),
+            ),
+          );
         } else {
-          await db.dailyPlansDao.updatePlan(DailyPlansCompanion(
-            id: Value(plan.id),
-            date: Value(plan.date),
-            intentionNote: Value('${plan.intentionNote ?? ""}\nCommitment Focus: ${action.startHour ?? 9}:00 - ${action.endHour ?? 10}:00'.trim()),
-          ));
+          await db.dailyPlansDao.updatePlan(
+            DailyPlansCompanion(
+              id: Value(plan.id),
+              date: Value(plan.date),
+              intentionNote: Value(
+                '${plan.intentionNote ?? ""}\nCommitment Focus: ${action.startHour ?? 9}:00 - ${action.endHour ?? 10}:00'
+                    .trim(),
+              ),
+            ),
+          );
         }
-        
+
         if (action.startHour != null) {
           await prefs.setInt('flowos_suggested_focus_start', action.startHour!);
         }
@@ -176,19 +200,18 @@ class ActionCommitCard extends ConsumerWidget {
       case WeeklyActionType.reduceOneTrigger:
         // Upgrade user profile protectionMode to firm
         final currentProfile = ref.read(userProfileProvider);
-        final updated = currentProfile.copyWith(
-          protectionMode: 'firm',
-        );
+        final updated = currentProfile.copyWith(protectionMode: 'firm');
         await ref.read(userProfileProvider.notifier).updateProfile(updated);
         break;
 
       case WeeklyActionType.moveTaskToEnergy:
         // Mark task energy as deep
         if (action.taskId != null) {
-          await (db.update(db.tasks)..where((t) => t.id.equals(action.taskId!)))
-              .write(const TasksCompanion(
-            energyLevel: Value(EnergyLevelColumn.deep),
-          ));
+          await (db.update(
+            db.tasks,
+          )..where((t) => t.id.equals(action.taskId!))).write(
+            const TasksCompanion(energyLevel: Value(EnergyLevelColumn.deep)),
+          );
         }
         break;
     }

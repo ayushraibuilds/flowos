@@ -78,10 +78,7 @@ class DeviceSetupSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
                   ),
                 ),
-                child: Text(
-                  'Set up now',
-                  style: AppTypography.button,
-                ),
+                child: Text('Set up now', style: AppTypography.button),
               ),
             ),
             const SizedBox(height: AppSpacing.md),

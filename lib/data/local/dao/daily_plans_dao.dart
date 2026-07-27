@@ -17,14 +17,18 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final plan = await getById(id);
     if (plan != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('daily_plans'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(plan.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('daily_plans'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(plan.toJson())),
+            ),
+          );
     }
   }
 
@@ -43,11 +47,10 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
       final existing = await getToday();
       if (existing != null) {
         // Update the existing plan, keeping its ID
-        final updatedEntry = entry.copyWith(
-          updatedAt: Value(DateTime.now()),
-        );
-        await (update(dailyPlans)..where((p) => p.id.equals(existing.id)))
-            .write(updatedEntry);
+        final updatedEntry = entry.copyWith(updatedAt: Value(DateTime.now()));
+        await (update(
+          dailyPlans,
+        )..where((p) => p.id.equals(existing.id))).write(updatedEntry);
         await _recordOutboxUpsert(existing.id);
         return existing.id;
       } else {
@@ -60,11 +63,10 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> updatePlan(DailyPlansCompanion entry) async {
     await transaction(() async {
-      final updatedEntry = entry.copyWith(
-        updatedAt: Value(DateTime.now()),
-      );
-      await (update(dailyPlans)..where((p) => p.id.equals(entry.id.value)))
-          .write(updatedEntry);
+      final updatedEntry = entry.copyWith(updatedAt: Value(DateTime.now()));
+      await (update(
+        dailyPlans,
+      )..where((p) => p.id.equals(entry.id.value))).write(updatedEntry);
       await _recordOutboxUpsert(entry.id.value);
     });
   }
@@ -74,11 +76,12 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    return (select(dailyPlans)
-          ..where((p) =>
+    return (select(dailyPlans)..where(
+          (p) =>
               p.date.isBiggerOrEqualValue(start) &
               p.date.isSmallerThanValue(end) &
-              p.deletedAt.isNull()))
+              p.deletedAt.isNull(),
+        ))
         .getSingleOrNull();
   }
 
@@ -87,11 +90,12 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    return (select(dailyPlans)
-          ..where((p) =>
+    return (select(dailyPlans)..where(
+          (p) =>
               p.date.isBiggerOrEqualValue(start) &
               p.date.isSmallerThanValue(end) &
-              p.deletedAt.isNull()))
+              p.deletedAt.isNull(),
+        ))
         .watchSingleOrNull();
   }
 
@@ -123,11 +127,12 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
 
   /// Get plan for a specific date range (for streak counting).
   Future<DailyPlan?> getByDateRange(DateTime start, DateTime end) {
-    return (select(dailyPlans)
-          ..where((p) =>
+    return (select(dailyPlans)..where(
+          (p) =>
               p.date.isBiggerOrEqualValue(start) &
               p.date.isSmallerThanValue(end) &
-              p.deletedAt.isNull()))
+              p.deletedAt.isNull(),
+        ))
         .getSingleOrNull();
   }
 
@@ -136,14 +141,15 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
       (select(dailyPlans)..where((p) => p.id.equals(id))).getSingleOrNull();
 
   /// Get plans created since a given timestamp (for sync push).
-  Future<List<DailyPlan>> getModifiedSince(DateTime since) =>
-      (select(dailyPlans)
-            ..where((p) => p.updatedAt.isBiggerOrEqualValue(since)))
-          .get();
+  Future<List<DailyPlan>> getModifiedSince(DateTime since) => (select(
+    dailyPlans,
+  )..where((p) => p.updatedAt.isBiggerOrEqualValue(since))).get();
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertPlanFromSync(DailyPlansCompanion entry) => into(dailyPlans).insert(entry);
-  Future<void> updatePlanFromSync(DailyPlansCompanion entry) =>
-      (update(dailyPlans)..where((p) => p.id.equals(entry.id.value))).write(entry);
+  Future<void> insertPlanFromSync(DailyPlansCompanion entry) =>
+      into(dailyPlans).insert(entry);
+  Future<void> updatePlanFromSync(DailyPlansCompanion entry) => (update(
+    dailyPlans,
+  )..where((p) => p.id.equals(entry.id.value))).write(entry);
 }

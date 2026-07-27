@@ -5,14 +5,12 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../data/local/database/app_database.dart';
+import '../../../../data/local/tables/focus_sessions_table.dart';
 
 class FocusSessionTimeline extends StatelessWidget {
   final List<FocusSession> sessions;
 
-  const FocusSessionTimeline({
-    super.key,
-    required this.sessions,
-  });
+  const FocusSessionTimeline({super.key, required this.sessions});
 
   @override
   Widget build(BuildContext context) {
@@ -84,16 +82,22 @@ class FocusSessionTimeline extends StatelessWidget {
 
                         final startMin = started.hour * 60 + started.minute;
                         final endMin = completed.hour * 60 + completed.minute;
-                        
+
                         final startFrac = startMin / 1440.0;
                         final endFrac = endMin / 1440.0;
-                        final widthFrac = (endFrac - startFrac).clamp(0.015, 1.0); // min width to make it visible
+                        final widthFrac = (endFrac - startFrac).clamp(
+                          0.015,
+                          1.0,
+                        ); // min width to make it visible
 
                         final left = startFrac * totalWidth;
                         final width = widthFrac * totalWidth;
 
-                        final isDeepWork = session.sessionType == 'deepWork';
-                        final color = isDeepWork ? AppColors.focusBlue : AppColors.emerald;
+                        final isDeepWork =
+                            session.sessionType == SessionTypeColumn.deepWork;
+                        final color = isDeepWork
+                            ? AppColors.focusBlue
+                            : AppColors.emerald;
 
                         return Positioned(
                           left: left,
@@ -103,7 +107,9 @@ class FocusSessionTimeline extends StatelessWidget {
                           child: GestureDetector(
                             onTap: () {
                               final timeFormat = DateFormat('jm');
-                              final title = session.taskId != null ? 'Focus task block' : 'Standalone block';
+                              final title = session.taskId != null
+                                  ? 'Focus task block'
+                                  : 'Standalone block';
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(

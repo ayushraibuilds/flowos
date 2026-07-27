@@ -44,11 +44,11 @@ android {
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
             } else {
-                val debugConfig = signingConfigs.getByName("debug")
-                storeFile = debugConfig.storeFile
-                storePassword = debugConfig.storePassword
-                keyAlias = debugConfig.keyAlias
-                keyPassword = debugConfig.keyPassword
+                throw GradleException(
+                    "PRODUCTION RELEASE BUILD FAILED: Missing 'android/key.properties'. " +
+                    "Production release artifacts must be signed with production signing credentials. " +
+                    "Create android/key.properties using android/key.properties.example as a template."
+                )
             }
         }
     }

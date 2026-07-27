@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' hide Column;
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -36,9 +35,12 @@ final attentionRadarDataProvider = StreamProvider<AttentionRadarData>((ref) {
     try {
       final day = await repo.getAttentionDay(today);
       final map = <String, int>{};
-      
+
       if (day.coverage == DataCoverage.complete) {
-        final records = await db.deviceUsageRecordsDao.getForRange(today, today);
+        final records = await db.deviceUsageRecordsDao.getForRange(
+          today,
+          today,
+        );
         for (final r in records) {
           if (r.isDistracting == true && r.source == 'android_usage') {
             final name = r.label ?? r.packageName;
@@ -55,11 +57,13 @@ final attentionRadarDataProvider = StreamProvider<AttentionRadarData>((ref) {
       }
 
       if (!controller.isClosed) {
-        controller.add(AttentionRadarData(
-          totalMinutes: day.effectiveDistractingMinutes,
-          appBreakdown: map,
-          coverage: day.coverage,
-        ));
+        controller.add(
+          AttentionRadarData(
+            totalMinutes: day.effectiveDistractingMinutes,
+            appBreakdown: map,
+            coverage: day.coverage,
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -151,8 +155,10 @@ class AttentionRadarCard extends ConsumerWidget {
                       onPressed: () async {
                         HapticFeedback.lightImpact();
                         final repo = ref.read(attentionDataRepositoryProvider);
-                        final platform = ref.read(deviceAttentionPlatformProvider);
-                        
+                        final platform = ref.read(
+                          deviceAttentionPlatformProvider,
+                        );
+
                         final states = await platform.getPermissionStates();
                         if (!states.usageAccess) {
                           if (!context.mounted) return;

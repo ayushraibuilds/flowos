@@ -52,13 +52,16 @@ class ProtectionPolicyService {
 
     final activePolicies = await _policyWriter.getActivePolicies();
     if (activePolicies != null) {
-      final activeSleep = (activePolicies.sleep != null && !activePolicies.sleep!.isExpired)
+      final activeSleep =
+          (activePolicies.sleep != null && !activePolicies.sleep!.isExpired)
           ? activePolicies.sleep
           : null;
-      if (activeSleep != null && activeSleep.selectedPackages.contains(packageName)) {
+      if (activeSleep != null &&
+          activeSleep.selectedPackages.contains(packageName)) {
         // Sleep policy is active and protects this package.
         // If sleep is Deep, a Focus Guard temporary break is ignored (cannot override sleep deep).
-        if (activeSleep.protectionMode.strictnessValue > ProtectionMode.guard.strictnessValue) {
+        if (activeSleep.protectionMode.strictnessValue >
+            ProtectionMode.guard.strictnessValue) {
           // Stricter sleep deep mode is active. Scoped break cannot be granted.
           return;
         }
@@ -108,7 +111,9 @@ class ProtectionPolicyService {
   }
 }
 
-final protectionPolicyServiceProvider = Provider<ProtectionPolicyService>((ref) {
+final protectionPolicyServiceProvider = Provider<ProtectionPolicyService>((
+  ref,
+) {
   final db = ref.watch(databaseProvider);
   final platform = ref.watch(deviceAttentionPlatformProvider);
   const policyWriter = SharedPrefsPolicyWriter();

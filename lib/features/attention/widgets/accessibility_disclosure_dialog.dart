@@ -46,7 +46,9 @@ Future<bool> showAccessibilityDisclosure(
                   Expanded(
                     child: Text(
                       'App Protection (Android Only)',
-                      style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.h3.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -54,7 +56,9 @@ Future<bool> showAccessibilityDisclosure(
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'FlowOS uses the Android Accessibility Service API to detect when you are opening selected distracting apps during active Focus and Sleep sessions.',
-                style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               _buildBulletPoint(
@@ -86,7 +90,9 @@ Future<bool> showAccessibilityDisclosure(
                 },
                 child: Text(
                   'Accept & Open Settings',
-                  style: AppTypography.button.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTypography.button.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -98,10 +104,7 @@ Future<bool> showAccessibilityDisclosure(
                 onPressed: () {
                   Navigator.pop(context, false);
                 },
-                child: Text(
-                  'Not now',
-                  style: AppTypography.button,
-                ),
+                child: Text('Not now', style: AppTypography.button),
               ),
             ],
           ),

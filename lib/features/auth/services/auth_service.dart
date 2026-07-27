@@ -78,10 +78,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    return await _auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    return await _auth.signInWithPassword(email: email, password: password);
   }
 
   // ─── Social Auth ────────────────────────────────────────────

@@ -20,10 +20,12 @@ class InsightsDashboardScreen extends ConsumerStatefulWidget {
   const InsightsDashboardScreen({super.key});
 
   @override
-  ConsumerState<InsightsDashboardScreen> createState() => _InsightsDashboardScreenState();
+  ConsumerState<InsightsDashboardScreen> createState() =>
+      _InsightsDashboardScreenState();
 }
 
-class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScreen> {
+class _InsightsDashboardScreenState
+    extends ConsumerState<InsightsDashboardScreen> {
   ScorePillar? _selectedPillar;
   bool _interruptionExpanded = false;
 
@@ -72,7 +74,8 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                     child: CircularProgressIndicator(),
                   ),
                 ),
-                error: (err, _) => Center(child: Text('Error loading insights: $err')),
+                error: (err, _) =>
+                    Center(child: Text('Error loading insights: $err')),
                 data: (data) => _buildScoreSection(data),
               ),
 
@@ -130,7 +133,8 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
         selected: {period},
         onSelectionChanged: (Set<InsightPeriod> newSelection) {
           setState(() {
-            _selectedPillar = null; // Clear pillar detail card when switching tabs
+            _selectedPillar =
+                null; // Clear pillar detail card when switching tabs
           });
           ref.read(insightPeriodProvider.notifier).state = newSelection.first;
         },
@@ -188,7 +192,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
               child: Text(
                 result.message,
                 textAlign: TextAlign.center,
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -206,7 +212,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           children: [
             Text(
               'Weekly Average Score',
-              style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -219,7 +227,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Based on ${data.scoredDaysCount} of ${data.totalDays} scored days',
-              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
           ],
         ),
@@ -236,7 +246,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
           children: [
             Text(
               'Monthly Average Score',
-              style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -249,7 +261,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Based on ${data.scoredDaysCount} of ${data.totalDays} scored days',
-              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
           ],
         ),
@@ -276,7 +290,10 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
         const SizedBox(height: AppSpacing.xxl),
 
         // App distraction impact list
-        Text('App Impact', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        Text(
+          'App Impact',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         const SizedBox(height: AppSpacing.sm),
         appsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -292,7 +309,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 child: Center(
                   child: Text(
                     'No distraction apps used today.',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               );
@@ -305,8 +324,14 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                   elevation: 0,
                   margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                   child: ListTile(
-                    title: Text(app.label, style: TextStyle(color: AppColors.textPrimary)),
-                    subtitle: Text('Budget: ${app.budget}m', style: TextStyle(color: AppColors.textTertiary)),
+                    title: Text(
+                      app.label,
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                    subtitle: Text(
+                      'Budget: ${app.budget}m',
+                      style: TextStyle(color: AppColors.textTertiary),
+                    ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -314,14 +339,19 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                         Text(
                           '${app.minutes} min',
                           style: TextStyle(
-                            color: overBudget ? AppColors.warningAmber : AppColors.textPrimary,
+                            color: overBudget
+                                ? AppColors.warningAmber
+                                : AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         if (overBudget)
                           Text(
                             '+${app.minutes - app.budget}m reclaimable',
-                            style: const TextStyle(color: AppColors.warningAmber, fontSize: 10),
+                            style: const TextStyle(
+                              color: AppColors.warningAmber,
+                              fontSize: 10,
+                            ),
                           ),
                       ],
                     ),
@@ -345,12 +375,17 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
         scoreAsync.maybeWhen(
           data: (data) {
             if (data is! WeeklyAggregate) return const SizedBox.shrink();
-            
+
             // Weekly Rhythm Terrain (overlaid focus & distraction trend chart)
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Rhythm Terrain', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+                Text(
+                  'Rhythm Terrain',
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 SizedBox(
                   height: 180,
@@ -363,24 +398,38 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                             showTitles: true,
                             getTitlesWidget: (val, _) {
                               final idx = val.toInt();
-                              if (idx < 0 || idx >= data.days.length) return const SizedBox.shrink();
+                              if (idx < 0 || idx >= data.days.length) {
+                                return const SizedBox.shrink();
+                              }
                               return Text(
                                 DateFormat('E').format(data.days[idx].date),
-                                style: const TextStyle(fontSize: 10, color: AppColors.textTertiary),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.textTertiary,
+                                ),
                               );
                             },
                           ),
                         ),
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
                         // Focus line
                         LineChartBarData(
                           spots: List.generate(data.days.length, (i) {
-                            return FlSpot(i.toDouble(), data.days[i].focusMinutes.toDouble());
+                            return FlSpot(
+                              i.toDouble(),
+                              data.days[i].focusMinutes.toDouble(),
+                            );
                           }),
                           isCurved: true,
                           color: AppColors.emerald,
@@ -390,7 +439,10 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                         // Distraction/Scroll line
                         LineChartBarData(
                           spots: List.generate(data.days.length, (i) {
-                            return FlSpot(i.toDouble(), data.days[i].scrollMinutes.toDouble());
+                            return FlSpot(
+                              i.toDouble(),
+                              data.days[i].scrollMinutes.toDouble(),
+                            );
                           }),
                           isCurved: true,
                           color: AppColors.warningAmber,
@@ -414,7 +466,12 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text('Focus Time', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      'Focus Time',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(width: 24),
                     Container(
                       width: 8,
@@ -425,7 +482,12 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text('Distractions', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      'Distractions',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xl),
@@ -435,8 +497,12 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
                       color: AppColors.background2,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                      border: Border.all(color: AppColors.warningAmber.withValues(alpha: 0.2)),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
+                      border: Border.all(
+                        color: AppColors.warningAmber.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +522,9 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           '${data.reclaimableMinutes} minutes spent over your budget limit on distracting apps this week.',
-                          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         if (data.topReclaimableApp != null) ...[
                           const SizedBox(height: AppSpacing.xs),
@@ -482,7 +550,10 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
         const SizedBox(height: AppSpacing.xxl),
 
         // distracting app list in 7 days
-        Text('Watchlist App Usage', style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        Text(
+          'Watchlist App Usage',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         const SizedBox(height: AppSpacing.sm),
         appsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -498,24 +569,36 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 child: Center(
                   child: Text(
                     'No distraction apps used this week.',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               );
             }
             return Column(
-              children: apps.map((app) => Card(
-                color: AppColors.background2,
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: ListTile(
-                  title: Text(app.label, style: TextStyle(color: AppColors.textPrimary)),
-                  trailing: Text(
-                    '${app.minutes} min',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                ),
-              )).toList(),
+              children: apps
+                  .map(
+                    (app) => Card(
+                      color: AppColors.background2,
+                      elevation: 0,
+                      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: ListTile(
+                        title: Text(
+                          app.label,
+                          style: TextStyle(color: AppColors.textPrimary),
+                        ),
+                        trailing: Text(
+                          '${app.minutes} min',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             );
           },
         ),
@@ -547,9 +630,15 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
 
             return Column(
               children: [
-                _buildSummaryRow('Total Focus Blocks Completed', '${data.totalFocusMinutes} min'),
+                _buildSummaryRow(
+                  'Total Focus Blocks Completed',
+                  '${data.totalFocusMinutes} min',
+                ),
                 if (data.hasReclaimableData)
-                  _buildSummaryRow('Reclaimable Distraction Time', '${data.totalReclaimableMinutes} min'),
+                  _buildSummaryRow(
+                    'Reclaimable Distraction Time',
+                    '${data.totalReclaimableMinutes} min',
+                  ),
               ],
             );
           },
@@ -567,8 +656,19 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary)),
-          Text(value, style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -603,7 +703,11 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
               children: [
                 Row(
                   children: [
-                    Icon(Icons.shield_outlined, color: AppColors.emerald, size: 20),
+                    Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.emerald,
+                      size: 20,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
                       'Focus Protection Insights',
@@ -618,7 +722,12 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total Intercepts', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      'Total Intercepts',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     Text(
                       '${data.totalAttempts}',
                       style: AppTypography.bodySmall.copyWith(
@@ -632,7 +741,12 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Most Blocked Target', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      'Most Blocked Target',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     Text(
                       data.mostBlockedTarget,
                       style: AppTypography.bodySmall.copyWith(
@@ -646,7 +760,12 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Peak Distraction Hour', style: AppTypography.caption.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      'Peak Distraction Hour',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     Text(
                       formattedHour,
                       style: AppTypography.bodySmall.copyWith(
@@ -689,10 +808,14 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                   children: [
                     Text(
                       '📱 Interruption Analytics',
-                      style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.h3.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     Icon(
-                      _interruptionExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                      _interruptionExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
                       color: AppColors.textSecondary,
                     ),
                   ],
@@ -710,7 +833,10 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSummaryRow('Total Phone Unlocks', '${data.totalUnlocks} unlocks'),
+                    _buildSummaryRow(
+                      'Total Phone Unlocks',
+                      '${data.totalUnlocks} unlocks',
+                    ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
                       'Notifications by App',
@@ -723,10 +849,14 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                     if (data.notificationCounts.isEmpty)
                       Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.md,
+                          ),
                           child: Text(
                             'No notifications recorded.',
-                            style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
                           ),
                         ),
                       )
@@ -734,14 +864,18 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                       Column(
                         children: data.notificationCounts.map((notif) {
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.sm,
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
                                   child: Text(
                                     notif.appName,
-                                    style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                                 Text(
@@ -756,7 +890,10 @@ class _InsightsDashboardScreenState extends ConsumerState<InsightsDashboardScree
                           );
                         }).toList(),
                       ),
-                    Divider(height: AppSpacing.lg, color: AppColors.background1),
+                    Divider(
+                      height: AppSpacing.lg,
+                      color: AppColors.background1,
+                    ),
                     Text(
                       'Interruption data is based on counts only. FlowOS never reads notification content.',
                       style: AppTypography.caption.copyWith(

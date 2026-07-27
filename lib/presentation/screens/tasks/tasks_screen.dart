@@ -60,7 +60,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                             Colors.transparent,
                             Colors.black,
                             Colors.black,
-                            Colors.transparent
+                            Colors.transparent,
                           ],
                           stops: [0.0, 0.08, 0.92, 1.0],
                           begin: Alignment.centerLeft,
@@ -73,7 +73,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            _buildSmallButton('🧠 Brain Dump', () => context.push('/brain-dump')),
+                            _buildSmallButton(
+                              '🧠 Brain Dump',
+                              () => context.push('/brain-dump'),
+                            ),
                             const SizedBox(width: AppSpacing.xs),
                             _buildSmallButton('🎰 Roulette', _runTaskRoulette),
                             const SizedBox(width: AppSpacing.xs),
@@ -96,9 +99,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
             // ─── Task List ────────────────────────────────────────
-            Expanded(
-              child: _buildTaskList(),
-            ),
+            Expanded(child: _buildTaskList()),
           ],
         ),
       ),
@@ -111,7 +112,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  Widget _buildSmallButton(String label, VoidCallback onTap, {bool isSelected = false}) {
+  Widget _buildSmallButton(
+    String label,
+    VoidCallback onTap, {
+    bool isSelected = false,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -120,7 +125,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.emerald.withAlpha(38) : AppColors.background2,
+          color: isSelected
+              ? AppColors.emerald.withAlpha(38)
+              : AppColors.background2,
           borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
           border: Border.all(
             color: isSelected ? AppColors.emerald : Colors.transparent,
@@ -188,7 +195,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         final filtered = _selectedSegment == 0
             ? tasks
             : tasks.where((t) {
-                return t.energyLevel == EnergyLevelColumn.values[_selectedSegment - 1];
+                return t.energyLevel ==
+                    EnergyLevelColumn.values[_selectedSegment - 1];
               }).toList();
 
         if (filtered.isEmpty) {
@@ -202,9 +210,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
               ),
             );
           }
-          return FlowEmptyState.tasks(
-            onAdd: () => _showAddTaskSheet(context),
-          );
+          return FlowEmptyState.tasks(onAdd: () => _showAddTaskSheet(context));
         }
 
         // Group: incomplete first, then completed
@@ -249,12 +255,14 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           children: [
             // Incomplete tasks
-            ...incomplete.map((task) => TaskCard(
-                  task: task,
-                  onComplete: () => _completeTask(task),
-                  onDelete: () => _deleteTask(task),
-                  onTap: () => _startDeepWork(task),
-                )),
+            ...incomplete.map(
+              (task) => TaskCard(
+                task: task,
+                onComplete: () => _completeTask(task),
+                onDelete: () => _deleteTask(task),
+                onTap: () => _startDeepWork(task),
+              ),
+            ),
 
             if (incomplete.length < 3) ...[
               const SizedBox(height: AppSpacing.lg),
@@ -308,11 +316,13 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
-              ...completed.map((task) => TaskCard(
-                    task: task,
-                    onComplete: () {},
-                    onDelete: () => _deleteTask(task),
-                  )),
+              ...completed.map(
+                (task) => TaskCard(
+                  task: task,
+                  onComplete: () {},
+                  onDelete: () => _deleteTask(task),
+                ),
+              ),
             ],
 
             const SizedBox(height: 80), // FAB clearance
@@ -332,7 +342,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('+$xp XP! ${task.isMIT ? "⭐ MIT done!" : "Task done!"}'),
+          content: Text(
+            '+$xp XP! ${task.isMIT ? "⭐ MIT done!" : "Task done!"}',
+          ),
           backgroundColor: AppColors.emerald,
           duration: const Duration(seconds: 2),
         ),
@@ -341,10 +353,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   }
 
   void _startDeepWork(Task task) {
-    context.push('/deep-work', extra: {
-      'taskId': task.id,
-      'taskTitle': task.title,
-    });
+    context.push(
+      '/deep-work',
+      extra: {'taskId': task.id, 'taskTitle': task.title},
+    );
   }
 
   Future<void> _deleteTask(Task task) async {
@@ -375,7 +387,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         if (incomplete.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No incomplete tasks to pick from! Create one first.'),
+              content: Text(
+                'No incomplete tasks to pick from! Create one first.',
+              ),
               backgroundColor: AppColors.dangerCoral,
             ),
           );
@@ -391,22 +405,33 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             title: const Text('Task Roulette 🎰'),
             content: Text(
               'Divert attention to "${randomTask.title}"?\nLet\'s start a deep focus session.',
-              style: AppTypography.body.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel', style: TextStyle(color: AppColors.textTertiary)),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.textTertiary),
+                ),
               ),
               TextButton(
                 onPressed: () {
                   Navigator.pop(ctx);
-                  context.push('/deep-work', extra: {
-                    'taskId': randomTask.id,
-                    'taskTitle': randomTask.title,
-                  });
+                  context.push(
+                    '/deep-work',
+                    extra: {
+                      'taskId': randomTask.id,
+                      'taskTitle': randomTask.title,
+                    },
+                  );
                 },
-                child: Text('Start Focus 🚀', style: TextStyle(color: AppColors.emerald)),
+                child: Text(
+                  'Start Focus 🚀',
+                  style: TextStyle(color: AppColors.emerald),
+                ),
               ),
             ],
           ),
@@ -472,7 +497,9 @@ class _AddTaskSheetState extends ConsumerState<_AddTaskSheet> {
             controller: _titleController,
             autofocus: true,
             style: AppTypography.body.copyWith(color: AppColors.textPrimary),
-            decoration: const InputDecoration(hintText: 'What needs to be done?'),
+            decoration: const InputDecoration(
+              hintText: 'What needs to be done?',
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           // Energy picker
@@ -511,8 +538,11 @@ class _AddTaskSheetState extends ConsumerState<_AddTaskSheet> {
                         setState(() => _estimatedMinutes -= 5);
                       }
                     },
-                    icon: const Icon(Icons.remove_circle_outline,
-                        color: AppColors.textSecondary, size: 20),
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
                   ),
                   Text(
                     '${_estimatedMinutes}m',
@@ -524,8 +554,11 @@ class _AddTaskSheetState extends ConsumerState<_AddTaskSheet> {
                     onPressed: () {
                       setState(() => _estimatedMinutes += 5);
                     },
-                    icon: const Icon(Icons.add_circle_outline,
-                        color: AppColors.textSecondary, size: 20),
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
                   ),
                 ],
               ),
@@ -571,14 +604,16 @@ class _AddTaskSheetState extends ConsumerState<_AddTaskSheet> {
     final db = ref.read(databaseProvider);
     final id = _uuid.v4();
 
-    await db.tasksDao.insertTask(TasksCompanion(
-      id: Value(id),
-      title: Value(title),
-      energyLevel: Value(EnergyLevelColumn.values[_selectedEnergy]),
-      estimatedMinutes: Value(_estimatedMinutes),
-      isMIT: Value(_isMIT),
-      category: const Value(TaskCategoryColumn.personal),
-    ));
+    await db.tasksDao.insertTask(
+      TasksCompanion(
+        id: Value(id),
+        title: Value(title),
+        energyLevel: Value(EnergyLevelColumn.values[_selectedEnergy]),
+        estimatedMinutes: Value(_estimatedMinutes),
+        isMIT: Value(_isMIT),
+        category: const Value(TaskCategoryColumn.personal),
+      ),
+    );
 
     if (mounted) Navigator.pop(context);
   }

@@ -8,11 +8,13 @@ class DailyReports extends Table {
   TextColumn get reportJson => text()(); // Full report as JSON string
   IntColumn get dailyScore => integer()(); // 0-100
   IntColumn get xpEarnedToday => integer()();
-  IntColumn get attentionCostToday => integer().withDefault(const Constant(0))();
+  IntColumn get attentionCostToday =>
+      integer().withDefault(const Constant(0))();
   IntColumn get promptVersion => integer().nullable()();
   TextColumn get coverageState => text().nullable()();
 
-  DateTimeColumn get generatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get generatedAt =>
+      dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 

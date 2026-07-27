@@ -6,12 +6,16 @@ import '../repository/attention_data_repository.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../core/constants/distraction_packages.dart';
 
-final launchableAppsProvider = FutureProvider<List<Map<String, String>>>((ref) async {
+final launchableAppsProvider = FutureProvider<List<Map<String, String>>>((
+  ref,
+) async {
   final platform = ref.watch(deviceAttentionPlatformProvider);
   return platform.getLaunchableApps();
 });
 
-final essentialPackagesProvider = FutureProvider<List<Map<String, String>>>((ref) async {
+final essentialPackagesProvider = FutureProvider<List<Map<String, String>>>((
+  ref,
+) async {
   final platform = ref.watch(deviceAttentionPlatformProvider);
   return platform.getDefaultEssentialPackages();
 });
@@ -21,7 +25,10 @@ final protectedAppsStreamProvider = StreamProvider<List<ProtectedApp>>((ref) {
   return db.protectedAppsDao.watchAll();
 });
 
-final appIconProvider = FutureProvider.family<Uint8List?, String>((ref, packageName) async {
+final appIconProvider = FutureProvider.family<Uint8List?, String>((
+  ref,
+  packageName,
+) async {
   final platform = ref.watch(deviceAttentionPlatformProvider);
   return platform.loadAppIcon(packageName);
 });
@@ -29,7 +36,7 @@ final appIconProvider = FutureProvider.family<Uint8List?, String>((ref, packageN
 final legacySuggestionsProvider = FutureProvider<List<String>>((ref) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Check if legacy suggestions were already processed/shown
     final shown = prefs.getBool('flowos_legacy_suggestions_shown') ?? false;
     if (shown) return [];
@@ -47,7 +54,9 @@ final legacySuggestionsProvider = FutureProvider<List<String>>((ref) async {
         final pkg = DistractionPackages.primaryPackage(label);
         if (pkg != null) {
           // Verify it's actually installed
-          final isInstalled = launchable.any((app) => app['packageName'] == pkg);
+          final isInstalled = launchable.any(
+            (app) => app['packageName'] == pkg,
+          );
           if (isInstalled) {
             suggestions.add(pkg);
           }

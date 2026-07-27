@@ -4,7 +4,8 @@ import 'package:flowos/features/ai/services/local_brain_dump_parser.dart';
 void main() {
   group('LocalBrainDumpParser', () {
     test('splits raw text correctly by newlines and bullets', () {
-      const dump = 'Need to write code for feature 45m\n• Call dentist; buy groceries';
+      const dump =
+          'Need to write code for feature 45m\n• Call dentist; buy groceries';
       final tasks = LocalBrainDumpParser.parse(rawText: dump, currentEnergy: 3);
 
       expect(tasks.length, 3);
@@ -15,7 +16,10 @@ void main() {
 
     test('truncates long titles to 60 characters', () {
       final longTitle = 'a' * 100;
-      final tasks = LocalBrainDumpParser.parse(rawText: longTitle, currentEnergy: 3);
+      final tasks = LocalBrainDumpParser.parse(
+        rawText: longTitle,
+        currentEnergy: 3,
+      );
 
       expect(tasks.length, 1);
       expect(tasks.first.title.length, 60);
@@ -23,12 +27,15 @@ void main() {
     });
 
     test('applies energy level heuristics correctly', () {
-      const dump = 'write code for hours\nsend email to boss\nrandom other task';
+      const dump =
+          'write code for hours\nsend email to boss\nrandom other task';
       final tasks = LocalBrainDumpParser.parse(rawText: dump, currentEnergy: 3);
 
       final codeTask = tasks.firstWhere((t) => t.title.contains('write code'));
       final emailTask = tasks.firstWhere((t) => t.title.contains('send email'));
-      final randomTask = tasks.firstWhere((t) => t.title.contains('random other'));
+      final randomTask = tasks.firstWhere(
+        (t) => t.title.contains('random other'),
+      );
 
       expect(codeTask.energyLevel, 'deep');
       expect(emailTask.energyLevel, 'light');
@@ -41,7 +48,9 @@ void main() {
 
       final research = tasks.firstWhere((t) => t.title.contains('research'));
       final code = tasks.firstWhere((t) => t.title.contains('code'));
-      final plain = tasks.firstWhere((t) => t.title.contains('plain') || t.title.contains('minutes'));
+      final plain = tasks.firstWhere(
+        (t) => t.title.contains('plain') || t.title.contains('minutes'),
+      );
 
       expect(research.estimatedMinutes, 45);
       expect(code.estimatedMinutes, 120);

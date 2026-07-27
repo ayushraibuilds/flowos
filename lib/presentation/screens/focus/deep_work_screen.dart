@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
-import '../../../features/focus/services/focus_session_service.dart';
 import '../../../features/focus/providers/focus_timer_provider.dart';
 import '../../../features/focus/models/focus_timer_stage.dart';
 import '../../../features/focus/models/focus_protection.dart';
@@ -21,7 +20,6 @@ import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/celebration/services/celebration_service.dart';
 import '../../../features/achievements/models/achievement_checker.dart';
 import '../../../features/xp/models/focus_quality_calculator.dart';
-import '../../../features/flow_garden/widgets/garden_growth_dialog.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/focus/services/ambient_sound_player.dart';
 
@@ -37,8 +35,7 @@ class DeepWorkScreen extends ConsumerStatefulWidget {
 
 class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  
-  String _selectedSound = 'none';
+  final String _selectedSound = 'none';
   final _sounds = [
     (key: 'none', icon: Icons.volume_off_rounded, label: 'Silent'),
     (key: 'binaural', icon: Icons.psychology_rounded, label: 'Binaural'),
@@ -93,7 +90,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     final active = ref.read(focusTimerNotifierProvider);
     if (active == null || active.phase != FocusTimerPhase.running) return;
 
-    final leavingApp = state == AppLifecycleState.paused || state == AppLifecycleState.inactive;
+    final leavingApp =
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive;
     if (leavingApp && !_wasBackgrounded) {
       _wasBackgrounded = true;
       ref.read(focusTimerNotifierProvider.notifier).recordBackground();
@@ -113,7 +112,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       final trigger = await policyService.claimPendingTrigger();
       if (trigger != null && mounted) {
         final activePolicies = await policyService.getActivePolicies();
-        final effectiveMode = activePolicies?.effectiveModeForPackage(trigger.packageName) ?? ProtectionMode.guard;
+        final effectiveMode =
+            activePolicies?.effectiveModeForPackage(trigger.packageName) ??
+            ProtectionMode.guard;
 
         if (effectiveMode == ProtectionMode.nudge) {
           if (mounted) {
@@ -125,10 +126,13 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
         ref.read(focusTimerNotifierProvider.notifier).pauseSession();
 
         final db = ref.read(databaseProvider);
-        final protectedApp = await db.protectedAppsDao.getByPlatformAndRef('android', trigger.packageName);
+        final protectedApp = await db.protectedAppsDao.getByPlatformAndRef(
+          'android',
+          trigger.packageName,
+        );
         final appDisplayName = protectedApp?.displayName ?? trigger.packageName;
 
-        if (context.mounted) {
+        if (mounted) {
           await FocusShieldOverlay.show(
             context,
             packageName: trigger.packageName,
@@ -147,7 +151,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                       packageName: trigger.packageName,
                       minutes: minutes,
                     );
-                    ref.read(focusTimerNotifierProvider.notifier).resumeSession();
+                    ref
+                        .read(focusTimerNotifierProvider.notifier)
+                        .resumeSession();
                   }
                 : null,
           );
@@ -158,14 +164,16 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
 
   Future<void> _startTimer() async {
     final mode = ref.read(settingsProvider).focusProtection.toProtectionMode();
-    final success = await ref.read(focusTimerNotifierProvider.notifier).startSession(
-      type: SessionTypeColumn.deepWork,
-      durationMinutes: 90,
-      taskId: widget.taskId,
-      taskTitle: widget.taskTitle,
-      selectedSound: _selectedSound,
-      protectionMode: mode,
-    );
+    final success = await ref
+        .read(focusTimerNotifierProvider.notifier)
+        .startSession(
+          type: SessionTypeColumn.deepWork,
+          durationMinutes: 90,
+          taskId: widget.taskId,
+          taskTitle: widget.taskTitle,
+          selectedSound: _selectedSound,
+          protectionMode: mode,
+        );
 
     if (!success) {
       if (mounted) {
@@ -207,7 +215,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       final actualMin = (elapsed / 60).round();
       final pct = elapsed / total;
 
-      final result = await ref.read(focusTimerNotifierProvider.notifier).stopSession();
+      final result = await ref
+          .read(focusTimerNotifierProvider.notifier)
+          .stopSession();
       await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
 
       if (mounted) {
@@ -231,7 +241,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Session stopped. Unfinished sessions receive no credit.'),
+              content: Text(
+                'Session stopped. Unfinished sessions receive no credit.',
+              ),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -253,14 +265,15 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       HapticFeedback.heavyImpact();
       final active = ref.read(focusTimerNotifierProvider);
       if (active == null) return;
-      
+
       final elapsed = active.elapsedSeconds;
       final actualMin = (elapsed / 60).round();
 
-      final result = active.completionResult ??
+      final result =
+          active.completionResult ??
           await ref.read(focusTimerNotifierProvider.notifier).completeSession();
       await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
-      
+
       final quality = FocusQualityCalculator.calculate(
         durationMinutes: (active.totalSeconds / 60).round(),
         actualMinutes: actualMin,
@@ -338,12 +351,16 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
               const SizedBox(height: AppSpacing.xxl),
               Text(
                 'Deep Work',
-                style: AppTypography.display.copyWith(color: AppColors.textPrimary),
+                style: AppTypography.display.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Grow a deep-root tree inside today\'s garden plot. Requires 90 minutes of protected attention.',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -364,7 +381,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         widget.taskTitle!,
-                        style: AppTypography.h3.copyWith(color: AppColors.emerald),
+                        style: AppTypography.h3.copyWith(
+                          color: AppColors.emerald,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -392,7 +411,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                 ),
                 child: Text(
                   'Begin Deep Work',
-                  style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -403,11 +424,17 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
     );
   }
 
-  Widget _buildTimerView(BuildContext context, FocusTimerState active, Size size) {
+  Widget _buildTimerView(
+    BuildContext context,
+    FocusTimerState active,
+    Size size,
+  ) {
     final remaining = active.totalSeconds - active.elapsedSeconds;
     final timeVal = remaining.clamp(0, active.totalSeconds);
-    final progress = active.elapsedSeconds / active.totalSeconds;
-    final liveXP = (active.elapsedSeconds / 60 * 3.2).round().clamp(0, 300); // 2x deep work multi
+    final liveXP = (active.elapsedSeconds / 60 * 3.2).round().clamp(
+      0,
+      300,
+    ); // 2x deep work multi
 
     return Scaffold(
       backgroundColor: AppColors.background0,
@@ -423,7 +450,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
-                      AppColors.focusBlue.withValues(alpha: _glowAnimation.value),
+                      AppColors.focusBlue.withValues(
+                        alpha: _glowAnimation.value,
+                      ),
                       Colors.transparent,
                     ],
                     radius: 1.2,
@@ -440,7 +469,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                   animation: _breatheAnimation,
                   builder: (context, child) {
                     return Transform.scale(
-                      scale: active.phase == FocusTimerPhase.running ? _breatheAnimation.value : 1.0,
+                      scale: active.phase == FocusTimerPhase.running
+                          ? _breatheAnimation.value
+                          : 1.0,
                       child: child,
                     );
                   },
@@ -471,7 +502,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                 const SizedBox(height: AppSpacing.xxl),
                 Text(
                   '+$liveXP XP (2x Multiplier)',
-                  style: AppTypography.monoSmall.copyWith(color: AppColors.emerald),
+                  style: AppTypography.monoSmall.copyWith(
+                    color: AppColors.emerald,
+                  ),
                 ),
                 const Spacer(flex: 1),
                 Row(
@@ -482,19 +515,25 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                     return GestureDetector(
                       onTap: () {
                         HapticFeedback.selectionClick();
-                        ref.read(focusTimerNotifierProvider.notifier).selectSound(s.key);
+                        ref
+                            .read(focusTimerNotifierProvider.notifier)
+                            .selectSound(s.key);
                       },
                       child: Container(
                         width: 48,
                         height: 48,
-                        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                        ),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isActive
                               ? AppColors.emerald.withValues(alpha: 0.15)
                               : AppColors.background2,
                           border: Border.all(
-                            color: isActive ? AppColors.emerald : Colors.transparent,
+                            color: isActive
+                                ? AppColors.emerald
+                                : Colors.transparent,
                             width: 1.5,
                           ),
                         ),
@@ -502,7 +541,9 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
                           child: Icon(
                             s.icon,
                             size: 20,
-                            color: isActive ? AppColors.emerald : AppColors.textSecondary,
+                            color: isActive
+                                ? AppColors.emerald
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ),

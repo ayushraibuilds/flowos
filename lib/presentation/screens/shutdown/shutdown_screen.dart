@@ -20,7 +20,8 @@ class ShutdownRitualScreen extends ConsumerStatefulWidget {
   const ShutdownRitualScreen({super.key});
 
   @override
-  ConsumerState<ShutdownRitualScreen> createState() => _ShutdownRitualScreenState();
+  ConsumerState<ShutdownRitualScreen> createState() =>
+      _ShutdownRitualScreenState();
 }
 
 class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
@@ -42,7 +43,8 @@ class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
     (
       title: 'Close Open Loops',
       emoji: '🔒',
-      description: 'Reply to that message. Jot down that note. Clear your mind.',
+      description:
+          'Reply to that message. Jot down that note. Clear your mind.',
       actionLabel: 'Loops closed →',
     ),
     (
@@ -54,7 +56,8 @@ class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
     (
       title: 'Gratitude',
       emoji: '🙏',
-      description: 'One thing you\'re grateful for today. You showed up. That counts.',
+      description:
+          'One thing you\'re grateful for today. You showed up. That counts.',
       actionLabel: 'Complete Ritual 🌙',
     ),
   ];
@@ -70,27 +73,29 @@ class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
 
   void _complete() async {
     HapticFeedback.heavyImpact();
-    
+
     final db = ref.read(databaseProvider);
     final xpCalc = XpCalculator(db.xpLedgerDao);
     await xpCalc.awardShutdownRitualXP();
-    
+
     final plan = await db.dailyPlansDao.getToday();
     if (plan != null) {
       await db.dailyPlansDao.completeShutdown(plan.id);
     } else {
       final planId = const Uuid().v4();
-      await db.dailyPlansDao.upsertToday(DailyPlansCompanion(
-        id: Value(planId),
-        date: Value(DateTime.now()),
-        shutdownCompleted: const Value(true),
-      ));
+      await db.dailyPlansDao.upsertToday(
+        DailyPlansCompanion(
+          id: Value(planId),
+          date: Value(DateTime.now()),
+          shutdownCompleted: const Value(true),
+        ),
+      );
     }
 
     // Record streak activity & check achievements
     await StreakService.recordActivity();
     await AchievementChecker.runCheck(db);
-    
+
     if (mounted) {
       Navigator.pop(context, true);
     }
@@ -116,8 +121,9 @@ class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
                   value: progress,
                   minHeight: 4,
                   backgroundColor: AppColors.background2,
-                  valueColor:
-                      const AlwaysStoppedAnimation(AppColors.recoveryTeal),
+                  valueColor: const AlwaysStoppedAnimation(
+                    AppColors.recoveryTeal,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -141,16 +147,11 @@ class _ShutdownRitualScreenState extends ConsumerState<ShutdownRitualScreen> {
               ),
               const Spacer(),
               // Step content
-              Text(
-                step.emoji,
-                style: const TextStyle(fontSize: 64),
-              ),
+              Text(step.emoji, style: const TextStyle(fontSize: 64)),
               const SizedBox(height: AppSpacing.xxl),
               Text(
                 step.title,
-                style: AppTypography.h1.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h1.copyWith(color: AppColors.textPrimary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.lg),

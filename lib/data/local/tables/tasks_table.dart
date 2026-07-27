@@ -32,7 +32,8 @@ class Tasks extends Table {
   TextColumn get parentTaskId => text().nullable()();
 
   // Recurrence
-  TextColumn get recurrenceRule => textEnum<RecurrenceRuleColumn>().nullable()();
+  TextColumn get recurrenceRule =>
+      textEnum<RecurrenceRuleColumn>().nullable()();
 
   // Sync
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

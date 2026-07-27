@@ -24,18 +24,26 @@ void main() {
     return ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(db),
-        launchableAppsProvider.overrideWith((ref) async => [
-          {'packageName': 'com.instagram.android', 'label': 'Instagram'},
-          {'packageName': 'com.zhiliaoapp.musically', 'label': 'TikTok'},
-        ]),
-        essentialPackagesProvider.overrideWith((ref) async => [
-          {'packageName': 'com.android.settings', 'reason': 'System settings'},
-          {'packageName': 'com.google.android.GoogleCamera', 'reason': 'Default Camera'},
-        ]),
+        launchableAppsProvider.overrideWith(
+          (ref) async => [
+            {'packageName': 'com.instagram.android', 'label': 'Instagram'},
+            {'packageName': 'com.zhiliaoapp.musically', 'label': 'TikTok'},
+          ],
+        ),
+        essentialPackagesProvider.overrideWith(
+          (ref) async => [
+            {
+              'packageName': 'com.android.settings',
+              'reason': 'System settings',
+            },
+            {
+              'packageName': 'com.google.android.GoogleCamera',
+              'reason': 'Default Camera',
+            },
+          ],
+        ),
       ],
-      child: MaterialApp(
-        home: AppPickerScreen(key: UniqueKey()),
-      ),
+      child: MaterialApp(home: AppPickerScreen(key: UniqueKey())),
     );
   }
 
@@ -54,20 +62,28 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('Legacy suggestion banner pre-checks and dismisses cleanly', (tester) async {
+    testWidgets('Legacy suggestion banner pre-checks and dismisses cleanly', (
+      tester,
+    ) async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       // Suggestions banner is visible
-      expect(find.textContaining('We found 1 apps from your earlier setup'), findsOneWidget);
+      expect(
+        find.textContaining('We found 1 apps from your earlier setup'),
+        findsOneWidget,
+      );
 
       // Pre-fill suggestions
       await tester.tap(find.text('Pre-fill'));
       await tester.pumpAndSettle();
 
       // Banner should be gone
-      expect(find.textContaining('We found 1 apps from your earlier setup'), findsNothing);
+      expect(
+        find.textContaining('We found 1 apps from your earlier setup'),
+        findsNothing,
+      );
 
       // Verify com.instagram.android is pre-filled but not yet saved in SQLite
       var saved = await db.protectedAppsDao.getAll();
@@ -78,7 +94,7 @@ void main() {
       await tester.pumpAndSettle();
 
       db = AppDatabase.forTesting(NativeDatabase.memory());
-      
+
       // Explicitly reset SharedPreferences keys for the next run
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('flowos_legacy_suggestions_shown', false);
@@ -87,12 +103,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // Suggestions banner is visible again
-      expect(find.textContaining('We found 1 apps from your earlier setup'), findsOneWidget);
+      expect(
+        find.textContaining('We found 1 apps from your earlier setup'),
+        findsOneWidget,
+      );
 
       // Tap Dismiss
       await tester.tap(find.text('Dismiss'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('We found 1 apps from your earlier setup'), findsNothing);
+      expect(
+        find.textContaining('We found 1 apps from your earlier setup'),
+        findsNothing,
+      );
 
       await db.close();
       await tester.pumpAndSettle();
@@ -107,7 +129,10 @@ void main() {
       // Find checkbox for com.instagram.android Focus toggle
       // The Distraction App row has two checkboxes: first is Focus, second is Sleep
       final checkboxes = find.byType(Checkbox);
-      expect(checkboxes, findsNWidgets(4)); // 2 checkboxes per app, 2 apps in distracting tab
+      expect(
+        checkboxes,
+        findsNWidgets(4),
+      ); // 2 checkboxes per app, 2 apps in distracting tab
 
       // Tap Instagram Focus checkbox
       await tester.tap(checkboxes.first);
@@ -127,7 +152,9 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('Essential apps appear locked in Always Available tab', (tester) async {
+    testWidgets('Essential apps appear locked in Always Available tab', (
+      tester,
+    ) async {
       db = AppDatabase.forTesting(NativeDatabase.memory());
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();

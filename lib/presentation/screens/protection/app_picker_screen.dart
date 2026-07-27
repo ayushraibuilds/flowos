@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,7 +5,6 @@ import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' show Value;
 
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../features/attention/providers/app_picker_providers.dart';
@@ -49,7 +47,10 @@ class _AppPickerScreenState extends ConsumerState<AppPickerScreen> {
       final isSleepChecked = _sleepState[pkg] ?? false;
 
       if (isFocusChecked || isSleepChecked) {
-        final existing = await db.protectedAppsDao.getByPlatformAndRef('android', pkg);
+        final existing = await db.protectedAppsDao.getByPlatformAndRef(
+          'android',
+          pkg,
+        );
         final entryId = existing?.id ?? const Uuid().v4();
 
         await db.protectedAppsDao.upsertApp(
@@ -66,7 +67,10 @@ class _AppPickerScreenState extends ConsumerState<AppPickerScreen> {
         );
       } else {
         // Deselecting both deletes or marks unprotected
-        final existing = await db.protectedAppsDao.getByPlatformAndRef('android', pkg);
+        final existing = await db.protectedAppsDao.getByPlatformAndRef(
+          'android',
+          pkg,
+        );
         if (existing != null) {
           await db.protectedAppsDao.updateFlags(
             platform: 'android',
@@ -125,7 +129,8 @@ class _AppPickerScreenState extends ConsumerState<AppPickerScreen> {
       ),
       body: protectedAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error loading policies: $err')),
+        error: (err, stack) =>
+            Center(child: Text('Error loading policies: $err')),
         data: (savedApps) {
           _initializeState(savedApps);
           return AppPickerEditor(

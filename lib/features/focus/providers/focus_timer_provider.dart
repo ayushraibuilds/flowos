@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,7 +33,8 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
   static const _prefStartedAtUtc = 'flowos_active_started_at_utc';
   static const _prefPausedAtUtc = 'flowos_active_paused_at_utc';
   static const _prefExpectedEndTimeUtc = 'flowos_active_expected_end_time_utc';
-  static const _prefAccumulatedRunningSeconds = 'flowos_active_accumulated_running_seconds';
+  static const _prefAccumulatedRunningSeconds =
+      'flowos_active_accumulated_running_seconds';
   static const _prefLastResumedAtUtc = 'flowos_active_last_resumed_at_utc';
   static const _prefSelectedSound = 'flowos_active_selected_sound';
   static const _prefSeedKind = 'flowos_active_seed_kind';
@@ -64,7 +64,10 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     // Verify session existence and active status in DB (source of truth reconciliation)
     final db = _ref.read(databaseProvider);
     final dbSession = await db.focusSessionsDao.getById(sessionId);
-    if (dbSession == null || (dbSession.completedAt != null && (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused))) {
+    if (dbSession == null ||
+        (dbSession.completedAt != null &&
+            (phase == FocusTimerPhase.running ||
+                phase == FocusTimerPhase.paused))) {
       // Conflicting/stale pref payload -> clear
       await _clearPrefs();
       state = null;
@@ -74,7 +77,8 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     // Rehydrate properties
     final taskTitle = prefs.getString(_prefTaskTitle);
     final taskId = prefs.getString(_prefTaskId);
-    final sessionTypeStr = prefs.getString(_prefSessionType) ?? SessionTypeColumn.pomodoro.name;
+    final sessionTypeStr =
+        prefs.getString(_prefSessionType) ?? SessionTypeColumn.pomodoro.name;
     final sessionType = SessionTypeColumn.values.firstWhere(
       (e) => e.name == sessionTypeStr,
       orElse: () => SessionTypeColumn.pomodoro,
@@ -83,20 +87,29 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     final elapsedSeconds = prefs.getInt(_prefElapsedSeconds) ?? 0;
     final pauseCount = prefs.getInt(_prefPauseCount) ?? 0;
     final backgroundCount = prefs.getInt(_prefBackgroundCount) ?? 0;
-    
+
     final startedAtStr = prefs.getString(_prefStartedAtUtc);
-    final startedAtUtc = startedAtStr != null ? DateTime.parse(startedAtStr).toUtc() : DateTime.now().toUtc();
-    
+    final startedAtUtc = startedAtStr != null
+        ? DateTime.parse(startedAtStr).toUtc()
+        : DateTime.now().toUtc();
+
     final pausedAtStr = prefs.getString(_prefPausedAtUtc);
-    final pausedAtUtc = pausedAtStr != null ? DateTime.parse(pausedAtStr).toUtc() : null;
+    final pausedAtUtc = pausedAtStr != null
+        ? DateTime.parse(pausedAtStr).toUtc()
+        : null;
 
     final expectedEndTimeStr = prefs.getString(_prefExpectedEndTimeUtc);
-    final expectedEndTimeUtc = expectedEndTimeStr != null ? DateTime.parse(expectedEndTimeStr).toUtc() : null;
+    final expectedEndTimeUtc = expectedEndTimeStr != null
+        ? DateTime.parse(expectedEndTimeStr).toUtc()
+        : null;
 
-    final accumulatedRunningSeconds = prefs.getInt(_prefAccumulatedRunningSeconds) ?? 0;
-    
+    final accumulatedRunningSeconds =
+        prefs.getInt(_prefAccumulatedRunningSeconds) ?? 0;
+
     final lastResumedAtStr = prefs.getString(_prefLastResumedAtUtc);
-    final lastResumedAtUtc = lastResumedAtStr != null ? DateTime.parse(lastResumedAtStr).toUtc() : null;
+    final lastResumedAtUtc = lastResumedAtStr != null
+        ? DateTime.parse(lastResumedAtStr).toUtc()
+        : null;
 
     final selectedSound = prefs.getString(_prefSelectedSound) ?? 'none';
     final seedKind = prefs.getString(_prefSeedKind) ?? 'flower';
@@ -134,13 +147,18 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     );
 
     final now = DateTime.now().toUtc();
-    final isCountdown = sessionType != SessionTypeColumn.custom; // Custom = Flowtime
+    final isCountdown =
+        sessionType != SessionTypeColumn.custom; // Custom = Flowtime
 
-    if (isCountdown && expectedEndTimeUtc != null && (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused)) {
+    if (isCountdown &&
+        expectedEndTimeUtc != null &&
+        (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused)) {
       // 1. Check stale countdown session (startedAt + duration + 5 mins limit)
       final staleLimit = expectedEndTimeUtc.add(const Duration(minutes: 5));
       if (now.isAfter(staleLimit)) {
-        debugPrint('⏳ FocusTimer: Stale countdown session detected. Auto-finalizing via stopSession().');
+        debugPrint(
+          '⏳ FocusTimer: Stale countdown session detected. Auto-finalizing via stopSession().',
+        );
         final service = _ref.read(focusSessionServiceProvider);
         await service.stopSession(
           sessionId: sessionId,
@@ -158,7 +176,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
 
       // 2. Check if naturally completed while backgrounded/closed
       if (now.isAfter(expectedEndTimeUtc)) {
-        debugPrint('⏳ FocusTimer: Countdown completed naturally while closed. Finalizing.');
+        debugPrint(
+          '⏳ FocusTimer: Countdown completed naturally while closed. Finalizing.',
+        );
         final service = _ref.read(focusSessionServiceProvider);
         final result = await service.completeSession(
           sessionId: sessionId,
@@ -179,20 +199,28 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
 
       // 3. Catch up elapsed timer
       if (phase == FocusTimerPhase.running) {
-        final elapsed = totalSeconds - expectedEndTimeUtc.difference(now).inSeconds;
-        restored = restored.copyWith(elapsedSeconds: elapsed.clamp(0, totalSeconds));
+        final elapsed =
+            totalSeconds - expectedEndTimeUtc.difference(now).inSeconds;
+        restored = restored.copyWith(
+          elapsedSeconds: elapsed.clamp(0, totalSeconds),
+        );
       }
-    } else if (!isCountdown && (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused)) {
+    } else if (!isCountdown &&
+        (phase == FocusTimerPhase.running || phase == FocusTimerPhase.paused)) {
       // Flowtime stale/resume checks
       if (phase == FocusTimerPhase.running && lastResumedAtUtc != null) {
         // Catch up Flowtime elapsed seconds
-        final running = accumulatedRunningSeconds + now.difference(lastResumedAtUtc).inSeconds;
+        final running =
+            accumulatedRunningSeconds +
+            now.difference(lastResumedAtUtc).inSeconds;
         restored = restored.copyWith(elapsedSeconds: running);
-        
+
         // Auto-finalize flowtime if lease expired / closed for too long (> 15 minutes)
         final lastActive = lastResumedAtUtc;
         if (now.difference(lastActive).inMinutes > 15) {
-          debugPrint('⏳ FocusTimer: Flowtime closed for >15m without updates. Finalizing.');
+          debugPrint(
+            '⏳ FocusTimer: Flowtime closed for >15m without updates. Finalizing.',
+          );
           final service = _ref.read(focusSessionServiceProvider);
           await service.completeSession(
             sessionId: sessionId,
@@ -218,7 +246,9 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       final pausedDuration = now.difference(pausedAtUtc);
       final isNextDay = now.toLocal().day != pausedAtUtc.toLocal().day;
       if (pausedDuration.inMinutes > 60 || isNextDay) {
-        debugPrint('⏳ FocusTimer: Session paused for too long, auto-finalizing.');
+        debugPrint(
+          '⏳ FocusTimer: Session paused for too long, auto-finalizing.',
+        );
         final service = _ref.read(focusSessionServiceProvider);
         await service.stopSession(
           sessionId: sessionId,
@@ -251,12 +281,19 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     String selectedSound = 'none',
     ProtectionMode? protectionMode,
   }) async {
-    if (state != null && state!.phase != FocusTimerPhase.idle && state!.phase != FocusTimerPhase.stopped && state!.phase != FocusTimerPhase.completed) {
-      debugPrint('⚠️ FocusTimer: Rejecting start request. A session is already active.');
+    if (state != null &&
+        state!.phase != FocusTimerPhase.idle &&
+        state!.phase != FocusTimerPhase.stopped &&
+        state!.phase != FocusTimerPhase.completed) {
+      debugPrint(
+        '⚠️ FocusTimer: Rejecting start request. A session is already active.',
+      );
       return false;
     }
 
-    final mode = protectionMode ?? _ref.read(settingsProvider).focusProtection.toProtectionMode();
+    final mode =
+        protectionMode ??
+        _ref.read(settingsProvider).focusProtection.toProtectionMode();
 
     final service = _ref.read(focusSessionServiceProvider);
     final sessionId = await service.startSession(
@@ -269,14 +306,16 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     // Re-load the database record to get the exact generated seed Kind and Variant
     final db = _ref.read(databaseProvider);
     final dbSession = await db.focusSessionsDao.getById(sessionId);
-    
+
     final seedKind = dbSession?.gardenSeedKind ?? 'flower';
     final seedVariant = dbSession?.gardenVariant ?? 0;
     final seedEmoji = dbSession?.gardenSeedEmoji ?? '🌸';
 
     final totalSeconds = durationMinutes * 60;
     final now = DateTime.now().toUtc();
-    final expectedEndTimeUtc = type != SessionTypeColumn.custom ? now.add(Duration(seconds: totalSeconds)) : null;
+    final expectedEndTimeUtc = type != SessionTypeColumn.custom
+        ? now.add(Duration(seconds: totalSeconds))
+        : null;
 
     final newState = FocusTimerState(
       sessionId: sessionId,
@@ -317,8 +356,11 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     _stopTickers();
 
     final now = DateTime.now().toUtc();
-    final accumulated = current.sessionType == SessionTypeColumn.custom && current.lastResumedAtUtc != null
-        ? current.accumulatedRunningSeconds + now.difference(current.lastResumedAtUtc!).inSeconds
+    final accumulated =
+        current.sessionType == SessionTypeColumn.custom &&
+            current.lastResumedAtUtc != null
+        ? current.accumulatedRunningSeconds +
+              now.difference(current.lastResumedAtUtc!).inSeconds
         : current.accumulatedRunningSeconds;
 
     final updated = current.copyWith(
@@ -348,14 +390,20 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
   /// Resume current paused timer session.
   Future<void> resumeSession() async {
     final current = state;
-    if (current == null || current.phase != FocusTimerPhase.paused || current.pausedAtUtc == null) return;
+    if (current == null ||
+        current.phase != FocusTimerPhase.paused ||
+        current.pausedAtUtc == null) {
+      return;
+    }
 
     final now = DateTime.now().toUtc();
     final pausedSeconds = now.difference(current.pausedAtUtc!).inSeconds;
 
     final DateTime? expectedEnd;
     if (current.expectedEndTimeUtc != null) {
-      expectedEnd = current.expectedEndTimeUtc!.add(Duration(seconds: pausedSeconds));
+      expectedEnd = current.expectedEndTimeUtc!.add(
+        Duration(seconds: pausedSeconds),
+      );
     } else {
       expectedEnd = null;
     }
@@ -376,11 +424,13 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       final db = _ref.read(databaseProvider);
       final protectedApps = await db.protectedAppsDao.getFocusProtected();
       final packages = protectedApps.map((a) => a.appRef).toSet();
-      
+
       final writer = const SharedPrefsPolicyWriter();
       final currentPolicies = await writer.getActivePolicies();
       final existingBreaks = currentPolicies?.focus?.scopedBreaks ?? [];
-      final validBreaks = existingBreaks.where((b) => b.expiresAt.isAfter(DateTime.now())).toList();
+      final validBreaks = existingBreaks
+          .where((b) => b.expiresAt.isAfter(DateTime.now()))
+          .toList();
 
       final policy = SourcePolicy(
         sessionId: current.sessionId,
@@ -437,7 +487,8 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       return FocusSessionResult(xpEarned: 0, newlyUnlockedAchievements: []);
     }
 
-    if (current.phase == FocusTimerPhase.completed && current.completionResult != null) {
+    if (current.phase == FocusTimerPhase.completed &&
+        current.completionResult != null) {
       return current.completionResult!;
     }
 
@@ -510,13 +561,17 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       if (current.sessionType == SessionTypeColumn.custom) {
         // Flowtime increment
         elapsed = current.lastResumedAtUtc != null
-            ? current.accumulatedRunningSeconds + now.difference(current.lastResumedAtUtc!).inSeconds
+            ? current.accumulatedRunningSeconds +
+                  now.difference(current.lastResumedAtUtc!).inSeconds
             : current.elapsedSeconds;
       } else {
         // Countdown increment
         if (current.expectedEndTimeUtc != null) {
           final diff = current.expectedEndTimeUtc!.difference(now).inSeconds;
-          elapsed = (current.totalSeconds - diff).clamp(0, current.totalSeconds);
+          elapsed = (current.totalSeconds - diff).clamp(
+            0,
+            current.totalSeconds,
+          );
           if (elapsed >= current.totalSeconds) {
             completeSession();
             return;
@@ -539,7 +594,10 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       }
       try {
         final writer = const SharedPrefsPolicyWriter();
-        await writer.renewLease(PolicySource.focus, DateTime.now().add(const Duration(minutes: 2)));
+        await writer.renewLease(
+          PolicySource.focus,
+          DateTime.now().add(const Duration(minutes: 2)),
+        );
       } catch (_) {}
     });
   }
@@ -554,8 +612,12 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
   Future<void> _saveToPrefs(FocusTimerState s) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefSessionId, s.sessionId);
-    if (s.taskId != null) await prefs.setString(_prefTaskId, s.taskId!);
-    if (s.taskTitle != null) await prefs.setString(_prefTaskTitle, s.taskTitle!);
+    if (s.taskId != null) {
+      await prefs.setString(_prefTaskId, s.taskId!);
+    }
+    if (s.taskTitle != null) {
+      await prefs.setString(_prefTaskTitle, s.taskTitle!);
+    }
     await prefs.setString(_prefSessionType, s.sessionType.name);
     await prefs.setString(_prefPhase, s.phase.name);
     await prefs.setInt(_prefTotalSeconds, s.totalSeconds);
@@ -563,10 +625,25 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await prefs.setInt(_prefPauseCount, s.pauseCount);
     await prefs.setInt(_prefBackgroundCount, s.backgroundCount);
     await prefs.setString(_prefStartedAtUtc, s.startedAtUtc.toIso8601String());
-    if (s.pausedAtUtc != null) await prefs.setString(_prefPausedAtUtc, s.pausedAtUtc!.toIso8601String());
-    if (s.expectedEndTimeUtc != null) await prefs.setString(_prefExpectedEndTimeUtc, s.expectedEndTimeUtc!.toIso8601String());
-    await prefs.setInt(_prefAccumulatedRunningSeconds, s.accumulatedRunningSeconds);
-    if (s.lastResumedAtUtc != null) await prefs.setString(_prefLastResumedAtUtc, s.lastResumedAtUtc!.toIso8601String());
+    if (s.pausedAtUtc != null) {
+      await prefs.setString(_prefPausedAtUtc, s.pausedAtUtc!.toIso8601String());
+    }
+    if (s.expectedEndTimeUtc != null) {
+      await prefs.setString(
+        _prefExpectedEndTimeUtc,
+        s.expectedEndTimeUtc!.toIso8601String(),
+      );
+    }
+    await prefs.setInt(
+      _prefAccumulatedRunningSeconds,
+      s.accumulatedRunningSeconds,
+    );
+    if (s.lastResumedAtUtc != null) {
+      await prefs.setString(
+        _prefLastResumedAtUtc,
+        s.lastResumedAtUtc!.toIso8601String(),
+      );
+    }
     await prefs.setString(_prefSelectedSound, s.selectedSound);
     await prefs.setString(_prefSeedKind, s.gardenSeedKind);
     await prefs.setInt(_prefSeedVariant, s.gardenVariant);
@@ -605,9 +682,10 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
 }
 
 /// Global provider for unified focus timer.
-final focusTimerNotifierProvider = StateNotifierProvider<FocusTimerNotifier, FocusTimerState?>((ref) {
-  return FocusTimerNotifier(ref);
-});
+final focusTimerNotifierProvider =
+    StateNotifierProvider<FocusTimerNotifier, FocusTimerState?>((ref) {
+      return FocusTimerNotifier(ref);
+    });
 
 /// Global provider for tracking whether rest/recovery is active.
 final isRecoveryActiveProvider = StateProvider<bool>((ref) => false);

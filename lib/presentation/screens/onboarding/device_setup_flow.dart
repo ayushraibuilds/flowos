@@ -12,7 +12,9 @@ class DeviceSetupFlow extends ConsumerWidget {
     return Scaffold(
       body: OnboardingConnectScreen(
         onComplete: () async {
-          await ref.read(userProfileProvider.notifier).markDeviceSetupAcknowledged();
+          await ref
+              .read(userProfileProvider.notifier)
+              .markDeviceSetupAcknowledged();
           if (context.mounted) {
             context.go('/home');
           }

@@ -102,11 +102,11 @@ abstract final class XpConstants {
 
   /// Level tier names
   static const tiers = [
-    '🌱 Seedling',      // 0-4
-    '⚡ Focuser',        // 5-14
-    '🔥 Flow Rider',    // 15-24
-    '🎯 Deep Worker',   // 25-34
-    '🧠 Mind Master',   // 35-49
+    '🌱 Seedling', // 0-4
+    '⚡ Focuser', // 5-14
+    '🔥 Flow Rider', // 15-24
+    '🎯 Deep Worker', // 25-34
+    '🧠 Mind Master', // 35-49
     '🌌 Flow State God', // 50+
   ];
 

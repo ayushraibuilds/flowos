@@ -28,7 +28,9 @@ class LocalBrainDumpParser {
     for (int i = 0; i < items.length; i++) {
       final titleRaw = items[i];
       // Title ≤ 60 chars
-      final title = titleRaw.length > 60 ? '${titleRaw.substring(0, 57)}...' : titleRaw;
+      final title = titleRaw.length > 60
+          ? '${titleRaw.substring(0, 57)}...'
+          : titleRaw;
 
       // Energy heuristic: "write, code, research" → deep; "email, call, schedule" → light; else medium
       final lowerTitle = title.toLowerCase();
@@ -74,14 +76,16 @@ class LocalBrainDumpParser {
         }
       }
 
-      tasks.add(BrainDumpTask(
-        title: title,
-        energyLevel: energyLevel,
-        estimatedMinutes: estimatedMinutes,
-        frictionScore: frictionScore,
-        suggestedOrder: 0,
-        reasoning: 'Heuristic-based offline fallback sorting.',
-      ));
+      tasks.add(
+        BrainDumpTask(
+          title: title,
+          energyLevel: energyLevel,
+          estimatedMinutes: estimatedMinutes,
+          frictionScore: frictionScore,
+          suggestedOrder: 0,
+          reasoning: 'Heuristic-based offline fallback sorting.',
+        ),
+      );
     }
 
     // Sort by current energy:
@@ -127,14 +131,16 @@ class LocalBrainDumpParser {
     final List<BrainDumpTask> sortedTasks = [];
     for (int i = 0; i < tasks.length; i++) {
       final t = tasks[i];
-      sortedTasks.add(BrainDumpTask(
-        title: t.title,
-        energyLevel: t.energyLevel,
-        estimatedMinutes: t.estimatedMinutes,
-        frictionScore: t.frictionScore,
-        suggestedOrder: i + 1,
-        reasoning: t.reasoning,
-      ));
+      sortedTasks.add(
+        BrainDumpTask(
+          title: t.title,
+          energyLevel: t.energyLevel,
+          estimatedMinutes: t.estimatedMinutes,
+          frictionScore: t.frictionScore,
+          suggestedOrder: i + 1,
+          reasoning: t.reasoning,
+        ),
+      );
     }
 
     return sortedTasks;

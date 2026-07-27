@@ -25,7 +25,8 @@ class ScoreRingWidget extends StatefulWidget {
   State<ScoreRingWidget> createState() => _ScoreRingWidgetState();
 }
 
-class _ScoreRingWidgetState extends State<ScoreRingWidget> with SingleTickerProviderStateMixin {
+class _ScoreRingWidgetState extends State<ScoreRingWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _revealAnimation;
 
@@ -41,7 +42,11 @@ class _ScoreRingWidgetState extends State<ScoreRingWidget> with SingleTickerProv
       curve: Curves.easeOutCubic,
     );
 
-    final reduceMotion = WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    final reduceMotion = WidgetsBinding
+        .instance
+        .platformDispatcher
+        .accessibilityFeatures
+        .disableAnimations;
     if (reduceMotion) {
       _animController.value = 1.0;
     } else {
@@ -136,7 +141,9 @@ class _ScoreRingWidgetState extends State<ScoreRingWidget> with SingleTickerProv
             Text(
               widget.result.coverageLabel,
               style: AppTypography.bodySmall.copyWith(
-                color: widget.result.isIncomplete ? AppColors.warningAmber : AppColors.emerald,
+                color: widget.result.isIncomplete
+                    ? AppColors.warningAmber
+                    : AppColors.emerald,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -148,14 +155,14 @@ class _ScoreRingWidgetState extends State<ScoreRingWidget> with SingleTickerProv
 
   void _handleTap(TapDownDetails details, BuildContext context) {
     if (widget.onPillarTapped == null) return;
-    
+
     // Determine which sector was tapped based on angle from center
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final center = Offset(renderBox.size.width / 2, renderBox.size.height / 2);
     final tapPosition = renderBox.globalToLocal(details.globalPosition);
     final dx = tapPosition.dx - center.dx;
     final dy = tapPosition.dy - center.dy;
-    
+
     // Calculate angle in radians: -pi to pi (starting from x axis)
     double angle = math.atan2(dy, dx);
     // Convert to 0 to 2*pi range
@@ -213,7 +220,10 @@ class _ScoreRingPainter extends CustomPainter {
     // Focus Pillar (Focus points raw range is 0-35)
     final double focusPercent = (result.focusPoints / 0.35) / 100.0;
     _drawSegment(
-      canvas, center, radius, strokeWidth,
+      canvas,
+      center,
+      radius,
+      strokeWidth,
       startAngle: startFocus,
       sweepAngle: segmentSweep,
       fillPercent: focusPercent * revealProgress,
@@ -224,7 +234,10 @@ class _ScoreRingPainter extends CustomPainter {
     // Intent Pillar (Intent points raw range is 0-25)
     final double intentPercent = (result.intentPoints / 0.25) / 100.0;
     _drawSegment(
-      canvas, center, radius, strokeWidth,
+      canvas,
+      center,
+      radius,
+      strokeWidth,
       startAngle: startIntent,
       sweepAngle: segmentSweep,
       fillPercent: intentPercent * revealProgress,
@@ -235,7 +248,10 @@ class _ScoreRingPainter extends CustomPainter {
     // Care Pillar (Care points raw range is 0-15)
     final double carePercent = (result.carePoints / 0.15) / 100.0;
     _drawSegment(
-      canvas, center, radius, strokeWidth,
+      canvas,
+      center,
+      radius,
+      strokeWidth,
       startAngle: startCare,
       sweepAngle: segmentSweep,
       fillPercent: carePercent * revealProgress,
@@ -247,7 +263,10 @@ class _ScoreRingPainter extends CustomPainter {
     if (result.isIncomplete || result.attentionPoints == null) {
       // Draw as a dashed gray track with no fill
       _drawDashedSegment(
-        canvas, center, radius, strokeWidth,
+        canvas,
+        center,
+        radius,
+        strokeWidth,
         startAngle: startAttention,
         sweepAngle: segmentSweep,
         color: AppColors.textTertiary.withValues(alpha: 0.25),
@@ -256,7 +275,10 @@ class _ScoreRingPainter extends CustomPainter {
     } else {
       final double attentionPercent = (result.attentionPoints! / 0.25) / 100.0;
       _drawSegment(
-        canvas, center, radius, strokeWidth,
+        canvas,
+        center,
+        radius,
+        strokeWidth,
         startAngle: startAttention,
         sweepAngle: segmentSweep,
         fillPercent: attentionPercent * revealProgress,
@@ -267,7 +289,10 @@ class _ScoreRingPainter extends CustomPainter {
   }
 
   void _drawSegment(
-    Canvas canvas, Offset center, double radius, double strokeWidth, {
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double strokeWidth, {
     required double startAngle,
     required double sweepAngle,
     required double fillPercent,
@@ -308,7 +333,10 @@ class _ScoreRingPainter extends CustomPainter {
   }
 
   void _drawDashedSegment(
-    Canvas canvas, Offset center, double radius, double strokeWidth, {
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double strokeWidth, {
     required double startAngle,
     required double sweepAngle,
     required Color color,
@@ -321,7 +349,7 @@ class _ScoreRingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final rect = Rect.fromCircle(center: center, radius: radius);
-    
+
     // Draw arc with dash pattern
     const int dashCount = 8;
     final dashSweep = sweepAngle / (dashCount * 2 - 1);

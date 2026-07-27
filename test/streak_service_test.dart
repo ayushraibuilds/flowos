@@ -29,7 +29,8 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       // Simulate yesterday
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
-      final yesterdayKey = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+      final yesterdayKey =
+          '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
 
       await prefs.setInt('flowos_streak_count', 1);
       await prefs.setString('flowos_streak_last_active', yesterdayKey);
@@ -43,7 +44,8 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       // Simulate day before yesterday (missed yesterday)
       final twoDaysAgo = DateTime.now().subtract(const Duration(days: 2));
-      final twoDaysAgoKey = '${twoDaysAgo.year}-${twoDaysAgo.month.toString().padLeft(2, '0')}-${twoDaysAgo.day.toString().padLeft(2, '0')}';
+      final twoDaysAgoKey =
+          '${twoDaysAgo.year}-${twoDaysAgo.month.toString().padLeft(2, '0')}-${twoDaysAgo.day.toString().padLeft(2, '0')}';
 
       await prefs.setInt('flowos_streak_count', 5);
       await prefs.setString('flowos_streak_last_active', twoDaysAgoKey);
@@ -60,7 +62,8 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       // Simulate 3 days ago (missed 2 days)
       final threeDaysAgo = DateTime.now().subtract(const Duration(days: 3));
-      final threeDaysAgoKey = '${threeDaysAgo.year}-${threeDaysAgo.month.toString().padLeft(2, '0')}-${threeDaysAgo.day.toString().padLeft(2, '0')}';
+      final threeDaysAgoKey =
+          '${threeDaysAgo.year}-${threeDaysAgo.month.toString().padLeft(2, '0')}-${threeDaysAgo.day.toString().padLeft(2, '0')}';
 
       await prefs.setInt('flowos_streak_count', 5);
       await prefs.setString('flowos_streak_last_active', threeDaysAgoKey);
@@ -81,7 +84,8 @@ void main() {
       await prefs.setInt('flowos_best_streak', 3);
       // Simulate yesterday
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
-      final yesterdayKey = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+      final yesterdayKey =
+          '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
       await prefs.setString('flowos_streak_last_active', yesterdayKey);
 
       await StreakService.recordActivity();
@@ -89,18 +93,29 @@ void main() {
       expect(await StreakService.getBestStreak(), 6);
     });
 
-    test('consecutive days calculation works across simulated DST boundaries', () {
-      // Simulate a spring-forward transition where lastActive is 2026-03-08 and today is 2026-03-09
-      final lastActive = '2026-03-08';
-      final lastDateLocal = DateTime.parse(lastActive);
-      final lastDateUtc = DateTime.utc(lastDateLocal.year, lastDateLocal.month, lastDateLocal.day);
-      
-      // Simulate today being 2026-03-09 12:30 AM
-      final simulatedNow = DateTime(2026, 3, 9, 0, 30);
-      final todayUtc = DateTime.utc(simulatedNow.year, simulatedNow.month, simulatedNow.day);
-      
-      final daysSince = todayUtc.difference(lastDateUtc).inDays;
-      expect(daysSince, 1);
-    });
+    test(
+      'consecutive days calculation works across simulated DST boundaries',
+      () {
+        // Simulate a spring-forward transition where lastActive is 2026-03-08 and today is 2026-03-09
+        final lastActive = '2026-03-08';
+        final lastDateLocal = DateTime.parse(lastActive);
+        final lastDateUtc = DateTime.utc(
+          lastDateLocal.year,
+          lastDateLocal.month,
+          lastDateLocal.day,
+        );
+
+        // Simulate today being 2026-03-09 12:30 AM
+        final simulatedNow = DateTime(2026, 3, 9, 0, 30);
+        final todayUtc = DateTime.utc(
+          simulatedNow.year,
+          simulatedNow.month,
+          simulatedNow.day,
+        );
+
+        final daysSince = todayUtc.difference(lastDateUtc).inDays;
+        expect(daysSince, 1);
+      },
+    );
   });
 }

@@ -21,22 +21,22 @@ class PendingTrigger {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'packageName': packageName,
-        'triggeredAt': triggeredAt,
-        'source': source,
-        'claimed': claimed,
-        'bypassAllowed': bypassAllowed,
-      };
+    'id': id,
+    'packageName': packageName,
+    'triggeredAt': triggeredAt,
+    'source': source,
+    'claimed': claimed,
+    'bypassAllowed': bypassAllowed,
+  };
 
   factory PendingTrigger.fromJson(Map<String, dynamic> json) => PendingTrigger(
-        id: json['id'] as String,
-        packageName: json['packageName'] as String,
-        triggeredAt: json['triggeredAt'] as int,
-        source: json['source'] as String? ?? 'focus',
-        claimed: json['claimed'] as bool? ?? false,
-        bypassAllowed: json['bypassAllowed'] as bool? ?? true,
-      );
+    id: json['id'] as String,
+    packageName: json['packageName'] as String,
+    triggeredAt: json['triggeredAt'] as int,
+    source: json['source'] as String? ?? 'focus',
+    claimed: json['claimed'] as bool? ?? false,
+    bypassAllowed: json['bypassAllowed'] as bool? ?? true,
+  );
 }
 
 class PendingNudge {
@@ -64,22 +64,22 @@ class PendingNudge {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'packageName': packageName,
-        'appLabel': appLabel,
-        'sessionId': sessionId,
-        'source': source,
-        'occurredAt': occurredAt,
-        'expiresAt': expiresAt,
-      };
+    'id': id,
+    'packageName': packageName,
+    'appLabel': appLabel,
+    'sessionId': sessionId,
+    'source': source,
+    'occurredAt': occurredAt,
+    'expiresAt': expiresAt,
+  };
 
   factory PendingNudge.fromJson(Map<String, dynamic> json) => PendingNudge(
-        id: json['id'] as String,
-        packageName: json['packageName'] as String,
-        appLabel: json['appLabel'] as String? ?? json['packageName'] as String,
-        sessionId: json['sessionId'] as String? ?? '',
-        source: json['source'] as String? ?? 'focus',
-        occurredAt: json['occurredAt'] as int,
-        expiresAt: json['expiresAt'] as int,
-      );
+    id: json['id'] as String,
+    packageName: json['packageName'] as String,
+    appLabel: json['appLabel'] as String? ?? json['packageName'] as String,
+    sessionId: json['sessionId'] as String? ?? '',
+    source: json['source'] as String? ?? 'focus',
+    occurredAt: json['occurredAt'] as int,
+    expiresAt: json['expiresAt'] as int,
+  );
 }

@@ -120,16 +120,14 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/home',
           name: 'home',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: HomeScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: HomeScreen()),
         ),
         GoRoute(
           path: '/tasks',
           name: 'tasks',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: TasksScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: TasksScreen()),
         ),
         GoRoute(
           path: '/focus',
@@ -148,9 +146,8 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/profile',
           name: 'profile',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: ProfileScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ProfileScreen()),
         ),
       ],
     ),
@@ -204,9 +201,8 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/focus-ritual',
       name: 'focusRitual',
-      builder: (context, state) => FocusRitualScreen(
-        onComplete: () => Navigator.pop(context),
-      ),
+      builder: (context, state) =>
+          FocusRitualScreen(onComplete: () => Navigator.pop(context)),
     ),
     GoRoute(
       path: '/shutdown',
@@ -292,9 +288,7 @@ final appRouter = GoRouter(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
             child: Center(
-              child: SingleChildScrollView(
-                child: EnergyCheckInSheet(),
-              ),
+              child: SingleChildScrollView(child: EnergyCheckInSheet()),
             ),
           ),
         ),
@@ -356,7 +350,8 @@ class _AppShell extends ConsumerWidget {
                     final service = ref.read(protectionPolicyServiceProvider);
                     final policies = await service.getActivePolicies();
                     if (policies?.focus != null) {
-                      if (policies!.focus!.protectionMode == ProtectionMode.deep) {
+                      if (policies!.focus!.protectionMode ==
+                          ProtectionMode.deep) {
                         if (context.mounted) {
                           context.go('/deep-work');
                         }
@@ -406,20 +401,23 @@ class _AppShell extends ConsumerWidget {
                           size: 24,
                           color: isActive
                               ? theme.colorScheme.primary
-                              : theme.bottomNavigationBarTheme
-                                  .unselectedItemColor,
+                              : theme
+                                    .bottomNavigationBarTheme
+                                    .unselectedItemColor,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           tab.label,
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight:
-                                isActive ? FontWeight.w500 : FontWeight.w400,
+                            fontWeight: isActive
+                                ? FontWeight.w500
+                                : FontWeight.w400,
                             color: isActive
                                 ? theme.colorScheme.primary
-                                : theme.bottomNavigationBarTheme
-                                    .unselectedItemColor,
+                                : theme
+                                      .bottomNavigationBarTheme
+                                      .unselectedItemColor,
                           ),
                         ),
                       ],

@@ -49,7 +49,9 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
 
     HapticFeedback.mediumImpact();
     final notifier = ref.read(userProfileProvider.notifier);
-    final updated = ref.read(userProfileProvider).copyWith(
+    final updated = ref
+        .read(userProfileProvider)
+        .copyWith(
           goals: _selectedGoals,
           preferredFocusMinutes: _preferredFocusMinutes,
         );
@@ -97,12 +99,16 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                   children: [
                     Text(
                       'Main Goals',
-                      style: AppTypography.h3.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTypography.h3.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Select at least one priority.',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Wrap(
@@ -120,7 +126,9 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                               }
                             });
                           },
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusPill,
+                          ),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
@@ -131,7 +139,9 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                               color: isSelected
                                   ? AppColors.emerald.withValues(alpha: 0.1)
                                   : AppColors.background2,
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusPill,
+                              ),
                               border: Border.all(
                                 color: isSelected
                                     ? AppColors.emerald
@@ -141,8 +151,12 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                             child: Text(
                               goal,
                               style: AppTypography.body.copyWith(
-                                color: isSelected ? AppColors.emerald : AppColors.textSecondary,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                color: isSelected
+                                    ? AppColors.emerald
+                                    : AppColors.textSecondary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
                               ),
                             ),
                           ),
@@ -154,12 +168,16 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
 
                     Text(
                       'Default focus duration',
-                      style: AppTypography.h3.copyWith(fontWeight: FontWeight.bold),
+                      style: AppTypography.h3.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       'Focus sessions will default to this duration.',
-                      style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Row(
@@ -167,22 +185,30 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                         final isSelected = _preferredFocusMinutes == duration;
                         return Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
                             child: InkWell(
                               onTap: () {
                                 setState(() {
                                   _preferredFocusMinutes = duration;
                                 });
                               },
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusCard,
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? AppColors.emerald.withValues(alpha: 0.1)
                                       : AppColors.background2,
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusCard,
+                                  ),
                                   border: Border.all(
                                     color: isSelected
                                         ? AppColors.emerald
@@ -193,8 +219,12 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                                   child: Text(
                                     '${duration}m',
                                     style: AppTypography.body.copyWith(
-                                      color: isSelected ? AppColors.emerald : AppColors.textSecondary,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                      color: isSelected
+                                          ? AppColors.emerald
+                                          : AppColors.textSecondary,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
                                     ),
                                   ),
                                 ),
@@ -221,13 +251,12 @@ class _UpdateRhythmScreenState extends ConsumerState<UpdateRhythmScreen> {
                     backgroundColor: AppColors.emerald,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Save Settings',
-                    style: AppTypography.button,
-                  ),
+                  child: Text('Save Settings', style: AppTypography.button),
                 ),
               ),
             ),

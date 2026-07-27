@@ -97,7 +97,8 @@ final todayPlanProvider = StreamProvider<DailyPlan?>((ref) {
 
 /// Watch today's scroll total
 final dailyScrollTotalProvider = StreamProvider<int>((ref) {
-  return ref.watch(attentionDataRepositoryProvider)
+  return ref
+      .watch(attentionDataRepositoryProvider)
       .watchTodayAttention()
       .map((day) => day.effectiveDistractingMinutes);
 });

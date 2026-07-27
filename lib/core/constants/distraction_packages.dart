@@ -18,10 +18,10 @@ class DistractionPackages {
   /// Known browser packages — we check all of these when the user selects "Browser".
   static const List<String> browserPackages = [
     'com.android.chrome',
-    'com.sec.android.app.sbrowser',    // Samsung Internet
+    'com.sec.android.app.sbrowser', // Samsung Internet
     'org.mozilla.firefox',
     'com.brave.browser',
-    'com.microsoft.emmx',              // Edge
+    'com.microsoft.emmx', // Edge
     'com.opera.browser',
   ];
 

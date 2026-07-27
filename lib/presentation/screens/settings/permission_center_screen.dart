@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../widgets/flow_surface.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
 
@@ -13,11 +11,13 @@ class PermissionCenterScreen extends ConsumerStatefulWidget {
   const PermissionCenterScreen({super.key});
 
   @override
-  ConsumerState<PermissionCenterScreen> createState() => _PermissionCenterScreenState();
+  ConsumerState<PermissionCenterScreen> createState() =>
+      _PermissionCenterScreenState();
 }
 
-class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen> with WidgetsBindingObserver {
-  bool _audioEnabled = true; // Always active by default
+class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
+    with WidgetsBindingObserver {
+  final bool _audioEnabled = true; // Always active by default
   bool _usageStatsEnabled = false;
   bool _accessibilityEnabled = false;
   bool _batteryOptEnabled = true;
@@ -44,7 +44,9 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
 
   Future<void> _checkAllPermissions() async {
     try {
-      final states = await ref.read(deviceAttentionPlatformProvider).getPermissionStates();
+      final states = await ref
+          .read(deviceAttentionPlatformProvider)
+          .getPermissionStates();
       if (mounted) {
         setState(() {
           _usageStatsEnabled = states.usageAccess;
@@ -92,7 +94,9 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
         children: [
           Text(
             'Control what access FlowOS has on your device. All evaluation happens locally and private on-device.',
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.xl),
 
@@ -100,7 +104,8 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           _buildPermissionCard(
             title: 'Ambient Sounds',
             status: _audioEnabled,
-            why: 'Ambient sounds play loops in the focus timer to help keep you in deep flow.',
+            why:
+                'Ambient sounds play loops in the focus timer to help keep you in deep flow.',
             limitation: 'Requires device volume to be unmuted.',
             actionLabel: 'Active',
             onPressed: null,
@@ -111,9 +116,13 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           _buildPermissionCard(
             title: 'Usage Access (Android)',
             status: _usageStatsEnabled,
-            why: 'Used to read device foreground screen time to calculate daily budgets and insights.',
-            limitation: 'Cannot access app package contents or usage outside launcher names.',
-            actionLabel: _usageStatsEnabled ? 'Configure Settings' : 'Grant Permission',
+            why:
+                'Used to read device foreground screen time to calculate daily budgets and insights.',
+            limitation:
+                'Cannot access app package contents or usage outside launcher names.',
+            actionLabel: _usageStatsEnabled
+                ? 'Configure Settings'
+                : 'Grant Permission',
             onPressed: () => _requestPermission('usage'),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -122,9 +131,13 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           _buildPermissionCard(
             title: 'Accessibility Blocker (Android)',
             status: _accessibilityEnabled,
-            why: 'Used to intercept foreground distraction apps during focus sessions to show the shield overlay.',
-            limitation: 'Cannot prevent disabling this service or uninstalling the app.',
-            actionLabel: _accessibilityEnabled ? 'Configure Settings' : 'Grant Permission',
+            why:
+                'Used to intercept foreground distraction apps during focus sessions to show the shield overlay.',
+            limitation:
+                'Cannot prevent disabling this service or uninstalling the app.',
+            actionLabel: _accessibilityEnabled
+                ? 'Configure Settings'
+                : 'Grant Permission',
             onPressed: () => _requestPermission('accessibility'),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -133,9 +146,13 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           _buildPermissionCard(
             title: 'Unrestricted Battery Usage (Android)',
             status: _batteryOptEnabled,
-            why: 'Ensures background lease renewal stays active on OEM devices (Xiaomi, Samsung, OnePlus) during long focus sessions.',
-            limitation: 'May require setting battery usage to Unrestricted in system app settings.',
-            actionLabel: _batteryOptEnabled ? 'Configure Settings' : 'Exempt FlowOS',
+            why:
+                'Ensures background lease renewal stays active on OEM devices (Xiaomi, Samsung, OnePlus) during long focus sessions.',
+            limitation:
+                'May require setting battery usage to Unrestricted in system app settings.',
+            actionLabel: _batteryOptEnabled
+                ? 'Configure Settings'
+                : 'Exempt FlowOS',
             onPressed: () => _requestPermission('battery'),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -144,8 +161,10 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           _buildPermissionCard(
             title: 'iOS Screen Time & Shields',
             status: false,
-            why: 'Used on iOS to pull attention statistics and enforce focus app shielding natively.',
-            limitation: 'Unavailable on Android. Requires Apple entitlement authorization.',
+            why:
+                'Used on iOS to pull attention statistics and enforce focus app shielding natively.',
+            limitation:
+                'Unavailable on Android. Requires Apple entitlement authorization.',
             actionLabel: 'iOS Only',
             onPressed: null,
           ),
@@ -154,7 +173,9 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           Center(
             child: Text(
               'No background trackers or external analytics are configured.',
-              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -226,7 +247,9 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
           ),
           Text(
             why,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
@@ -250,9 +273,13 @@ class _PermissionCenterScreenState extends ConsumerState<PermissionCenterScreen>
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(36),
                 side: BorderSide(
-                  color: status ? AppColors.textTertiary.withValues(alpha: 0.2) : AppColors.emerald,
+                  color: status
+                      ? AppColors.textTertiary.withValues(alpha: 0.2)
+                      : AppColors.emerald,
                 ),
-                foregroundColor: status ? AppColors.textPrimary : AppColors.emerald,
+                foregroundColor: status
+                    ? AppColors.textPrimary
+                    : AppColors.emerald,
               ),
               child: Text(actionLabel),
             ),

@@ -21,8 +21,8 @@ class SleepModeNotifier extends StateNotifier<SleepSchedule?> {
         id: 'default',
         weekdays: weekdaysJson,
         bedtimeMinute: 1350, // 22:30
-        wakeMinute: 420,     // 07:00
-        timezoneId: 'UTC',   // default placeholder
+        wakeMinute: 420, // 07:00
+        timezoneId: 'UTC', // default placeholder
         protectionLevel: 'guard',
         enabled: false,
       );
@@ -108,8 +108,9 @@ final sleepConfigWriterProvider = Provider<SleepConfigWriter>((ref) {
 });
 
 /// Provider for SleepMode State
-final sleepModeProvider = StateNotifierProvider<SleepModeNotifier, SleepSchedule?>((ref) {
-  final db = ref.watch(databaseProvider);
-  final writer = ref.watch(sleepConfigWriterProvider);
-  return SleepModeNotifier(db, writer);
-});
+final sleepModeProvider =
+    StateNotifierProvider<SleepModeNotifier, SleepSchedule?>((ref) {
+      final db = ref.watch(databaseProvider);
+      final writer = ref.watch(sleepConfigWriterProvider);
+      return SleepModeNotifier(db, writer);
+    });

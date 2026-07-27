@@ -98,17 +98,17 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
     return Scaffold(
       backgroundColor: AppColors.background0,
       appBar: AppBar(
-        title: Text('Brain Dump',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          'Brain Dump',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back_rounded),
         ),
       ),
       body: SafeArea(
-        child: _sortedTasks != null
-            ? _buildResults()
-            : _buildInput(),
+        child: _sortedTasks != null ? _buildResults() : _buildInput(),
       ),
     );
   }
@@ -143,7 +143,8 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
                 height: 1.6,
               ),
               decoration: InputDecoration(
-                hintText: 'Need to call the dentist...\nFinish the report for work\nGroceries - milk, eggs\nResearch that API integration\nClean up the garage\nSchedule team meeting...',
+                hintText:
+                    'Need to call the dentist...\nFinish the report for work\nGroceries - milk, eggs\nResearch that API integration\nClean up the garage\nSchedule team meeting...',
                 hintStyle: AppTypography.body.copyWith(
                   color: AppColors.textTertiary,
                   height: 1.6,
@@ -195,15 +196,23 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
                 children: [
                   Text(
                     '${_sortedTasks!.length} tasks extracted',
-                    style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+                    style: AppTypography.h2.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   if (_isOfflineResults) ...[
                     const SizedBox(width: AppSpacing.sm),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.dangerCoral.withAlpha(38),
-                        border: Border.all(color: AppColors.dangerCoral, width: 0.5),
+                        border: Border.all(
+                          color: AppColors.dangerCoral,
+                          width: 0.5,
+                        ),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -253,9 +262,7 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.background2,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                  border: Border.all(
-                    color: energyColor.withValues(alpha: 0.2),
-                  ),
+                  border: Border.all(color: energyColor.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,15 +360,21 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
                       final db = ref.read(databaseProvider);
                       for (final task in _sortedTasks!) {
                         final id = const Uuid().v4();
-                        await db.tasksDao.insertTask(TasksCompanion(
-                          id: Value(id),
-                          title: Value(task.title),
-                          energyLevel: Value(_parseEnergyLevel(task.energyLevel)),
-                          estimatedMinutes: Value(task.estimatedMinutes),
-                          frictionScore: Value((task.frictionScore * 100).round()),
-                          category: const Value(TaskCategoryColumn.personal),
-                          description: Value(task.reasoning),
-                        ));
+                        await db.tasksDao.insertTask(
+                          TasksCompanion(
+                            id: Value(id),
+                            title: Value(task.title),
+                            energyLevel: Value(
+                              _parseEnergyLevel(task.energyLevel),
+                            ),
+                            estimatedMinutes: Value(task.estimatedMinutes),
+                            frictionScore: Value(
+                              (task.frictionScore * 100).round(),
+                            ),
+                            category: const Value(TaskCategoryColumn.personal),
+                            description: Value(task.reasoning),
+                          ),
+                        );
                       }
                     }
                     if (mounted) {
@@ -384,9 +397,7 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
       children: [
         Text(
           'friction',
-          style: AppTypography.caption.copyWith(
-            color: AppColors.textTertiary,
-          ),
+          style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
         ),
         const SizedBox(width: 4),
         SizedBox(
@@ -401,8 +412,8 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
                 score > 0.7
                     ? AppColors.dangerCoral
                     : score > 0.4
-                        ? AppColors.warningAmber
-                        : AppColors.emerald,
+                    ? AppColors.warningAmber
+                    : AppColors.emerald,
               ),
             ),
           ),

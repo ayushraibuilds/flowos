@@ -3,7 +3,6 @@ import 'package:drift/drift.dart';
 
 import '../../../data/local/database/app_database.dart';
 import '../models/garden_day.dart';
-import '../../attention/repository/attention_data_repository.dart';
 
 /// Builds garden scenes from the activity the person has already chosen to do.
 /// There are no streak penalties, decay mechanics, or garden-destruction paths.
@@ -35,22 +34,25 @@ class GardenService {
     final plan = await _db.dailyPlansDao.getByDateRange(start, end);
 
     // Fetch device usage records in range
-    final deviceUsageRecords = await (_db.select(_db.deviceUsageRecords)..where(
-          (r) =>
-              r.date.isBiggerOrEqualValue(start) &
-              r.date.isSmallerThanValue(end) &
-              r.source.equals('android_usage'),
-        ))
-        .get();
+    final deviceUsageRecords =
+        await (_db.select(_db.deviceUsageRecords)..where(
+              (r) =>
+                  r.date.isBiggerOrEqualValue(start) &
+                  r.date.isSmallerThanValue(end) &
+                  r.source.equals('android_usage'),
+            ))
+            .get();
 
-    final metrics = await (_db.select(_db.deviceDayMetrics)..where(
-          (t) =>
-              t.day.isBiggerOrEqualValue(start) &
-              t.day.isSmallerThanValue(end),
-        ))
-        .get();
+    final metrics =
+        await (_db.select(_db.deviceDayMetrics)..where(
+              (t) =>
+                  t.day.isBiggerOrEqualValue(start) &
+                  t.day.isSmallerThanValue(end),
+            ))
+            .get();
 
-    final hasNative = metrics.isNotEmpty && metrics.first.coverageState != 'notConnected';
+    final hasNative =
+        metrics.isNotEmpty && metrics.first.coverageState != 'notConnected';
 
     final nativeDistractingMinutes = deviceUsageRecords
         .where((r) => r.isDistracting == true)
@@ -62,15 +64,16 @@ class GardenService {
     );
     final manualScrollMinutes = logs
         .where((log) => !log.appName.contains('[Auto]'))
-        .fold<int>(
-          0,
-          (total, log) => total + log.durationMinutes,
-        );
+        .fold<int>(0, (total, log) => total + log.durationMinutes);
 
-    final scrollMinutes = hasNative ? nativeDistractingMinutes : manualScrollMinutes;
+    final scrollMinutes = hasNative
+        ? nativeDistractingMinutes
+        : manualScrollMinutes;
 
     final recoveryCount = logs
-        .where((log) => !log.appName.contains('[Auto]') && log.recoveryActionTaken)
+        .where(
+          (log) => !log.appName.contains('[Auto]') && log.recoveryActionTaken,
+        )
         .length;
     final budget = plan?.scrollBudgetMinutes ?? 30;
     final objects = <GardenObject>[];
@@ -81,10 +84,7 @@ class GardenService {
           : await _db.tasksDao.getById(session.taskId!);
       if (session.gardenSeedKind != null) {
         objects.add(
-          GardenObject.fromPersistedSeed(
-            session,
-            taskTitle: task?.title,
-          ),
+          GardenObject.fromPersistedSeed(session, taskTitle: task?.title),
         );
       } else {
         objects.add(
@@ -149,7 +149,8 @@ class GardenService {
       );
     } else {
       final today = _startOfToday();
-      final isToday = start.year == today.year &&
+      final isToday =
+          start.year == today.year &&
           start.month == today.month &&
           start.day == today.day;
       if (isToday) {
@@ -204,14 +205,18 @@ class GardenService {
       } catch (_) {}
     }
 
-    sub = _db.tableUpdates(TableUpdateQuery.onAllTables({
-      _db.focusSessions,
-      _db.scrollLogs,
-      _db.energyCheckIns,
-      _db.dailyPlans,
-      _db.deviceUsageRecords,
-      _db.deviceDayMetrics,
-    })).listen((_) => update());
+    sub = _db
+        .tableUpdates(
+          TableUpdateQuery.onAllTables({
+            _db.focusSessions,
+            _db.scrollLogs,
+            _db.energyCheckIns,
+            _db.dailyPlans,
+            _db.deviceUsageRecords,
+            _db.deviceDayMetrics,
+          }),
+        )
+        .listen((_) => update());
 
     controller.onCancel = () {
       sub?.cancel();
@@ -234,14 +239,18 @@ class GardenService {
       } catch (_) {}
     }
 
-    sub = _db.tableUpdates(TableUpdateQuery.onAllTables({
-      _db.focusSessions,
-      _db.scrollLogs,
-      _db.energyCheckIns,
-      _db.dailyPlans,
-      _db.deviceUsageRecords,
-      _db.deviceDayMetrics,
-    })).listen((_) => update());
+    sub = _db
+        .tableUpdates(
+          TableUpdateQuery.onAllTables({
+            _db.focusSessions,
+            _db.scrollLogs,
+            _db.energyCheckIns,
+            _db.dailyPlans,
+            _db.deviceUsageRecords,
+            _db.deviceDayMetrics,
+          }),
+        )
+        .listen((_) => update());
 
     controller.onCancel = () {
       sub?.cancel();

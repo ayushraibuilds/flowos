@@ -21,9 +21,11 @@ class DeviceUsageRecordsDao extends DatabaseAccessor<AppDatabase>
   /// Get usage records for a specific date range
   Future<List<DeviceUsageRecord>> getForRange(DateTime start, DateTime end) =>
       (select(deviceUsageRecords)
-            ..where((r) =>
-                r.date.isBiggerOrEqualValue(start) &
-                r.date.isSmallerOrEqualValue(end))
+            ..where(
+              (r) =>
+                  r.date.isBiggerOrEqualValue(start) &
+                  r.date.isSmallerOrEqualValue(end),
+            )
             ..orderBy([(r) => OrderingTerm.desc(r.minutes)]))
           .get();
 
@@ -33,9 +35,11 @@ class DeviceUsageRecordsDao extends DatabaseAccessor<AppDatabase>
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
     return (select(deviceUsageRecords)
-          ..where((r) =>
-              r.date.isBiggerOrEqualValue(start) &
-              r.date.isSmallerThanValue(end))
+          ..where(
+            (r) =>
+                r.date.isBiggerOrEqualValue(start) &
+                r.date.isSmallerThanValue(end),
+          )
           ..orderBy([(r) => OrderingTerm.desc(r.minutes)]))
         .watch();
   }
@@ -45,11 +49,13 @@ class DeviceUsageRecordsDao extends DatabaseAccessor<AppDatabase>
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    final list = await (select(deviceUsageRecords)
-          ..where((r) =>
-              r.date.isBiggerOrEqualValue(start) &
-              r.date.isSmallerThanValue(end)))
-        .get();
+    final list =
+        await (select(deviceUsageRecords)..where(
+              (r) =>
+                  r.date.isBiggerOrEqualValue(start) &
+                  r.date.isSmallerThanValue(end),
+            ))
+            .get();
     return list.fold<int>(0, (sum, r) => sum + r.minutes);
   }
 

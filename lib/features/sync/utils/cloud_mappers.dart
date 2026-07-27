@@ -4,14 +4,17 @@ import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/tasks_table.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
 import '../../../data/local/tables/xp_ledger_table.dart';
-import '../../../data/local/tables/scroll_logs_table.dart';
 import '../../../data/local/tables/energy_checkins_table.dart';
 
 /// Centralized, type-safe mapping logic between Drift Database Entities and Supabase raw JSON objects.
 class CloudMappers {
   // ─── Tasks Mapper ─────────────────────────────────────────────────────────
 
-  static Map<String, dynamic> taskToCloud(Task t, String userId, String? deviceId) {
+  static Map<String, dynamic> taskToCloud(
+    Task t,
+    String userId,
+    String? deviceId,
+  ) {
     return {
       'id': t.id,
       'user_id': userId,
@@ -40,18 +43,30 @@ class CloudMappers {
       title: Value(row['title'] as String? ?? ''),
       energyLevel: Value(_parseEnergyLevel(row['energy_level'])),
       estimatedMinutes: Value(row['estimated_minutes'] as int? ?? 25),
-      dueDate: Value(row['due_date'] != null ? DateTime.parse(row['due_date'] as String) : null),
+      dueDate: Value(
+        row['due_date'] != null
+            ? DateTime.parse(row['due_date'] as String)
+            : null,
+      ),
       category: Value(_parseCategory(row['category'])),
       isMIT: Value(row['is_mit'] as bool? ?? false),
       isCompleted: Value(row['is_completed'] as bool? ?? false),
-      completedAt: Value(row['completed_at'] != null ? DateTime.parse(row['completed_at'] as String) : null),
+      completedAt: Value(
+        row['completed_at'] != null
+            ? DateTime.parse(row['completed_at'] as String)
+            : null,
+      ),
       sortOrder: Value(row['sort_order'] as int? ?? 0),
       recurrenceRule: Value(_parseRecurrenceRule(row['recurrence_rule'])),
       parentTaskId: Value(row['parent_task_id'] as String?),
       frictionScore: Value((row['friction_score'] as num?)?.toInt() ?? 0),
       createdAt: Value(DateTime.parse(row['created_at'] as String)),
       updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
     );
   }
 
@@ -81,7 +96,11 @@ class CloudMappers {
 
   // ─── Focus Sessions Mapper ──────────────────────────────────────────────────
 
-  static Map<String, dynamic> focusSessionToCloud(FocusSession s, String userId, String? deviceId) {
+  static Map<String, dynamic> focusSessionToCloud(
+    FocusSession s,
+    String userId,
+    String? deviceId,
+  ) {
     return {
       'id': s.id,
       'user_id': userId,
@@ -108,7 +127,9 @@ class CloudMappers {
     };
   }
 
-  static FocusSessionsCompanion focusSessionFromCloud(Map<String, dynamic> row) {
+  static FocusSessionsCompanion focusSessionFromCloud(
+    Map<String, dynamic> row,
+  ) {
     return FocusSessionsCompanion(
       id: Value(row['id'] as String),
       taskId: Value(row['task_id'] as String?),
@@ -123,10 +144,18 @@ class CloudMappers {
       qualityScore: Value(row['quality_score'] as String? ?? ''),
       xpEarned: Value(row['xp_earned'] as int? ?? 0),
       startedAt: Value(DateTime.parse(row['started_at'] as String)),
-      completedAt: Value(row['completed_at'] != null ? DateTime.parse(row['completed_at'] as String) : null),
+      completedAt: Value(
+        row['completed_at'] != null
+            ? DateTime.parse(row['completed_at'] as String)
+            : null,
+      ),
       createdAt: Value(DateTime.parse(row['created_at'] as String)),
       updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
       gardenSeedKind: Value(row['garden_seed_kind'] as String?),
       gardenVariant: Value(row['garden_variant'] as int?),
       gardenSeedEmoji: Value(row['garden_seed_emoji'] as String?),
@@ -180,7 +209,11 @@ class CloudMappers {
 
   // ─── Scroll Logs Mapper ────────────────────────────────────────────────────
 
-  static Map<String, dynamic> scrollLogToCloud(ScrollLog l, String userId, String? deviceId) {
+  static Map<String, dynamic> scrollLogToCloud(
+    ScrollLog l,
+    String userId,
+    String? deviceId,
+  ) {
     return {
       'id': l.id,
       'user_id': userId,
@@ -207,19 +240,33 @@ class CloudMappers {
       durationMinutes: Value(row['duration_minutes'] as int? ?? 0),
       dailyScoreImpact: Value(row['daily_score_impact'] as int? ?? 0),
       timestamp: Value(DateTime.parse(row['logged_at'] as String)),
-      recoveryActionTaken: Value(row['recovery_action_taken'] as bool? ?? false),
+      recoveryActionTaken: Value(
+        row['recovery_action_taken'] as bool? ?? false,
+      ),
       recoveryActionType: Value(row['recovery_action_type'] as String?),
       intent: Value(row['intent'] as String?),
       wasTimeboxed: Value(row['was_timeboxed'] as bool? ?? false),
       plannedMinutes: Value(row['planned_minutes'] as int?),
-      updatedAt: Value(row['updated_at'] != null ? DateTime.parse(row['updated_at'] as String) : DateTime.parse(row['logged_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      updatedAt: Value(
+        row['updated_at'] != null
+            ? DateTime.parse(row['updated_at'] as String)
+            : DateTime.parse(row['logged_at'] as String),
+      ),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
     );
   }
 
   // ─── Energy Check-ins Mapper ───────────────────────────────────────────────
 
-  static Map<String, dynamic> energyCheckInToCloud(EnergyCheckIn c, String userId, String? deviceId) {
+  static Map<String, dynamic> energyCheckInToCloud(
+    EnergyCheckIn c,
+    String userId,
+    String? deviceId,
+  ) {
     return {
       'id': c.id,
       'user_id': userId,
@@ -233,15 +280,29 @@ class CloudMappers {
     };
   }
 
-  static EnergyCheckInsCompanion energyCheckInFromCloud(Map<String, dynamic> row) {
+  static EnergyCheckInsCompanion energyCheckInFromCloud(
+    Map<String, dynamic> row,
+  ) {
     return EnergyCheckInsCompanion(
       id: Value(row['id'] as String),
       value: Value(row['energy_level'] as int? ?? 3),
       timeOfDay: Value(_parseTimeOfDay(row['time_of_day'])),
       date: Value(DateTime.parse(row['checked_in_at'] as String)),
-      createdAt: Value(row['created_at'] != null ? DateTime.parse(row['created_at'] as String) : DateTime.parse(row['checked_in_at'] as String)),
-      updatedAt: Value(row['updated_at'] != null ? DateTime.parse(row['updated_at'] as String) : DateTime.parse(row['checked_in_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      createdAt: Value(
+        row['created_at'] != null
+            ? DateTime.parse(row['created_at'] as String)
+            : DateTime.parse(row['checked_in_at'] as String),
+      ),
+      updatedAt: Value(
+        row['updated_at'] != null
+            ? DateTime.parse(row['updated_at'] as String)
+            : DateTime.parse(row['checked_in_at'] as String),
+      ),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
     );
   }
 
@@ -255,7 +316,11 @@ class CloudMappers {
 
   // ─── Daily Plans Mapper ────────────────────────────────────────────────────
 
-  static Map<String, dynamic> dailyPlanToCloud(DailyPlan p, String userId, String? deviceId) {
+  static Map<String, dynamic> dailyPlanToCloud(
+    DailyPlan p,
+    String userId,
+    String? deviceId,
+  ) {
     return {
       'id': p.id,
       'user_id': userId,
@@ -289,7 +354,11 @@ class CloudMappers {
       intentionNote: Value(row['intention_note'] as String?),
       createdAt: Value(DateTime.parse(row['created_at'] as String)),
       updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
     );
   }
 
@@ -300,7 +369,7 @@ class CloudMappers {
       'id': r.id,
       'user_id': userId,
       'date': r.date.toIso8601String().substring(0, 10),
-      'report_json': r.reportJson is String ? jsonDecode(r.reportJson) : r.reportJson,
+      'report_json': jsonDecode(r.reportJson),
       'daily_score': r.dailyScore,
       'xp_earned_today': r.xpEarnedToday,
       'attention_cost_today': r.attentionCostToday,
@@ -314,7 +383,9 @@ class CloudMappers {
 
   static DailyReportsCompanion dailyReportFromCloud(Map<String, dynamic> row) {
     final reportJsonRaw = row['report_json'];
-    final reportJsonStr = reportJsonRaw is String ? reportJsonRaw : jsonEncode(reportJsonRaw);
+    final reportJsonStr = reportJsonRaw is String
+        ? reportJsonRaw
+        : jsonEncode(reportJsonRaw);
 
     return DailyReportsCompanion(
       id: Value(row['id'] as String),
@@ -327,7 +398,11 @@ class CloudMappers {
       coverageState: Value(row['coverage_state'] as String?),
       generatedAt: Value(DateTime.parse(row['generated_at'] as String)),
       updatedAt: Value(DateTime.parse(row['updated_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
     );
   }
 
@@ -350,14 +425,25 @@ class CloudMappers {
       id: Value(row['id'] as String),
       achievementKey: Value(row['achievement_key'] as String? ?? ''),
       unlockedAt: Value(DateTime.parse(row['unlocked_at'] as String)),
-      updatedAt: Value(row['updated_at'] != null ? DateTime.parse(row['updated_at'] as String) : DateTime.parse(row['unlocked_at'] as String)),
-      deletedAt: Value(row['deleted_at'] != null ? DateTime.parse(row['deleted_at'] as String) : null),
+      updatedAt: Value(
+        row['updated_at'] != null
+            ? DateTime.parse(row['updated_at'] as String)
+            : DateTime.parse(row['unlocked_at'] as String),
+      ),
+      deletedAt: Value(
+        row['deleted_at'] != null
+            ? DateTime.parse(row['deleted_at'] as String)
+            : null,
+      ),
     );
   }
 
   // ─── Unlock Attempts Mapper ────────────────────────────────────────────────
 
-  static Map<String, dynamic> unlockAttemptToCloud(UnlockAttempt u, String userId) {
+  static Map<String, dynamic> unlockAttemptToCloud(
+    UnlockAttempt u,
+    String userId,
+  ) {
     return {
       'id': u.id,
       'user_id': userId,
@@ -372,7 +458,9 @@ class CloudMappers {
     };
   }
 
-  static UnlockAttemptsCompanion unlockAttemptFromCloud(Map<String, dynamic> row) {
+  static UnlockAttemptsCompanion unlockAttemptFromCloud(
+    Map<String, dynamic> row,
+  ) {
     return UnlockAttemptsCompanion(
       id: Value(row['id'] as String),
       platform: Value(row['platform'] as String? ?? ''),
@@ -388,7 +476,11 @@ class CloudMappers {
 
   // ─── Daily Scores Mapper ───────────────────────────────────────────────────
 
-  static Map<String, dynamic> dailyScoreToCloud(DailyScore s, String userId, String? deviceId) {
+  static Map<String, dynamic> dailyScoreToCloud(
+    DailyScore s,
+    String userId,
+    String? deviceId,
+  ) {
     final dayStr = s.day.toIso8601String().substring(0, 10);
     return {
       'id': dayStr,
@@ -418,13 +510,19 @@ class CloudMappers {
       score: Value(row['score'] as int? ?? 0),
       grade: Value(row['grade'] as String?),
       isIncomplete: Value(row['is_incomplete'] as bool? ?? false),
-      availableWeight: Value((row['available_weight'] as num?)?.toDouble() ?? 1.0),
+      availableWeight: Value(
+        (row['available_weight'] as num?)?.toDouble() ?? 1.0,
+      ),
       scoringVersion: Value(row['scoring_version'] as int? ?? 2),
       focusPoints: Value((row['focus_points'] as num?)?.toDouble() ?? 0.0),
       intentPoints: Value((row['intent_points'] as num?)?.toDouble() ?? 0.0),
       attentionPoints: Value((row['attention_points'] as num?)?.toDouble()),
       carePoints: Value((row['care_points'] as num?)?.toDouble() ?? 0.0),
-      computedAt: Value(DateTime.parse(row['computed_at'] as String? ?? row['created_at'] as String)),
+      computedAt: Value(
+        DateTime.parse(
+          row['computed_at'] as String? ?? row['created_at'] as String,
+        ),
+      ),
     );
   }
 }

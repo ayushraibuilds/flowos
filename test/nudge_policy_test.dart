@@ -1,10 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:drift/native.dart';
-import 'package:drift/drift.dart' show Value;
 
-import 'package:flowos/data/local/database/app_database.dart';
 import 'package:flowos/features/focus/models/effective_policy.dart';
 import 'package:flowos/features/focus/models/pending_trigger.dart';
 import 'package:flowos/features/focus/services/policy_writer.dart';
@@ -14,7 +11,7 @@ class FakeDeviceAttentionPlatform extends DeviceAttentionPlatform {
   Map<String, dynamic>? pendingTrigger;
   List<Map<String, dynamic>> nudgeEvents = [];
   Set<String> acknowledgedNudges = {};
-  
+
   PermissionStates permissionStates = const PermissionStates(
     usageAccess: true,
     accessibility: true,
@@ -110,14 +107,16 @@ void main() {
             'sessionId': 'focus-123',
             'source': 'focus',
             'occurredAt': DateTime.now().millisecondsSinceEpoch,
-            'expiresAt': DateTime.now().add(const Duration(minutes: 10)).millisecondsSinceEpoch,
+            'expiresAt': DateTime.now()
+                .add(const Duration(minutes: 10))
+                .millisecondsSinceEpoch,
             'claimed': false,
-          }
+          },
         ]),
       });
 
       final platform = FakeDeviceAttentionPlatform();
-      
+
       // First claim succeeds
       final first = await platform.claimPendingNudge();
       expect(first, isNotNull);
@@ -131,41 +130,50 @@ void main() {
 
     test('Deactivating focus policy clears nudges for the session', () async {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('flutter.flowos_nudge_events', jsonEncode([
-        {
-          'id': 'nudge-1',
-          'kind': 'nudge',
-          'packageName': 'com.instagram.android',
-          'appLabel': 'Instagram',
-          'sessionId': 'session-abc',
-          'source': 'focus',
-          'occurredAt': DateTime.now().millisecondsSinceEpoch,
-          'expiresAt': DateTime.now().add(const Duration(minutes: 10)).millisecondsSinceEpoch,
-          'claimed': false,
-        },
-        {
-          'id': 'nudge-2',
-          'kind': 'nudge',
-          'packageName': 'com.facebook.katana',
-          'appLabel': 'Facebook',
-          'sessionId': 'session-diff',
-          'source': 'focus',
-          'occurredAt': DateTime.now().millisecondsSinceEpoch,
-          'expiresAt': DateTime.now().add(const Duration(minutes: 10)).millisecondsSinceEpoch,
-          'claimed': false,
-        }
-      ]));
+      await prefs.setString(
+        'flutter.flowos_nudge_events',
+        jsonEncode([
+          {
+            'id': 'nudge-1',
+            'kind': 'nudge',
+            'packageName': 'com.instagram.android',
+            'appLabel': 'Instagram',
+            'sessionId': 'session-abc',
+            'source': 'focus',
+            'occurredAt': DateTime.now().millisecondsSinceEpoch,
+            'expiresAt': DateTime.now()
+                .add(const Duration(minutes: 10))
+                .millisecondsSinceEpoch,
+            'claimed': false,
+          },
+          {
+            'id': 'nudge-2',
+            'kind': 'nudge',
+            'packageName': 'com.facebook.katana',
+            'appLabel': 'Facebook',
+            'sessionId': 'session-diff',
+            'source': 'focus',
+            'occurredAt': DateTime.now().millisecondsSinceEpoch,
+            'expiresAt': DateTime.now()
+                .add(const Duration(minutes: 10))
+                .millisecondsSinceEpoch,
+            'claimed': false,
+          },
+        ]),
+      );
 
       // Mock policy writer with active focus session matching session-abc
       const writer = SharedPrefsPolicyWriter();
-      await writer.activatePolicy(SourcePolicy(
-        sessionId: 'session-abc',
-        activeUntil: DateTime.now().add(const Duration(minutes: 10)),
-        selectedPackages: {'com.instagram.android'},
-        protectionMode: ProtectionMode.nudge,
-        source: PolicySource.focus,
-        scopedBreaks: [],
-      ));
+      await writer.activatePolicy(
+        SourcePolicy(
+          sessionId: 'session-abc',
+          activeUntil: DateTime.now().add(const Duration(minutes: 10)),
+          selectedPackages: {'com.instagram.android'},
+          protectionMode: ProtectionMode.nudge,
+          source: PolicySource.focus,
+          scopedBreaks: [],
+        ),
+      );
 
       // Deactivate focus policy
       await writer.deactivatePolicy(PolicySource.focus);

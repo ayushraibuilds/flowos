@@ -20,14 +20,18 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final log = await getById(id);
     if (log != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('scroll_logs'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(log.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('scroll_logs'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(log.toJson())),
+            ),
+          );
     }
   }
 
@@ -42,9 +46,13 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   Future<int> getDailyTotal({DateTime? clock}) async {
     final now = clock ?? DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    final logs = await (select(
-      scrollLogs,
-    )..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull())).get();
+    final logs =
+        await (select(scrollLogs)..where(
+              (l) =>
+                  l.timestamp.isBiggerOrEqualValue(start) &
+                  l.deletedAt.isNull(),
+            ))
+            .get();
     return logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
   }
 
@@ -52,8 +60,9 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
   Stream<int> watchDailyTotal({DateTime? clock}) {
     final now = clock ?? DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    return (select(scrollLogs)
-          ..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull()))
+    return (select(scrollLogs)..where(
+          (l) => l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull(),
+        ))
         .watch()
         .map((logs) => logs.fold<int>(0, (sum, l) => sum + l.durationMinutes));
   }
@@ -63,7 +72,10 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
     final now = clock ?? DateTime.now();
     final start = now.subtract(const Duration(days: 7));
     return (select(scrollLogs)
-          ..where((l) => l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull())
+          ..where(
+            (l) =>
+                l.timestamp.isBiggerOrEqualValue(start) & l.deletedAt.isNull(),
+          )
           ..orderBy([(l) => OrderingTerm.asc(l.timestamp)]))
         .get();
   }
@@ -75,9 +87,11 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertLogFromSync(ScrollLogsCompanion entry) => into(scrollLogs).insert(entry);
-  Future<void> updateLogFromSync(ScrollLogsCompanion entry) =>
-      (update(scrollLogs)..where((l) => l.id.equals(entry.id.value))).write(entry);
+  Future<void> insertLogFromSync(ScrollLogsCompanion entry) =>
+      into(scrollLogs).insert(entry);
+  Future<void> updateLogFromSync(ScrollLogsCompanion entry) => (update(
+    scrollLogs,
+  )..where((l) => l.id.equals(entry.id.value))).write(entry);
 
   /// Delete auto scroll logs for a specific app today
   Future<void> deleteAutoLogsForToday(String appName, DateTime start) {

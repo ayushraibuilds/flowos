@@ -10,8 +10,10 @@ class XpLedgerEntries extends Table {
   IntColumn get pointsDelta => integer()(); // Always positive for XP
 
   // What caused it
-  TextColumn get sourceEntityId => text().nullable()(); // taskId, sessionId, etc.
-  TextColumn get explanation => text()(); // "Completed 25-min Pomodoro on 'Write proposal'"
+  TextColumn get sourceEntityId =>
+      text().nullable()(); // taskId, sessionId, etc.
+  TextColumn get explanation =>
+      text()(); // "Completed 25-min Pomodoro on 'Write proposal'"
 
   // Metadata
   BoolColumn get isReversible => boolean().withDefault(const Constant(false))();

@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/constants/xp_constants.dart';
@@ -41,7 +39,10 @@ class FocusSessionService {
   final AppDatabase _db;
   final PolicyWriter _policyWriter;
 
-  FocusSessionService(this._db, [this._policyWriter = const SharedPrefsPolicyWriter()]);
+  FocusSessionService(
+    this._db, [
+    this._policyWriter = const SharedPrefsPolicyWriter(),
+  ]);
 
   /// Start a focus session. Inserts a new session record into the SQLite DB.
   /// Returns the newly generated sessionId (UUID).
@@ -52,7 +53,7 @@ class FocusSessionService {
     ProtectionMode protectionMode = ProtectionMode.guard,
   }) async {
     final sessionId = _uuid.v4();
-    
+
     // Generate seed parameters inside service to avoid UI mismatches
     final isTree = type == SessionTypeColumn.deepWork || durationMinutes >= 50;
     final seedKind = isTree ? 'tree' : 'flower';
@@ -91,7 +92,9 @@ class FocusSessionService {
 
       await _policyWriter.activatePolicy(policy);
     } catch (e, st) {
-      debugPrint('FocusSessionService: Failed to activate protection policy: $e\n$st');
+      debugPrint(
+        'FocusSessionService: Failed to activate protection policy: $e\n$st',
+      );
     }
 
     return sessionId;
@@ -132,11 +135,14 @@ class FocusSessionService {
       try {
         await _policyWriter.deactivatePolicy(PolicySource.focus);
       } catch (e, st) {
-        debugPrint('FocusSessionService: Failed to deactivate policy on completeSession: $e\n$st');
+        debugPrint(
+          'FocusSessionService: Failed to deactivate policy on completeSession: $e\n$st',
+        );
       }
 
       final actualMin = (elapsedSeconds / 60).round();
-      final targetMin = existingSession?.durationMinutes ?? (isFlowtime ? actualMin : 25);
+      final targetMin =
+          existingSession?.durationMinutes ?? (isFlowtime ? actualMin : 25);
       final taskId = existingSession?.taskId;
 
       final quality = FocusQualityCalculator.calculate(
@@ -220,7 +226,9 @@ class FocusSessionService {
       try {
         await _policyWriter.deactivatePolicy(PolicySource.focus);
       } catch (e, st) {
-        debugPrint('FocusSessionService: Failed to deactivate policy on stopSession: $e\n$st');
+        debugPrint(
+          'FocusSessionService: Failed to deactivate policy on stopSession: $e\n$st',
+        );
       }
 
       final actualMin = (elapsedSeconds / 60).round();

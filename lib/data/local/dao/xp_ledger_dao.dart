@@ -14,20 +14,25 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
 
   final _uuid = const Uuid();
 
-  Future<XpLedgerEntry?> getById(String id) =>
-      (select(xpLedgerEntries)..where((e) => e.id.equals(id))).getSingleOrNull();
+  Future<XpLedgerEntry?> getById(String id) => (select(
+    xpLedgerEntries,
+  )..where((e) => e.id.equals(id))).getSingleOrNull();
 
   Future<void> _recordOutboxUpsert(String id) async {
     final entry = await getById(id);
     if (entry != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('xp_ledger'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(entry.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('xp_ledger'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(entry.toJson())),
+            ),
+          );
     }
   }
 
@@ -44,15 +49,17 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
     XpActionTypeColumn actionType,
     String sourceEntityId,
   ) =>
-      (select(xpLedgerEntries)
-            ..where((e) =>
+      (select(xpLedgerEntries)..where(
+            (e) =>
                 e.actionType.equalsValue(actionType) &
-                e.sourceEntityId.equals(sourceEntityId)))
+                e.sourceEntityId.equals(sourceEntityId),
+          ))
           .getSingleOrNull();
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> appendEntryFromSync(XpLedgerEntriesCompanion entry) => into(xpLedgerEntries).insert(entry);
+  Future<void> appendEntryFromSync(XpLedgerEntriesCompanion entry) =>
+      into(xpLedgerEntries).insert(entry);
 
   /// Get lifetime XP (sum of all pointsDelta)
   Future<int> getLifetimeXP() async {
@@ -63,16 +70,17 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
   /// Watch lifetime XP (reactive)
   Stream<int> watchLifetimeXP() {
     return select(xpLedgerEntries).watch().map(
-        (entries) => entries.fold<int>(0, (sum, e) => sum + e.pointsDelta));
+      (entries) => entries.fold<int>(0, (sum, e) => sum + e.pointsDelta),
+    );
   }
 
   /// Get XP earned today
   Future<int> getDailyXP() async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    final entries = await (select(xpLedgerEntries)
-          ..where((e) => e.timestamp.isBiggerOrEqualValue(start)))
-        .get();
+    final entries = await (select(
+      xpLedgerEntries,
+    )..where((e) => e.timestamp.isBiggerOrEqualValue(start))).get();
     return entries.fold<int>(0, (sum, e) => sum + e.pointsDelta);
   }
 
@@ -80,19 +88,21 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
   Stream<int> watchDailyXP() {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    return (select(xpLedgerEntries)
-          ..where((e) => e.timestamp.isBiggerOrEqualValue(start)))
-        .watch()
-        .map((entries) =>
-            entries.fold<int>(0, (sum, e) => sum + e.pointsDelta));
+    return (select(
+      xpLedgerEntries,
+    )..where((e) => e.timestamp.isBiggerOrEqualValue(start))).watch().map(
+      (entries) => entries.fold<int>(0, (sum, e) => sum + e.pointsDelta),
+    );
   }
 
   /// Get all entries for a date range (for reports)
   Future<List<XpLedgerEntry>> getByDateRange(DateTime start, DateTime end) =>
       (select(xpLedgerEntries)
-            ..where((e) =>
-                e.timestamp.isBiggerOrEqualValue(start) &
-                e.timestamp.isSmallerThanValue(end))
+            ..where(
+              (e) =>
+                  e.timestamp.isBiggerOrEqualValue(start) &
+                  e.timestamp.isSmallerThanValue(end),
+            )
             ..orderBy([(e) => OrderingTerm.desc(e.timestamp)]))
           .get();
 
@@ -107,11 +117,13 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
   Future<int> countTodayByType(XpActionTypeColumn type) async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    final entries = await (select(xpLedgerEntries)
-          ..where((e) =>
-              e.timestamp.isBiggerOrEqualValue(start) &
-              e.actionType.equalsValue(type)))
-        .get();
+    final entries =
+        await (select(xpLedgerEntries)..where(
+              (e) =>
+                  e.timestamp.isBiggerOrEqualValue(start) &
+                  e.actionType.equalsValue(type),
+            ))
+            .get();
     return entries.length;
   }
 
@@ -119,17 +131,21 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
   Future<int> sumTodayByType(XpActionTypeColumn type) async {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
-    final entries = await (select(xpLedgerEntries)
-          ..where((e) =>
-              e.timestamp.isBiggerOrEqualValue(start) &
-              e.actionType.equalsValue(type)))
-        .get();
+    final entries =
+        await (select(xpLedgerEntries)..where(
+              (e) =>
+                  e.timestamp.isBiggerOrEqualValue(start) &
+                  e.actionType.equalsValue(type),
+            ))
+            .get();
     return entries.fold<int>(0, (sum, e) => sum + e.pointsDelta);
   }
 
   /// Watch lifetime recoveries count
   Stream<int> watchLifetimeRecoveriesCount() {
-    return (select(xpLedgerEntries)..where((e) => e.actionType.equalsValue(XpActionTypeColumn.bounceBackBonus)))
+    return (select(xpLedgerEntries)..where(
+          (e) => e.actionType.equalsValue(XpActionTypeColumn.bounceBackBonus),
+        ))
         .watch()
         .map((entries) => entries.length);
   }

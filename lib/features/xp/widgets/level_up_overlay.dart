@@ -87,12 +87,10 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
       CurvedAnimation(parent: _scaleController, curve: Curves.easeOutCubic),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOut,
-      ),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
 
     _shimmerAnimation = Tween<double>(begin: -1.0, end: 2.0).animate(
       CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOut),
@@ -183,15 +181,22 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                                   AppColors.background0.withValues(alpha: 0.0),
                                 ],
                                 stops: [
-                                  (_shimmerAnimation.value - 0.2).clamp(0.0, 1.0),
+                                  (_shimmerAnimation.value - 0.2).clamp(
+                                    0.0,
+                                    1.0,
+                                  ),
                                   _shimmerAnimation.value.clamp(0.0, 1.0),
-                                  (_shimmerAnimation.value + 0.2).clamp(0.0, 1.0),
+                                  (_shimmerAnimation.value + 0.2).clamp(
+                                    0.0,
+                                    1.0,
+                                  ),
                                 ],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.emerald
-                                      .withValues(alpha: 0.3 * _glowAnimation.value),
+                                  color: AppColors.emerald.withValues(
+                                    alpha: 0.3 * _glowAnimation.value,
+                                  ),
                                   blurRadius: 40 * _glowAnimation.value,
                                   spreadRadius: 10 * _glowAnimation.value,
                                 ),
@@ -234,7 +239,9 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.emerald.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusPill,
+                          ),
                           border: Border.all(
                             color: AppColors.emerald.withValues(alpha: 0.3),
                           ),

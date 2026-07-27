@@ -25,9 +25,7 @@ class HomeGardenGlance extends ConsumerWidget {
             children: [
               Text(
                 'Today’s Garden',
-                style: AppTypography.h2.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
               ),
               const Spacer(),
               TextButton.icon(

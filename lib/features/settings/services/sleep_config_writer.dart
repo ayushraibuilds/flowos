@@ -18,7 +18,7 @@ class SleepConfigWriter {
         'schemaVersion': 1,
         'enabled': false,
         'bedtimeMinute': 1350, // 22:30 default
-        'wakeMinute': 420,     // 07:00 default
+        'wakeMinute': 420, // 07:00 default
         'weekdays': [1, 2, 3, 4, 5, 6, 7],
         'protectionLevel': 'guard',
         'selectedPackages': [],

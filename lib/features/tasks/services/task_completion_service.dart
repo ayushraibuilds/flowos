@@ -33,34 +33,41 @@ class TaskCompletionService {
     await _db.tasksDao.completeTask(task.id, xp);
 
     // 2. Append XP ledger entry (the critical step Home was missing)
-    await _db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: Value(task.isMIT
-          ? XpActionTypeColumn.mitComplete
-          : XpActionTypeColumn.taskComplete),
-      pointsDelta: Value(xp),
-      sourceEntityId: Value(task.id),
-      explanation: Value(
-          'Completed ${task.isMIT ? "MIT" : "task"}: ${task.title}'),
-    ));
+    await _db.xpLedgerDao.appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: Value(
+          task.isMIT
+              ? XpActionTypeColumn.mitComplete
+              : XpActionTypeColumn.taskComplete,
+        ),
+        pointsDelta: Value(xp),
+        sourceEntityId: Value(task.id),
+        explanation: Value(
+          'Completed ${task.isMIT ? "MIT" : "task"}: ${task.title}',
+        ),
+      ),
+    );
 
     // 2.5. Clone task if recurrence is configured
     if (task.recurrenceRule != null) {
       final baseDate = task.dueDate ?? DateTime.now();
       final nextDueDate = _calculateNextDueDate(baseDate, task.recurrenceRule!);
 
-      await _db.tasksDao.insertTask(TasksCompanion(
-        id: Value(_uuid.v4()),
-        title: Value(task.title),
-        description: Value(task.description),
-        energyLevel: Value(task.energyLevel),
-        estimatedMinutes: Value(task.estimatedMinutes),
-        frictionScore: Value(task.frictionScore),
-        category: Value(task.category),
-        dueDate: Value(nextDueDate),
-        recurrenceRule: Value(task.recurrenceRule),
-        sortOrder: Value(task.sortOrder),
-      ));
+      await _db.tasksDao.insertTask(
+        TasksCompanion(
+          id: Value(_uuid.v4()),
+          title: Value(task.title),
+          description: Value(task.description),
+          energyLevel: Value(task.energyLevel),
+          estimatedMinutes: Value(task.estimatedMinutes),
+          frictionScore: Value(task.frictionScore),
+          category: Value(task.category),
+          dueDate: Value(nextDueDate),
+          recurrenceRule: Value(task.recurrenceRule),
+          sortOrder: Value(task.sortOrder),
+        ),
+      );
     }
 
     // 3. Check if all MITs are now complete → award bonus
@@ -80,7 +87,8 @@ class TaskCompletionService {
         return baseDate.add(const Duration(days: 1));
       case RecurrenceRuleColumn.weekdays:
         var next = baseDate.add(const Duration(days: 1));
-        while (next.weekday == DateTime.saturday || next.weekday == DateTime.sunday) {
+        while (next.weekday == DateTime.saturday ||
+            next.weekday == DateTime.sunday) {
           next = next.add(const Duration(days: 1));
         }
         return next;
@@ -115,15 +123,18 @@ class TaskCompletionService {
     final mits = await _db.tasksDao.getMITs();
     if (mits.length == 3 && mits.every((t) => t.isCompleted)) {
       // Check we haven't already awarded this today
-      final existing = await _db.xpLedgerDao
-          .sumTodayByType(XpActionTypeColumn.allMitsDaily);
+      final existing = await _db.xpLedgerDao.sumTodayByType(
+        XpActionTypeColumn.allMitsDaily,
+      );
       if (existing == 0) {
-        await _db.xpLedgerDao.appendEntry(XpLedgerEntriesCompanion(
-          id: Value(_uuid.v4()),
-          actionType: const Value(XpActionTypeColumn.allMitsDaily),
-          pointsDelta: const Value(XpConstants.allMitsDaily),
-          explanation: const Value('All 3 MITs completed today! 🎯'),
-        ));
+        await _db.xpLedgerDao.appendEntry(
+          XpLedgerEntriesCompanion(
+            id: Value(_uuid.v4()),
+            actionType: const Value(XpActionTypeColumn.allMitsDaily),
+            pointsDelta: const Value(XpConstants.allMitsDaily),
+            explanation: const Value('All 3 MITs completed today! 🎯'),
+          ),
+        );
       }
     }
   }

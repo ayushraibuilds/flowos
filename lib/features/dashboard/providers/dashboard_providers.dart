@@ -23,7 +23,8 @@ final dailyXpProvider = StreamProvider<int>((ref) {
 
 /// Watch today's scroll total.
 final dailyScrollProvider = StreamProvider<int>((ref) {
-  return ref.watch(attentionDataRepositoryProvider)
+  return ref
+      .watch(attentionDataRepositoryProvider)
       .watchTodayAttention()
       .map((day) => day.effectiveDistractingMinutes);
 });
@@ -49,9 +50,9 @@ final currentTierProvider = Provider<String>((ref) {
 /// Watch if the user has any focus sessions in history.
 final hasFocusHistoryProvider = StreamProvider<bool>((ref) {
   final db = ref.watch(databaseProvider);
-  return (db.select(db.focusSessions)..limit(1))
-      .watch()
-      .map((list) => list.isNotEmpty);
+  return (db.select(
+    db.focusSessions,
+  )..limit(1)).watch().map((list) => list.isNotEmpty);
 });
 
 /// Today's daily score — computed from persisted daily_scores or calculated live if missing.
@@ -74,11 +75,13 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   // Scroll log recovery actions count today
   final start = midnightToday;
   final end = start.add(const Duration(days: 1));
-  final scrollLogs = await (db.select(db.scrollLogs)
-        ..where((l) =>
-            l.timestamp.isBiggerOrEqualValue(start) &
-            l.timestamp.isSmallerThanValue(end)))
-      .get();
+  final scrollLogs =
+      await (db.select(db.scrollLogs)..where(
+            (l) =>
+                l.timestamp.isBiggerOrEqualValue(start) &
+                l.timestamp.isSmallerThanValue(end),
+          ))
+          .get();
   final recoveryActions = scrollLogs
       .where((l) => !l.appName.contains('[Auto]') && l.recoveryActionTaken)
       .length;
@@ -91,7 +94,8 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
   final scoreRecord = await db.dailyScoresDao.getForDay(today);
   final DailyScoreResult scoreResult;
 
-  if (scoreRecord != null && scoreRecord.scoringVersion == XpConstants.currentScoringVersion) {
+  if (scoreRecord != null &&
+      scoreRecord.scoringVersion == XpConstants.currentScoringVersion) {
     scoreResult = DailyScoreResult(
       score: scoreRecord.score,
       grade: scoreRecord.grade,
@@ -110,7 +114,8 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
       carePoints: scoreRecord.carePoints,
     );
   } else {
-    final hasEngagedToday = focusMinutes > 0 ||
+    final hasEngagedToday =
+        focusMinutes > 0 ||
         mitsCompleted > 0 ||
         intentionCompleted ||
         shutdownCompleted ||
@@ -121,7 +126,8 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
       scoreResult = DailyScoreResult(
         score: 0,
         grade: null,
-        message: "Your day hasn't started yet — set an intention or start a focus session.",
+        message:
+            "Your day hasn't started yet — set an intention or start a focus session.",
         isIncomplete: true,
         availableWeight: 1.0,
         coverageLabel: "Incomplete",
@@ -167,7 +173,6 @@ final dailyScoreProvider = FutureProvider<DashboardScore>((ref) async {
     carePoints: scoreResult.carePoints,
   );
 });
-
 
 /// Aggregated dashboard data.
 class DashboardScore {

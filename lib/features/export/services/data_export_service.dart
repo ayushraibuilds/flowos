@@ -43,9 +43,8 @@ class DataExportService {
 
   Future<void> exportAndShare() async {
     final jsonStr = await serializeData();
-    await SharePlus.instance.share(ShareParams(
-      text: jsonStr,
-      subject: 'FlowOS Backup Data',
-    ));
+    await SharePlus.instance.share(
+      ShareParams(text: jsonStr, subject: 'FlowOS Backup Data'),
+    );
   }
 }

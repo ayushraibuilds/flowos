@@ -4,7 +4,6 @@ import 'package:drift/native.dart';
 import 'package:flowos/data/local/database/app_database.dart';
 import 'package:flowos/features/attention/repository/attention_data_repository.dart';
 import 'package:flowos/features/focus/models/effective_policy.dart';
-import 'package:flowos/features/focus/models/pending_trigger.dart';
 import 'package:flowos/features/focus/services/policy_writer.dart';
 import 'package:flowos/features/focus/services/protection_policy_service.dart';
 
@@ -26,12 +25,12 @@ class FakeDeviceAttentionPlatform extends DeviceAttentionPlatform {
     return null;
   }
 
-  @override
   Future<List<Map<String, dynamic>>> getNudgeEvents() async {
-    return nudgeEvents.where((e) => !acknowledgedNudges.contains(e['id'])).toList();
+    return nudgeEvents
+        .where((e) => !acknowledgedNudges.contains(e['id']))
+        .toList();
   }
 
-  @override
   Future<void> acknowledgeNudgeEvent(String id) async {
     acknowledgedNudges.add(id);
   }
@@ -118,7 +117,12 @@ void main() {
       await service.renewFocusLease();
 
       final policies = await policyWriter.getActivePolicies();
-      expect(policies!.focus!.activeUntil.isAfter(now.add(const Duration(minutes: 2))), true);
+      expect(
+        policies!.focus!.activeUntil.isAfter(
+          now.add(const Duration(minutes: 2)),
+        ),
+        true,
+      );
     });
 
     test('empty protected_apps table resolves to empty package set', () async {
@@ -158,35 +162,47 @@ void main() {
       expect(policies!.effectiveModeForPackage('pkg.a'), isNull);
     });
 
-    test('Focus Guard plus Sleep Deep -> Deep remains active after focus ends', () async {
-      final now = DateTime.now();
-      policyWriter.policies = ActivePolicies(
-        focus: SourcePolicy(
-          sessionId: 'f-123',
-          activeUntil: now.add(const Duration(minutes: 10)),
-          selectedPackages: {'instagram'},
-          protectionMode: ProtectionMode.guard,
-          source: PolicySource.focus,
-          scopedBreaks: [],
-        ),
-        sleep: SourcePolicy(
-          sessionId: 's-123',
-          activeUntil: now.add(const Duration(minutes: 10)),
-          selectedPackages: {'instagram', 'youtube'},
-          protectionMode: ProtectionMode.deep,
-          source: PolicySource.sleep,
-          scopedBreaks: [],
-        ),
-      );
+    test(
+      'Focus Guard plus Sleep Deep -> Deep remains active after focus ends',
+      () async {
+        final now = DateTime.now();
+        policyWriter.policies = ActivePolicies(
+          focus: SourcePolicy(
+            sessionId: 'f-123',
+            activeUntil: now.add(const Duration(minutes: 10)),
+            selectedPackages: {'instagram'},
+            protectionMode: ProtectionMode.guard,
+            source: PolicySource.focus,
+            scopedBreaks: [],
+          ),
+          sleep: SourcePolicy(
+            sessionId: 's-123',
+            activeUntil: now.add(const Duration(minutes: 10)),
+            selectedPackages: {'instagram', 'youtube'},
+            protectionMode: ProtectionMode.deep,
+            source: PolicySource.sleep,
+            scopedBreaks: [],
+          ),
+        );
 
-      expect(policyWriter.policies.effectiveModeForPackage('instagram'), ProtectionMode.deep);
+        expect(
+          policyWriter.policies.effectiveModeForPackage('instagram'),
+          ProtectionMode.deep,
+        );
 
-      await service.deactivateFocusPolicy();
+        await service.deactivateFocusPolicy();
 
-      final policies = await policyWriter.getActivePolicies();
-      expect(policies!.effectiveModeForPackage('instagram'), ProtectionMode.deep);
-      expect(policies.effectiveModeForPackage('youtube'), ProtectionMode.deep);
-    });
+        final policies = await policyWriter.getActivePolicies();
+        expect(
+          policies!.effectiveModeForPackage('instagram'),
+          ProtectionMode.deep,
+        );
+        expect(
+          policies.effectiveModeForPackage('youtube'),
+          ProtectionMode.deep,
+        );
+      },
+    );
 
     test('Temporary Instagram break does not permit YouTube', () async {
       final now = DateTime.now();
@@ -240,7 +256,10 @@ void main() {
 
       // Even though there's a scoped break from focus, sleep mode deep still blocks it!
       expect(policyWriter.policies.isScopedBreakActive('instagram'), false);
-      expect(policyWriter.policies.effectiveModeForPackage('instagram'), ProtectionMode.deep);
+      expect(
+        policyWriter.policies.effectiveModeForPackage('instagram'),
+        ProtectionMode.deep,
+      );
     });
 
     test('Expired or claimed trigger never opens a second shield', () async {

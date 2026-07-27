@@ -88,7 +88,7 @@ class HomeWidgetProvider {
     final path = uri.path.isNotEmpty ? uri.path : '/${uri.host}';
     final formattedPath = path.startsWith('/') ? path : '/$path';
     debugPrint('Navigating to widget deep link: $formattedPath');
-    
+
     try {
       appRouter.go(formattedPath);
     } catch (e) {

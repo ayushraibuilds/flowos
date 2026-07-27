@@ -1,15 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../../core/config/supabase_config.dart';
 import '../../../data/local/database/app_database.dart';
-import '../../../data/local/tables/tasks_table.dart';
-import '../../../data/local/tables/focus_sessions_table.dart';
 import '../utils/cloud_mappers.dart';
 
 /// Sync Engine — Drift (local) ↔ Supabase (cloud).
@@ -34,7 +30,9 @@ class SyncEngine {
 
   Future<Map<String, String>?> _getCursor(String table) async {
     final prefs = await SharedPreferences.getInstance();
-    final updatedAt = prefs.getString('flowos_sync_cursor_v2_${_userId}_${table}_updated_at');
+    final updatedAt = prefs.getString(
+      'flowos_sync_cursor_v2_${_userId}_${table}_updated_at',
+    );
     final id = prefs.getString('flowos_sync_cursor_v2_${_userId}_${table}_id');
     if (updatedAt == null || id == null) return null;
     return {'updated_at': updatedAt, 'id': id};
@@ -42,7 +40,10 @@ class SyncEngine {
 
   Future<void> _setCursor(String table, String updatedAt, String id) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('flowos_sync_cursor_v2_${_userId}_${table}_updated_at', updatedAt);
+    await prefs.setString(
+      'flowos_sync_cursor_v2_${_userId}_${table}_updated_at',
+      updatedAt,
+    );
     await prefs.setString('flowos_sync_cursor_v2_${_userId}_${table}_id', id);
   }
 
@@ -51,7 +52,12 @@ class SyncEngine {
   /// Full bidirectional sync. Pulls newest changes from cursors, then pushes unsynced outbox.
   Future<SyncResult> fullSync() async {
     if (!SupabaseConfig.isConfigured || !isAuthenticated) {
-      return SyncResult(pushed: 0, pulled: 0, errors: ['Supabase not configured or not authenticated'], isPaused: false);
+      return SyncResult(
+        pushed: 0,
+        pulled: 0,
+        errors: ['Supabase not configured or not authenticated'],
+        isPaused: false,
+      );
     }
 
     if (_isSyncing) {
@@ -98,7 +104,12 @@ class SyncEngine {
       );
     }
 
-    return SyncResult(pushed: pushedCount, pulled: pulledCount, errors: errors, isPaused: false);
+    return SyncResult(
+      pushed: pushedCount,
+      pulled: pulledCount,
+      errors: errors,
+      isPaused: false,
+    );
   }
 
   void schedulePush() {
@@ -120,12 +131,16 @@ class SyncEngine {
       final cursor = await _getCursor(table);
       var query = _client.from(table).select();
 
-      final sortCol = (table == 'xp_ledger' || table == 'unlock_attempts') ? 'created_at' : 'updated_at';
+      final sortCol = (table == 'xp_ledger' || table == 'unlock_attempts')
+          ? 'created_at'
+          : 'updated_at';
 
       if (cursor != null) {
         final cTime = cursor['updated_at']!;
         final cId = cursor['id']!;
-        query = query.or('$sortCol.gt.$cTime,and($sortCol.eq.$cTime,id.gt.$cId)');
+        query = query.or(
+          '$sortCol.gt.$cTime,and($sortCol.eq.$cTime,id.gt.$cId)',
+        );
       }
 
       final List<dynamic> data = await query
@@ -260,7 +275,10 @@ class SyncEngine {
     }
   }
 
-  bool _shouldUpdateLocal(DateTime localUpdatedAt, Map<String, dynamic> serverRow) {
+  bool _shouldUpdateLocal(
+    DateTime localUpdatedAt,
+    Map<String, dynamic> serverRow,
+  ) {
     final serverUpdated = DateTime.parse(serverRow['updated_at'] as String);
     if (serverUpdated.isAfter(localUpdatedAt)) return true;
     if (serverUpdated.isAtSameMomentAs(localUpdatedAt)) {
@@ -295,7 +313,9 @@ class SyncEngine {
     await claimLocalDataIfNeeded(currentUserId);
 
     if (await _db.syncOutboxDao.hasUnsyncedForOtherOwner(currentUserId)) {
-      debugPrint('⚠️ Sync engine: Unsynced outbox operations for another identity exist. Isolating push to $currentUserId.');
+      debugPrint(
+        '⚠️ Sync engine: Unsynced outbox operations for another identity exist. Isolating push to $currentUserId.',
+      );
     }
 
     final unsynced = await _db.syncOutboxDao.getUnsyncedForOwner(currentUserId);
@@ -351,19 +371,35 @@ class SyncEngine {
           return CloudMappers.taskToCloud(t, userId, SupabaseConfig.deviceId);
         case 'focus_sessions':
           final s = FocusSession.fromJson(data);
-          return CloudMappers.focusSessionToCloud(s, userId, SupabaseConfig.deviceId);
+          return CloudMappers.focusSessionToCloud(
+            s,
+            userId,
+            SupabaseConfig.deviceId,
+          );
         case 'xp_ledger':
           final e = XpLedgerEntry.fromJson(data);
           return CloudMappers.xpLedgerToCloud(e, userId);
         case 'scroll_logs':
           final l = ScrollLog.fromJson(data);
-          return CloudMappers.scrollLogToCloud(l, userId, SupabaseConfig.deviceId);
+          return CloudMappers.scrollLogToCloud(
+            l,
+            userId,
+            SupabaseConfig.deviceId,
+          );
         case 'energy_checkins':
           final c = EnergyCheckIn.fromJson(data);
-          return CloudMappers.energyCheckInToCloud(c, userId, SupabaseConfig.deviceId);
+          return CloudMappers.energyCheckInToCloud(
+            c,
+            userId,
+            SupabaseConfig.deviceId,
+          );
         case 'daily_plans':
           final p = DailyPlan.fromJson(data);
-          return CloudMappers.dailyPlanToCloud(p, userId, SupabaseConfig.deviceId);
+          return CloudMappers.dailyPlanToCloud(
+            p,
+            userId,
+            SupabaseConfig.deviceId,
+          );
         case 'daily_reports':
           final r = DailyReport.fromJson(data);
           return CloudMappers.dailyReportToCloud(r, userId);
@@ -372,7 +408,11 @@ class SyncEngine {
           return CloudMappers.achievementToCloud(a, userId);
         case 'daily_scores':
           final ds = DailyScore.fromJson(data);
-          return CloudMappers.dailyScoreToCloud(ds, userId, SupabaseConfig.deviceId);
+          return CloudMappers.dailyScoreToCloud(
+            ds,
+            userId,
+            SupabaseConfig.deviceId,
+          );
         case 'unlock_attempts':
           final u = UnlockAttempt.fromJson(data);
           return CloudMappers.unlockAttemptToCloud(u, userId);
@@ -395,7 +435,12 @@ class SyncResult {
   final List<String> errors;
   final bool isPaused;
 
-  SyncResult({required this.pushed, required this.pulled, required this.errors, this.isPaused = false});
+  SyncResult({
+    required this.pushed,
+    required this.pulled,
+    required this.errors,
+    this.isPaused = false,
+  });
 
   bool get hasErrors => errors.isNotEmpty;
   bool get isClean => !hasErrors && (pushed > 0 || pulled > 0);

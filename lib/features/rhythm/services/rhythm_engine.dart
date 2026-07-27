@@ -8,17 +8,25 @@ class RhythmEngine {
   static const int minDistinctDays = 5;
   static const int minQualitySessions = 5;
 
-  static RhythmRecommendation? generateRecommendation(List<FocusSession> sessions) {
+  static RhythmRecommendation? generateRecommendation(
+    List<FocusSession> sessions,
+  ) {
     // 1. Filter: Completed sessions with actualMinutes >= 5
-    final completed = sessions.where((s) => s.completedAt != null && s.actualMinutes >= 5).toList();
+    final completed = sessions
+        .where((s) => s.completedAt != null && s.actualMinutes >= 5)
+        .toList();
 
     // 2. Threshold checks
     if (completed.length < minSessions) return null;
 
-    final distinctDays = completed.map((s) => s.startedAt.toIso8601String().split('T')[0]).toSet();
+    final distinctDays = completed
+        .map((s) => s.startedAt.toIso8601String().split('T')[0])
+        .toSet();
     if (distinctDays.length < minDistinctDays) return null;
 
-    final qualitySessions = completed.where((s) => s.qualityScore.isNotEmpty).toList();
+    final qualitySessions = completed
+        .where((s) => s.qualityScore.isNotEmpty)
+        .toList();
     if (qualitySessions.length < minQualitySessions) return null;
 
     // 3. Group by 2-hour windows (e.g. 0-2, 2-4, ...)
@@ -63,7 +71,8 @@ class RhythmEngine {
     // 5. Pick best weekday among those sessions in best window
     final weekdayCounts = <int, int>{};
     for (final s in bestWindowSessions) {
-      weekdayCounts[s.startedAt.weekday] = (weekdayCounts[s.startedAt.weekday] ?? 0) + 1;
+      weekdayCounts[s.startedAt.weekday] =
+          (weekdayCounts[s.startedAt.weekday] ?? 0) + 1;
     }
 
     int bestWeekday = 1;
@@ -76,13 +85,24 @@ class RhythmEngine {
     });
 
     // 6. Format details & evidence
-    final weekdayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final weekdayNames = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
     final weekdayName = weekdayNames[bestWeekday - 1];
 
     final startHourStr = _formatHour(startHour);
     final endHourStr = _formatHour(endHour);
 
-    final totalMinutes = bestWindowSessions.fold<int>(0, (sum, s) => sum + s.actualMinutes);
+    final totalMinutes = bestWindowSessions.fold<int>(
+      0,
+      (sum, s) => sum + s.actualMinutes,
+    );
     final totalHoursStr = (totalMinutes / 60.0).toStringAsFixed(1);
 
     // Calculate average quality grade
@@ -104,10 +124,10 @@ class RhythmEngine {
     final avgGrade = avgWeight >= 0.90
         ? 'A'
         : avgWeight >= 0.75
-            ? 'B'
-            : avgWeight >= 0.50
-                ? 'C'
-                : 'D';
+        ? 'B'
+        : avgWeight >= 0.50
+        ? 'C'
+        : 'D';
 
     final evidence = [
       '${bestWindowSessions.length} sessions',
@@ -122,12 +142,13 @@ class RhythmEngine {
     final timeOfDayPrefix = startHour < 12
         ? 'morning'
         : startHour < 17
-            ? 'afternoon'
-            : 'evening';
+        ? 'afternoon'
+        : 'evening';
 
     return RhythmRecommendation(
       id: id,
-      headline: 'Your highest-quality sessions land $startHourStr - $endHourStr',
+      headline:
+          'Your highest-quality sessions land $startHourStr - $endHourStr',
       actionLabel: 'Protect $weekdayName $timeOfDayPrefix for your hardest MIT',
       windowStartHour: startHour,
       windowEndHour: endHour,

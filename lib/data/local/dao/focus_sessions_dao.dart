@@ -17,14 +17,18 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final session = await getById(id);
     if (session != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('focus_sessions'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(session.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('focus_sessions'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(session.toJson())),
+            ),
+          );
     }
   }
 
@@ -39,24 +43,29 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
   /// Update a session (e.g., when completed)
   Future<void> updateSession(FocusSessionsCompanion entry) async {
     await transaction(() async {
-      await (update(focusSessions)..where((s) => s.id.equals(entry.id.value))).write(entry);
+      await (update(
+        focusSessions,
+      )..where((s) => s.id.equals(entry.id.value))).write(entry);
       await _recordOutboxUpsert(entry.id.value);
     });
   }
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertSessionFromSync(FocusSessionsCompanion entry) => into(focusSessions).insert(entry);
-  Future<void> updateSessionFromSync(FocusSessionsCompanion entry) =>
-      (update(focusSessions)..where((s) => s.id.equals(entry.id.value))).write(entry);
+  Future<void> insertSessionFromSync(FocusSessionsCompanion entry) =>
+      into(focusSessions).insert(entry);
+  Future<void> updateSessionFromSync(FocusSessionsCompanion entry) => (update(
+    focusSessions,
+  )..where((s) => s.id.equals(entry.id.value))).write(entry);
 
   /// Get all sessions for a date range
-  Future<List<FocusSession>> getByDateRange(
-      DateTime start, DateTime end) =>
+  Future<List<FocusSession>> getByDateRange(DateTime start, DateTime end) =>
       (select(focusSessions)
-            ..where((s) =>
-                s.startedAt.isBiggerOrEqualValue(start) &
-                s.startedAt.isSmallerThanValue(end))
+            ..where(
+              (s) =>
+                  s.startedAt.isBiggerOrEqualValue(start) &
+                  s.startedAt.isSmallerThanValue(end),
+            )
             ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
           .get();
 
@@ -74,9 +83,11 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
     return (select(focusSessions)
-          ..where((s) =>
-              s.startedAt.isBiggerOrEqualValue(start) &
-              s.startedAt.isSmallerThanValue(end))
+          ..where(
+            (s) =>
+                s.startedAt.isBiggerOrEqualValue(start) &
+                s.startedAt.isSmallerThanValue(end),
+          )
           ..orderBy([(s) => OrderingTerm.desc(s.startedAt)]))
         .watch();
   }
@@ -100,8 +111,9 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
 
   /// Watch total lifetime focus minutes
   Stream<int> watchLifetimeFocusMinutes() {
-    return select(focusSessions).watch().map((sessions) =>
-        sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes));
+    return select(focusSessions).watch().map(
+      (sessions) => sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes),
+    );
   }
 
   /// Get sessions modified since a given timestamp (for sync push).

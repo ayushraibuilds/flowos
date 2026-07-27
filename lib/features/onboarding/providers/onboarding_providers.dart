@@ -26,16 +26,20 @@ class UserProfileNotifier extends StateNotifier<UserProfile> {
     await store.saveProfile(profile);
   }
 
-  bool get needsDeviceSetup => state.completedOnboardingVersion < 2 && !state.deviceSetupAcknowledged;
+  bool get needsDeviceSetup =>
+      state.completedOnboardingVersion < 2 && !state.deviceSetupAcknowledged;
 
   Future<void> markDeviceSetupAcknowledged() async {
-    await updateProfile(state.copyWith(
-      completedOnboardingVersion: 2,
-      deviceSetupAcknowledged: true,
-    ));
+    await updateProfile(
+      state.copyWith(
+        completedOnboardingVersion: 2,
+        deviceSetupAcknowledged: true,
+      ),
+    );
   }
 }
 
-final userProfileProvider = StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
-  return UserProfileNotifier(ref);
-});
+final userProfileProvider =
+    StateNotifierProvider<UserProfileNotifier, UserProfile>((ref) {
+      return UserProfileNotifier(ref);
+    });

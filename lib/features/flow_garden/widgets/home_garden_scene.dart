@@ -49,15 +49,13 @@ class _HomeGardenSceneState extends State<HomeGardenScene>
       vsync: this,
       duration: const Duration(seconds: 7),
     )..repeat();
-    _eventController = AnimationController(
-      vsync: this,
-      duration: MotionTokens.celebration,
-    )
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed && mounted) {
-          setState(() => _event = _GardenSceneEvent.none);
-        }
-      });
+    _eventController =
+        AnimationController(vsync: this, duration: MotionTokens.celebration)
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed && mounted) {
+              setState(() => _event = _GardenSceneEvent.none);
+            }
+          });
   }
 
   @override
@@ -140,14 +138,17 @@ class _HomeGardenSceneState extends State<HomeGardenScene>
 
     return Semantics(
       container: true,
-      label: 'Today’s Garden. ${widget.day.headline}. '
+      label:
+          'Today’s Garden. ${widget.day.headline}. '
           '${widget.day.supportingText}',
       child: Container(
         height: widget.isHero ? double.infinity : 188,
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: widget.isHero
-              ? const BorderRadius.vertical(bottom: Radius.circular(AppSpacing.radiusCard))
+              ? const BorderRadius.vertical(
+                  bottom: Radius.circular(AppSpacing.radiusCard),
+                )
               : BorderRadius.circular(AppSpacing.radiusCard),
           border: widget.isHero
               ? null
@@ -281,7 +282,9 @@ class _HomeGardenSceneState extends State<HomeGardenScene>
                               ? 'A small reset is enough'
                               : 'Tap the plant to focus',
                           style: AppTypography.caption.copyWith(
-                            color: AppColors.textPrimary.withValues(alpha: 0.88),
+                            color: AppColors.textPrimary.withValues(
+                              alpha: 0.88,
+                            ),
                           ),
                         ),
                       ),
@@ -322,7 +325,8 @@ class _HomeGardenPainter extends CustomPainter {
     final centerX = size.width * 0.47;
     final soilY = size.height * 0.79;
     final plantHeight = size.height * profile.height;
-    final plantScale = 1.0 +
+    final plantScale =
+        1.0 +
         (event == _GardenSceneEvent.growth ? eventPulse * 0.16 : 0.0) +
         (event == _GardenSceneEvent.tend ? eventPulse * 0.04 : 0.0);
 
@@ -508,7 +512,11 @@ class _HomeGardenPainter extends CustomPainter {
     canvas.translate(center.dx, center.dy);
     canvas.rotate(rotation);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: 34 * scale, height: 14 * scale),
+      Rect.fromCenter(
+        center: Offset.zero,
+        width: 34 * scale,
+        height: 14 * scale,
+      ),
       Paint()..color = color,
     );
     canvas.drawLine(
@@ -548,7 +556,8 @@ class _HomeGardenPainter extends CustomPainter {
     final falling = event == _GardenSceneEvent.recovery ? eventValue : 0.48;
     final dropY = size.height * (0.26 + falling * 0.38);
     final dropX = size.width * 0.72;
-    final paint = Paint()..color = AppColors.recoveryTeal.withValues(alpha: 0.90);
+    final paint = Paint()
+      ..color = AppColors.recoveryTeal.withValues(alpha: 0.90);
     final drop = Path()
       ..moveTo(dropX, dropY - 8)
       ..quadraticBezierTo(dropX - 8, dropY + 3, dropX, dropY + 12)
@@ -562,7 +571,9 @@ class _HomeGardenPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
-          ..color = AppColors.recoveryTeal.withValues(alpha: 0.42 * (1 - eventValue)),
+          ..color = AppColors.recoveryTeal.withValues(
+            alpha: 0.42 * (1 - eventValue),
+          ),
       );
     }
   }
@@ -576,7 +587,8 @@ class _HomeGardenPainter extends CustomPainter {
     final x = size.width * 0.76;
     final y = size.height * 0.55 - idleWave * 4 - eventPulse * 5;
     final body = Paint()..color = const Color(0xFFFFD166);
-    final wing = Paint()..color = const Color(0xFFB7F5E6).withValues(alpha: 0.85);
+    final wing = Paint()
+      ..color = const Color(0xFFB7F5E6).withValues(alpha: 0.85);
     canvas.drawOval(
       Rect.fromCenter(center: Offset(x - 6, y - 1), width: 16, height: 8),
       wing,
@@ -586,7 +598,11 @@ class _HomeGardenPainter extends CustomPainter {
       wing,
     );
     canvas.drawCircle(Offset(x, y), 6, body);
-    canvas.drawCircle(Offset(x + 2, y - 1), 1.2, Paint()..color = AppColors.background0);
+    canvas.drawCircle(
+      Offset(x + 2, y - 1),
+      1.2,
+      Paint()..color = AppColors.background0,
+    );
   }
 
   @override
@@ -623,55 +639,55 @@ class _GardenProfile {
   factory _GardenProfile.forVitality(GardenVitality vitality) {
     return switch (vitality) {
       GardenVitality.resting => _GardenProfile(
-          height: 0.30,
-          leafSize: 0.58,
-          stem: const Color(0xFF4A7C5B),
-          leaf: const Color(0xFF5C8B68),
-          glow: AppColors.recoveryTeal,
-          flower: AppColors.warningAmber,
-          hasFlower: false,
-          extraLeaf: false,
-        ),
+        height: 0.30,
+        leafSize: 0.58,
+        stem: const Color(0xFF4A7C5B),
+        leaf: const Color(0xFF5C8B68),
+        glow: AppColors.recoveryTeal,
+        flower: AppColors.warningAmber,
+        hasFlower: false,
+        extraLeaf: false,
+      ),
       GardenVitality.growing => _GardenProfile(
-          height: 0.42,
-          leafSize: 0.78,
-          stem: const Color(0xFF3F9B64),
-          leaf: const Color(0xFF67C587),
-          glow: AppColors.emerald,
-          flower: AppColors.warningAmber,
-          hasFlower: false,
-          extraLeaf: false,
-        ),
+        height: 0.42,
+        leafSize: 0.78,
+        stem: const Color(0xFF3F9B64),
+        leaf: const Color(0xFF67C587),
+        glow: AppColors.emerald,
+        flower: AppColors.warningAmber,
+        hasFlower: false,
+        extraLeaf: false,
+      ),
       GardenVitality.flourishing => _GardenProfile(
-          height: 0.52,
-          leafSize: 1.10,
-          stem: const Color(0xFF2E8754),
-          leaf: const Color(0xFF2ECF83),
-          glow: AppColors.emerald,
-          flower: const Color(0xFFFF8FA3),
-          hasFlower: true,
-          extraLeaf: true,
-        ),
+        height: 0.52,
+        leafSize: 1.10,
+        stem: const Color(0xFF2E8754),
+        leaf: const Color(0xFF2ECF83),
+        glow: AppColors.emerald,
+        flower: const Color(0xFFFF8FA3),
+        hasFlower: true,
+        extraLeaf: true,
+      ),
       GardenVitality.thirsty => _GardenProfile(
-          height: 0.38,
-          leafSize: 0.75,
-          stem: const Color(0xFF63745A),
-          leaf: const Color(0xFF849368),
-          glow: AppColors.warningAmber,
-          flower: AppColors.warningAmber,
-          hasFlower: false,
-          extraLeaf: false,
-        ),
+        height: 0.38,
+        leafSize: 0.75,
+        stem: const Color(0xFF63745A),
+        leaf: const Color(0xFF849368),
+        glow: AppColors.warningAmber,
+        flower: AppColors.warningAmber,
+        hasFlower: false,
+        extraLeaf: false,
+      ),
       GardenVitality.recovering => _GardenProfile(
-          height: 0.46,
-          leafSize: 0.94,
-          stem: const Color(0xFF328A62),
-          leaf: const Color(0xFF46D3A0),
-          glow: AppColors.recoveryTeal,
-          flower: const Color(0xFFFFC46B),
-          hasFlower: true,
-          extraLeaf: true,
-        ),
+        height: 0.46,
+        leafSize: 0.94,
+        stem: const Color(0xFF328A62),
+        leaf: const Color(0xFF46D3A0),
+        glow: AppColors.recoveryTeal,
+        flower: const Color(0xFFFFC46B),
+        hasFlower: true,
+        extraLeaf: true,
+      ),
     };
   }
 }

@@ -18,30 +18,33 @@ void main() {
       expect(profile.protectedWindowConfigured, false);
     });
 
-    test('fromJson successfully parses legacy v1 JSON and sets default fallback values', () {
-      final v1Json = {
-        'goals': ['Deep work'],
-        'distractions': ['Instagram'],
-        'protectedStartHour': 9,
-        'protectedEndHour': 11,
-        'protectedWeekdaysOnly': true,
-        'protectionMode': 'gentle',
-      };
+    test(
+      'fromJson successfully parses legacy v1 JSON and sets default fallback values',
+      () {
+        final v1Json = {
+          'goals': ['Deep work'],
+          'distractions': ['Instagram'],
+          'protectedStartHour': 9,
+          'protectedEndHour': 11,
+          'protectedWeekdaysOnly': true,
+          'protectionMode': 'gentle',
+        };
 
-      final profile = UserProfile.fromJson(v1Json);
-      expect(profile.goals, ['Deep work']);
-      expect(profile.distractions, ['Instagram']);
-      expect(profile.protectedStartHour, 9);
-      expect(profile.protectedEndHour, 11);
-      expect(profile.protectedWeekdaysOnly, true);
-      expect(profile.protectionMode, 'gentle');
+        final profile = UserProfile.fromJson(v1Json);
+        expect(profile.goals, ['Deep work']);
+        expect(profile.distractions, ['Instagram']);
+        expect(profile.protectedStartHour, 9);
+        expect(profile.protectedEndHour, 11);
+        expect(profile.protectedWeekdaysOnly, true);
+        expect(profile.protectionMode, 'gentle');
 
-      // Defaults for M2 fields
-      expect(profile.preferredFocusMinutes, 25);
-      expect(profile.completedOnboardingVersion, 0);
-      expect(profile.deviceSetupAcknowledged, false);
-      expect(profile.protectedWindowConfigured, false);
-    });
+        // Defaults for M2 fields
+        expect(profile.preferredFocusMinutes, 25);
+        expect(profile.completedOnboardingVersion, 0);
+        expect(profile.deviceSetupAcknowledged, false);
+        expect(profile.protectedWindowConfigured, false);
+      },
+    );
 
     test('toJson and fromJson serialize all fields correctly', () {
       final profile = UserProfile(
@@ -69,74 +72,98 @@ void main() {
   });
 
   group('UserProfileStore Migration', () {
-    test('upgrades legacy v1 profile to completedOnboardingVersion 1 when legacy complete flag is true', () async {
-      SharedPreferences.setMockInitialValues({
-        'flowos_onboarding_complete': true,
-        'flowos_user_profile': jsonEncode({
-          'goals': ['Rest'],
-          'distractions': ['TikTok'],
-          'protectedStartHour': 9,
-          'protectedEndHour': 11,
-          'protectedWeekdaysOnly': true,
-          'protectionMode': 'gentle',
-        }),
-      });
+    test(
+      'upgrades legacy v1 profile to completedOnboardingVersion 1 when legacy complete flag is true',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'flowos_onboarding_complete': true,
+          'flowos_user_profile': jsonEncode({
+            'goals': ['Rest'],
+            'distractions': ['TikTok'],
+            'protectedStartHour': 9,
+            'protectedEndHour': 11,
+            'protectedWeekdaysOnly': true,
+            'protectionMode': 'gentle',
+          }),
+        });
 
-      final prefs = await SharedPreferences.getInstance();
-      final store = UserProfileStore(prefs);
-      final profile = store.getProfile();
+        final prefs = await SharedPreferences.getInstance();
+        final store = UserProfileStore(prefs);
+        final profile = store.getProfile();
 
-      expect(profile.completedOnboardingVersion, 1);
-      expect(profile.protectedWindowConfigured, true);
-      expect(profile.goals, ['Rest']);
-    });
+        expect(profile.completedOnboardingVersion, 1);
+        expect(profile.protectedWindowConfigured, true);
+        expect(profile.goals, ['Rest']);
+      },
+    );
 
-    test('retains completedOnboardingVersion 2 and does not overwrite with 1', () async {
-      SharedPreferences.setMockInitialValues({
-        'flowos_onboarding_complete': true,
-        'flowos_user_profile': jsonEncode({
-          'goals': ['Rest'],
-          'distractions': ['TikTok'],
-          'protectedStartHour': 9,
-          'protectedEndHour': 11,
-          'protectedWeekdaysOnly': true,
-          'protectionMode': 'gentle',
-          'completedOnboardingVersion': 2,
-          'protectedWindowConfigured': false,
-        }),
-      });
+    test(
+      'retains completedOnboardingVersion 2 and does not overwrite with 1',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'flowos_onboarding_complete': true,
+          'flowos_user_profile': jsonEncode({
+            'goals': ['Rest'],
+            'distractions': ['TikTok'],
+            'protectedStartHour': 9,
+            'protectedEndHour': 11,
+            'protectedWeekdaysOnly': true,
+            'protectionMode': 'gentle',
+            'completedOnboardingVersion': 2,
+            'protectedWindowConfigured': false,
+          }),
+        });
 
-      final prefs = await SharedPreferences.getInstance();
-      final store = UserProfileStore(prefs);
-      final profile = store.getProfile();
+        final prefs = await SharedPreferences.getInstance();
+        final store = UserProfileStore(prefs);
+        final profile = store.getProfile();
 
-      expect(profile.completedOnboardingVersion, 2);
-      expect(profile.protectedWindowConfigured, false);
-    });
+        expect(profile.completedOnboardingVersion, 2);
+        expect(profile.protectedWindowConfigured, false);
+      },
+    );
   });
 
   group('Protected Window Checks', () {
-    test('isInProtectedWindow returns false if protectedWindowConfigured is false', () {
-      final profile = UserProfile.defaults().copyWith(
-        protectedWindowConfigured: false,
-        protectedStartHour: 9,
-        protectedEndHour: 17,
-      );
+    test(
+      'isInProtectedWindow returns false if protectedWindowConfigured is false',
+      () {
+        final profile = UserProfile.defaults().copyWith(
+          protectedWindowConfigured: false,
+          protectedStartHour: 9,
+          protectedEndHour: 17,
+        );
 
-      final date = DateTime(2026, 7, 15, 12, 0); // Wednesday 12:00 (inside window)
-      expect(profile.isInProtectedWindow(date), false);
-    });
+        final date = DateTime(
+          2026,
+          7,
+          15,
+          12,
+          0,
+        ); // Wednesday 12:00 (inside window)
+        expect(profile.isInProtectedWindow(date), false);
+      },
+    );
 
-    test('isInProtectedWindow returns true inside window if protectedWindowConfigured is true', () {
-      final profile = UserProfile.defaults().copyWith(
-        protectedWindowConfigured: true,
-        protectedStartHour: 9,
-        protectedEndHour: 17,
-        protectedWeekdaysOnly: true,
-      );
+    test(
+      'isInProtectedWindow returns true inside window if protectedWindowConfigured is true',
+      () {
+        final profile = UserProfile.defaults().copyWith(
+          protectedWindowConfigured: true,
+          protectedStartHour: 9,
+          protectedEndHour: 17,
+          protectedWeekdaysOnly: true,
+        );
 
-      final date = DateTime(2026, 7, 15, 12, 0); // Wednesday 12:00 (inside window)
-      expect(profile.isInProtectedWindow(date), true);
-    });
+        final date = DateTime(
+          2026,
+          7,
+          15,
+          12,
+          0,
+        ); // Wednesday 12:00 (inside window)
+        expect(profile.isInProtectedWindow(date), true);
+      },
+    );
   });
 }

@@ -16,7 +16,6 @@ import '../../../features/ai/providers/ai_providers.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
-import '../../../features/reports/models/weekly_action.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/reports/services/daily_action_engine.dart';
 import '../../widgets/action_commit_card.dart';
@@ -103,15 +102,21 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
 
     // Calculate score
     _coverage = todayAttention.coverage;
-    final todayStart = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final todayStart = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
     final todayEnd = todayStart.add(const Duration(days: 1));
     final energyCheckIns = await db.energyCheckInsDao.countToday();
-    
-    final todayLogs = await (db.select(db.scrollLogs)
-          ..where((l) =>
-              l.timestamp.isBiggerOrEqualValue(todayStart) &
-              l.timestamp.isSmallerThanValue(todayEnd)))
-        .get();
+
+    final todayLogs =
+        await (db.select(db.scrollLogs)..where(
+              (l) =>
+                  l.timestamp.isBiggerOrEqualValue(todayStart) &
+                  l.timestamp.isSmallerThanValue(todayEnd),
+            ))
+            .get();
     final recoveryActions = todayLogs
         .where((l) => !l.appName.contains('[Auto]') && l.recoveryActionTaken)
         .length;
@@ -133,42 +138,52 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
 
     // Try AI insight with real data
     final aiService = ref.read(aiServiceProvider);
-    final aiInsight = await aiService.generateDailyReport(dailyData: {
-      'date': DateTime.now().toIso8601String().split('T')[0],
-      'daily_score': _dailyScore,
-      'xp_earned_today': _xpToday,
-      'lifetime_xp': lifetimeXP,
-      'level': level,
-      'streak_days': _streakDays,
-      'total_focus_minutes': _focusMinutes,
-      'sessions': [],
-      'tasks_completed': _tasksCompleted,
-      'tasks_total': (await db.tasksDao.getAllActive()).length,
-      'mits_completed': _mitsCompleted,
-      'scroll_minutes': _scrollMinutes,
-      'scroll_budget': _scrollBudget,
-      'recovery_actions_taken': 0,
-      'energy_readings': [],
-      'intention_completed': _intentionCompleted,
-      'shutdown_completed': plan?.shutdownCompleted ?? false,
-      'private_mode': false,
-      'prompt_version': 1,
-    });
+    final aiInsight = await aiService.generateDailyReport(
+      dailyData: {
+        'date': DateTime.now().toIso8601String().split('T')[0],
+        'daily_score': _dailyScore,
+        'xp_earned_today': _xpToday,
+        'lifetime_xp': lifetimeXP,
+        'level': level,
+        'streak_days': _streakDays,
+        'total_focus_minutes': _focusMinutes,
+        'sessions': [],
+        'tasks_completed': _tasksCompleted,
+        'tasks_total': (await db.tasksDao.getAllActive()).length,
+        'mits_completed': _mitsCompleted,
+        'scroll_minutes': _scrollMinutes,
+        'scroll_budget': _scrollBudget,
+        'recovery_actions_taken': 0,
+        'energy_readings': [],
+        'intention_completed': _intentionCompleted,
+        'shutdown_completed': plan?.shutdownCompleted ?? false,
+        'private_mode': false,
+        'prompt_version': 1,
+      },
+    );
 
     final targetInsight = aiInsight ?? DailyReportInsight.fallback();
 
     // Persist daily score and coverage state in database
     final dateStr = DateTime.now().toIso8601String().split('T')[0];
-    await db.dailyReportsDao.upsertReport(DailyReportsCompanion(
-      id: Value(dateStr),
-      date: Value(DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)),
-      reportJson: Value(jsonEncode(targetInsight.toJson())),
-      dailyScore: Value(_dailyScore),
-      xpEarnedToday: Value(_xpToday),
-      attentionCostToday: Value(_scrollMinutes),
-      generatedAt: Value(DateTime.now()),
-      coverageState: Value(_coverage.name),
-    ));
+    await db.dailyReportsDao.upsertReport(
+      DailyReportsCompanion(
+        id: Value(dateStr),
+        date: Value(
+          DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            DateTime.now().day,
+          ),
+        ),
+        reportJson: Value(jsonEncode(targetInsight.toJson())),
+        dailyScore: Value(_dailyScore),
+        xpEarnedToday: Value(_xpToday),
+        attentionCostToday: Value(_scrollMinutes),
+        generatedAt: Value(DateTime.now()),
+        coverageState: Value(_coverage.name),
+      ),
+    );
 
     setState(() {
       _insight = targetInsight;
@@ -183,8 +198,10 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
     return Scaffold(
       backgroundColor: AppColors.background0,
       appBar: AppBar(
-        title: Text('Daily Report',
-            style: AppTypography.h3.copyWith(color: AppColors.textPrimary)),
+        title: Text(
+          'Daily Report',
+          style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+        ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.close_rounded),
@@ -205,7 +222,9 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
                   key: _shareKey,
                   child: Container(
                     color: AppColors.background0,
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
+                    ),
                     child: Column(
                       children: [
                         const SizedBox(height: AppSpacing.lg),
@@ -272,9 +291,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
           const SizedBox(height: AppSpacing.md),
           Text(
             DailyScoreCalculator.messageForGrade(_grade),
-            style: AppTypography.body.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTypography.body.copyWith(color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           _buildCoverageBadge(),
@@ -286,30 +303,30 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   Widget _buildCoverageBadge() {
     final (label, icon, color) = switch (_coverage) {
       DataCoverage.complete => (
-          'Full Screen Time Coverage',
-          Icons.verified_user_rounded,
-          AppColors.emerald
-        ),
+        'Full Screen Time Coverage',
+        Icons.verified_user_rounded,
+        AppColors.emerald,
+      ),
       DataCoverage.partial => (
-          'Partial Coverage (Reweighted)',
-          Icons.warning_amber_rounded,
-          AppColors.warningAmber
-        ),
+        'Partial Coverage (Reweighted)',
+        Icons.warning_amber_rounded,
+        AppColors.warningAmber,
+      ),
       DataCoverage.manualOnly => (
-          'Manual Logs Only (Reweighted)',
-          Icons.edit_note_rounded,
-          AppColors.warningAmber
-        ),
+        'Manual Logs Only (Reweighted)',
+        Icons.edit_note_rounded,
+        AppColors.warningAmber,
+      ),
       DataCoverage.notConnected => (
-          'Missing Screen Time (Reweighted)',
-          Icons.gpp_maybe_rounded,
-          AppColors.dangerCoral
-        ),
+        'Missing Screen Time (Reweighted)',
+        Icons.gpp_maybe_rounded,
+        AppColors.dangerCoral,
+      ),
       DataCoverage.unsupported => (
-          'Screen Time Unsupported (Reweighted)',
-          Icons.info_outline_rounded,
-          AppColors.dangerCoral
-        ),
+        'Screen Time Unsupported (Reweighted)',
+        Icons.info_outline_rounded,
+        AppColors.dangerCoral,
+      ),
     };
 
     return Container(
@@ -345,7 +362,11 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
       (value: '${_focusMinutes}m', label: 'Focus', color: AppColors.focusBlue),
       (value: '+$_xpToday', label: 'XP', color: AppColors.emerald),
       (value: '$_tasksCompleted', label: 'Tasks', color: AppColors.textPrimary),
-      (value: '$_mitsCompleted/3', label: 'MITs', color: AppColors.warningAmber),
+      (
+        value: '$_mitsCompleted/3',
+        label: 'MITs',
+        color: AppColors.warningAmber,
+      ),
     ];
 
     return Row(
@@ -389,9 +410,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
       decoration: BoxDecoration(
         color: AppColors.background2,
         borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-        border: Border(
-          left: BorderSide(color: AppColors.emerald, width: 2),
-        ),
+        border: Border(left: BorderSide(color: AppColors.emerald, width: 2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +462,9 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   }
 
   Widget _buildAttentionCost() {
-    final ratio = _scrollBudget > 0 ? (_scrollMinutes / _scrollBudget).clamp(0.0, 1.5) : 0.0;
+    final ratio = _scrollBudget > 0
+        ? (_scrollMinutes / _scrollBudget).clamp(0.0, 1.5)
+        : 0.0;
     final isOver = _scrollMinutes > _scrollBudget;
 
     return Container(
@@ -543,8 +564,9 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
   Future<void> _shareReport() async {
     HapticFeedback.mediumImpact();
     try {
-      final boundary = _shareKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
+      final boundary =
+          _shareKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
       if (boundary == null) return;
 
       final image = await boundary.toImage(pixelRatio: 3.0);
@@ -554,8 +576,15 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
       final pngBytes = byteData.buffer.asUint8List();
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile.fromData(pngBytes, mimeType: 'image/png', name: 'flowos-report.png')],
-          text: 'My FlowOS Daily Score: $_grade ($_dailyScore/100) 🔥$_streakDays day streak',
+          files: [
+            XFile.fromData(
+              pngBytes,
+              mimeType: 'image/png',
+              name: 'flowos-report.png',
+            ),
+          ],
+          text:
+              'My FlowOS Daily Score: $_grade ($_dailyScore/100) 🔥$_streakDays day streak',
         ),
       );
     } catch (e) {
@@ -581,7 +610,9 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
         const SizedBox(height: AppSpacing.xs),
         Text(
           'A lightweight change suggested based on today\'s focus.',
-          style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textTertiary,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         ActionCommitCard(

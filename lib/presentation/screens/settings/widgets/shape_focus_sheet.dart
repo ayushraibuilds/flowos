@@ -72,7 +72,9 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Customize your focus targets, distraction lists, and protected blocks.',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.xxl),
 
@@ -93,7 +95,9 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                     selectedColor: AppColors.emerald.withValues(alpha: 0.2),
                     checkmarkColor: AppColors.emerald,
                     labelStyle: AppTypography.bodySmall.copyWith(
-                      color: isSel ? AppColors.emerald : AppColors.textSecondary,
+                      color: isSel
+                          ? AppColors.emerald
+                          : AppColors.textSecondary,
                     ),
                     onSelected: (selected) {
                       setState(() {
@@ -126,7 +130,9 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                     selectedColor: AppColors.dangerCoral.withValues(alpha: 0.2),
                     checkmarkColor: AppColors.dangerCoral,
                     labelStyle: AppTypography.bodySmall.copyWith(
-                      color: isSel ? AppColors.dangerCoral : AppColors.textSecondary,
+                      color: isSel
+                          ? AppColors.dangerCoral
+                          : AppColors.textSecondary,
                     ),
                     onSelected: (selected) {
                       setState(() {
@@ -157,7 +163,7 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<int>(
-                      value: _tempStartHour,
+                      initialValue: _tempStartHour,
                       decoration: const InputDecoration(
                         labelText: 'Start Hour',
                         border: OutlineInputBorder(),
@@ -179,7 +185,7 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: DropdownButtonFormField<int>(
-                      value: _tempEndHour,
+                      initialValue: _tempEndHour,
                       decoration: const InputDecoration(
                         labelText: 'End Hour',
                         border: OutlineInputBorder(),
@@ -204,14 +210,18 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
               SwitchListTile(
                 title: Text(
                   'Weekdays only',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 subtitle: Text(
                   'Only shield target apps during weekdays (Mon-Fri)',
-                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 value: _tempWeekdaysOnly,
-                activeColor: AppColors.emerald,
+                activeThumbColor: AppColors.emerald,
                 contentPadding: EdgeInsets.zero,
                 onChanged: (val) {
                   setState(() => _tempWeekdaysOnly = val);
@@ -233,7 +243,9 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                       selected: _tempMode == 'gentle',
                       selectedColor: AppColors.emerald.withValues(alpha: 0.2),
                       labelStyle: AppTypography.bodySmall.copyWith(
-                        color: _tempMode == 'gentle' ? AppColors.emerald : AppColors.textSecondary,
+                        color: _tempMode == 'gentle'
+                            ? AppColors.emerald
+                            : AppColors.textSecondary,
                       ),
                       onSelected: (selected) {
                         if (selected) {
@@ -247,9 +259,13 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                     child: ChoiceChip(
                       label: const Center(child: Text('Firm (Guard/Deep)')),
                       selected: _tempMode == 'firm',
-                      selectedColor: AppColors.dangerCoral.withValues(alpha: 0.2),
+                      selectedColor: AppColors.dangerCoral.withValues(
+                        alpha: 0.2,
+                      ),
                       labelStyle: AppTypography.bodySmall.copyWith(
-                        color: _tempMode == 'firm' ? AppColors.dangerCoral : AppColors.textSecondary,
+                        color: _tempMode == 'firm'
+                            ? AppColors.dangerCoral
+                            : AppColors.textSecondary,
                       ),
                       onSelected: (selected) {
                         if (selected) {
@@ -274,12 +290,16 @@ class _ShapeFocusSheetState extends ConsumerState<ShapeFocusSheet> {
                     protectedWeekdaysOnly: _tempWeekdaysOnly,
                     protectionMode: _tempMode,
                   );
-                  await ref.read(userProfileProvider.notifier).updateProfile(updated);
+                  await ref
+                      .read(userProfileProvider.notifier)
+                      .updateProfile(updated);
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Focus shape updated successfully!'),
+                        content: const Text(
+                          'Focus shape updated successfully!',
+                        ),
                         backgroundColor: AppColors.emerald,
                       ),
                     );

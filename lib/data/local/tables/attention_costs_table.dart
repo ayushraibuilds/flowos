@@ -15,8 +15,4 @@ class AttentionCosts extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-enum AttentionCostTypeColumn {
-  scroll,
-  abandonedSession,
-  incompleteMit,
-}
+enum AttentionCostTypeColumn { scroll, abandonedSession, incompleteMit }

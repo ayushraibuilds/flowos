@@ -107,7 +107,7 @@ class _FocusRitualScreenState extends ConsumerState<FocusRitualScreen>
     final db = ref.read(databaseProvider);
     final xpCalc = XpCalculator(db.xpLedgerDao);
     await xpCalc.awardFocusRitualXP();
-    
+
     // Record streak activity & check achievements
     await StreakService.recordActivity();
     await AchievementChecker.runCheck(db);
@@ -197,8 +197,11 @@ class _FocusRitualScreenState extends ConsumerState<FocusRitualScreen>
                         ),
                       ),
                       child: item.checked
-                          ? const Icon(Icons.check, size: 16,
-                              color: AppColors.textInverse)
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: AppColors.textInverse,
+                            )
                           : null,
                     ),
                   ],
@@ -239,9 +242,7 @@ class _FocusRitualScreenState extends ConsumerState<FocusRitualScreen>
       children: [
         Text(
           labels[_breathPhase],
-          style: AppTypography.h2.copyWith(
-            color: AppColors.recoveryTeal,
-          ),
+          style: AppTypography.h2.copyWith(color: AppColors.recoveryTeal),
         ),
         const SizedBox(height: AppSpacing.xxxl),
         AnimatedBuilder(

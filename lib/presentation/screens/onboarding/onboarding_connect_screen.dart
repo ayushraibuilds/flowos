@@ -16,16 +16,15 @@ import '../../../features/settings/providers/sleep_mode_provider.dart';
 class OnboardingConnectScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
 
-  const OnboardingConnectScreen({
-    super.key,
-    required this.onComplete,
-  });
+  const OnboardingConnectScreen({super.key, required this.onComplete});
 
   @override
-  ConsumerState<OnboardingConnectScreen> createState() => _OnboardingConnectScreenState();
+  ConsumerState<OnboardingConnectScreen> createState() =>
+      _OnboardingConnectScreenState();
 }
 
-class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScreen>
+class _OnboardingConnectScreenState
+    extends ConsumerState<OnboardingConnectScreen>
     with WidgetsBindingObserver {
   bool _usagePermissionActive = false;
   bool _accessibilityPermissionActive = false;
@@ -60,7 +59,9 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
 
   Future<void> _checkPermissions() async {
     try {
-      final states = await ref.read(deviceAttentionPlatformProvider).getPermissionStates();
+      final states = await ref
+          .read(deviceAttentionPlatformProvider)
+          .getPermissionStates();
       if (!mounted) return;
 
       final previousUsage = _usagePermissionActive;
@@ -86,13 +87,20 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
     try {
       // Sync last 7 days
       await ref.read(attentionDataRepositoryProvider).syncUsage(days: 7);
-      
+
       final db = ref.read(databaseProvider);
       final yesterday = DateTime.now().subtract(const Duration(days: 1));
-      final yesterdayStart = DateTime(yesterday.year, yesterday.month, yesterday.day);
+      final yesterdayStart = DateTime(
+        yesterday.year,
+        yesterday.month,
+        yesterday.day,
+      );
       final yesterdayEnd = yesterdayStart.add(const Duration(days: 1));
-      
-      final records = await db.deviceUsageRecordsDao.getForRange(yesterdayStart, yesterdayEnd);
+
+      final records = await db.deviceUsageRecordsDao.getForRange(
+        yesterdayStart,
+        yesterdayEnd,
+      );
       final distractingMins = records
           .where((r) => r.isDistracting)
           .fold<int>(0, (sum, r) => sum + r.minutes);
@@ -136,7 +144,9 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
 
   Future<void> _requestBatteryOptPermission() async {
     try {
-      await ref.read(deviceAttentionPlatformProvider).openBatteryOptimizationSettings();
+      await ref
+          .read(deviceAttentionPlatformProvider)
+          .openBatteryOptimizationSettings();
     } catch (_) {}
   }
 
@@ -167,13 +177,13 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
 
   Future<void> _saveAndFinish() async {
     HapticFeedback.mediumImpact();
-    
+
     try {
       // Only write policies to database if they were confirmed
       if (_pickerConfirmed) {
         final db = ref.read(databaseProvider);
         final now = DateTime.now();
-        
+
         // Load launchable apps to match packages with labels
         final launchable = await ref.read(launchableAppsProvider.future);
 
@@ -183,7 +193,10 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
           final isSleepChecked = _sleepState[pkg] ?? false;
 
           if (isFocusChecked || isSleepChecked) {
-            final existing = await db.protectedAppsDao.getByPlatformAndRef('android', pkg);
+            final existing = await db.protectedAppsDao.getByPlatformAndRef(
+              'android',
+              pkg,
+            );
             final entryId = existing?.id ?? const Uuid().v4();
             final appInfo = launchable.firstWhere(
               (a) => a['packageName'] == pkg,
@@ -238,7 +251,9 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       'Decide what FlowOS protects and enable integrations.',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
 
@@ -246,23 +261,28 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
                       // App Protection Summary Card
                       Text(
                         'App Protection',
-                        style: AppTypography.h3.copyWith(fontWeight: FontWeight.bold),
+                        style: AppTypography.h3.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       _buildAppPickerCTA(),
-                      
+
                       const SizedBox(height: AppSpacing.xxl),
 
                       // Permissions
                       Text(
                         'Device Integrations',
-                        style: AppTypography.h3.copyWith(fontWeight: FontWeight.bold),
+                        style: AppTypography.h3.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
 
                       _buildPermissionCard(
                         title: 'Usage Access (Optional)',
-                        description: 'See which selected apps use your time so your daily score reflects reality.',
+                        description:
+                            'See which selected apps use your time so your daily score reflects reality.',
                         status: _usagePermissionActive,
                         onTap: _requestUsagePermission,
                         extraWidget: _buildSyncStatus(),
@@ -270,14 +290,16 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
                       const SizedBox(height: AppSpacing.lg),
                       _buildPermissionCard(
                         title: 'Accessibility Blocker (Optional)',
-                        description: 'Apply your focus shields to selected apps during focus sessions.',
+                        description:
+                            'Apply your focus shields to selected apps during focus sessions.',
                         status: _accessibilityPermissionActive,
                         onTap: _requestAccessibilityPermission,
                       ),
                       const SizedBox(height: AppSpacing.lg),
                       _buildPermissionCard(
                         title: 'Unrestricted Battery Usage (Optional)',
-                        description: 'Keep focus session protection active on aggressive battery managers (Xiaomi, Samsung, OnePlus).',
+                        description:
+                            'Keep focus session protection active on aggressive battery managers (Xiaomi, Samsung, OnePlus).',
                         status: _batteryOptPermissionActive,
                         onTap: _requestBatteryOptPermission,
                       ),
@@ -302,13 +324,12 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
                     backgroundColor: AppColors.emerald,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Finish',
-                    style: AppTypography.button,
-                  ),
+                  child: Text('Finish', style: AppTypography.button),
                 ),
               ),
             ),
@@ -351,7 +372,10 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
               const SizedBox(width: AppSpacing.sm),
               if (_pickerConfirmed)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.emerald.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
@@ -369,7 +393,9 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
           const SizedBox(height: AppSpacing.sm),
           Text(
             'Select installed apps that FlowOS should shield during focus sessions.',
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           OutlinedButton(
@@ -379,9 +405,7 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
               side: BorderSide(color: AppColors.emerald),
               foregroundColor: AppColors.emerald,
             ),
-            child: Text(
-              _pickerConfirmed ? 'Manage Selection' : 'Select Apps',
-            ),
+            child: Text(_pickerConfirmed ? 'Manage Selection' : 'Select Apps'),
           ),
         ],
       ),
@@ -422,7 +446,10 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: status
                       ? AppColors.emerald.withValues(alpha: 0.1)
@@ -442,7 +469,9 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
           const SizedBox(height: AppSpacing.sm),
           Text(
             description,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           if (extraWidget != null) extraWidget,
           const SizedBox(height: AppSpacing.md),
@@ -451,9 +480,13 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
             style: OutlinedButton.styleFrom(
               minimumSize: const Size.fromHeight(36),
               side: BorderSide(
-                color: status ? AppColors.textTertiary.withValues(alpha: 0.2) : AppColors.emerald,
+                color: status
+                    ? AppColors.textTertiary.withValues(alpha: 0.2)
+                    : AppColors.emerald,
               ),
-              foregroundColor: status ? AppColors.textPrimary : AppColors.emerald,
+              foregroundColor: status
+                  ? AppColors.textPrimary
+                  : AppColors.emerald,
             ),
             child: Text(status ? 'Settings Configured' : 'Grant Permission'),
           ),
@@ -471,12 +504,17 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
             SizedBox(
               width: 14,
               height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.emerald),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.emerald,
+              ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
               'Syncing device usage...',
-              style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -541,7 +579,8 @@ class _OnboardingConnectScreenState extends ConsumerState<OnboardingConnectScree
 class _OnboardingAppPickerModal extends ConsumerStatefulWidget {
   final Map<String, bool> initialFocusState;
   final Map<String, bool> initialSleepState;
-  final void Function(Map<String, bool> focus, Map<String, bool> sleep) onSelectionConfirmed;
+  final void Function(Map<String, bool> focus, Map<String, bool> sleep)
+  onSelectionConfirmed;
 
   const _OnboardingAppPickerModal({
     required this.initialFocusState,
@@ -550,10 +589,12 @@ class _OnboardingAppPickerModal extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_OnboardingAppPickerModal> createState() => _OnboardingAppPickerModalState();
+  ConsumerState<_OnboardingAppPickerModal> createState() =>
+      _OnboardingAppPickerModalState();
 }
 
-class _OnboardingAppPickerModalState extends ConsumerState<_OnboardingAppPickerModal> {
+class _OnboardingAppPickerModalState
+    extends ConsumerState<_OnboardingAppPickerModal> {
   late Map<String, bool> _focusState;
   late Map<String, bool> _sleepState;
 

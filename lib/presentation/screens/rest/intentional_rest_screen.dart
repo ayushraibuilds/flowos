@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../widgets/flow_surface.dart';
 import '../../../features/focus/providers/focus_timer_provider.dart';
 
 class IntentionalRestScreen extends ConsumerStatefulWidget {
@@ -21,7 +20,8 @@ class IntentionalRestScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<IntentionalRestScreen> createState() => _IntentionalRestScreenState();
+  ConsumerState<IntentionalRestScreen> createState() =>
+      _IntentionalRestScreenState();
 }
 
 class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
@@ -72,7 +72,7 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
 
   void _startRest() {
     HapticFeedback.mediumImpact();
-    
+
     // Set recovery active state to true
     ref.read(isRecoveryActiveProvider.notifier).state = true;
 
@@ -148,10 +148,15 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.background2,
-        title: Text('Rest Completed 🔋', style: AppTypography.h3.copyWith(color: AppColors.emerald)),
+        title: Text(
+          'Rest Completed 🔋',
+          style: AppTypography.h3.copyWith(color: AppColors.emerald),
+        ),
         content: Text(
           'How do you feel? You successfully stepped away to recharge your batteries without scrolling.',
-          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
@@ -187,7 +192,10 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
               Align(
                 alignment: Alignment.topLeft,
                 child: IconButton(
-                  icon: Icon(Icons.close_rounded, color: AppColors.textTertiary),
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: AppColors.textTertiary,
+                  ),
                   onPressed: _cancelRest,
                 ),
               ),
@@ -202,7 +210,9 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Step away from feed scroll. Rest your eyes and reset your focus.',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -213,7 +223,9 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                   children: [5, 10, 15].map((m) {
                     final isSel = _selectedMinutes == m;
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
                       child: ChoiceChip(
                         label: Text('$m Min', style: AppTypography.bodySmall),
                         selected: isSel,
@@ -223,14 +235,20 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                             setState(() => _selectedMinutes = m);
                           }
                         },
-                        selectedColor: AppColors.emerald.withValues(alpha: 0.12),
+                        selectedColor: AppColors.emerald.withValues(
+                          alpha: 0.12,
+                        ),
                         disabledColor: AppColors.background2,
                         backgroundColor: AppColors.background2,
                         labelStyle: TextStyle(
-                          color: isSel ? AppColors.emerald : AppColors.textSecondary,
+                          color: isSel
+                              ? AppColors.emerald
+                              : AppColors.textSecondary,
                         ),
                         side: BorderSide(
-                          color: isSel ? AppColors.emerald : Colors.white.withValues(alpha: 0.05),
+                          color: isSel
+                              ? AppColors.emerald
+                              : Colors.white.withValues(alpha: 0.05),
                         ),
                       ),
                     );
@@ -249,10 +267,15 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                       backgroundColor: AppColors.emerald,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusCard,
+                        ),
                       ),
                     ),
-                    child: Text('Start Rest Break', style: AppTypography.button),
+                    child: Text(
+                      'Start Rest Break',
+                      style: AppTypography.button,
+                    ),
                   ),
                 ),
               ] else ...[
@@ -267,7 +290,9 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Rest Timer Active',
-                  style: AppTypography.monoSmall.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.monoSmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
                 ),
 
                 const Spacer(),
@@ -291,7 +316,9 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.emerald.withValues(alpha: 0.12),
+                                color: AppColors.emerald.withValues(
+                                  alpha: 0.12,
+                                ),
                                 blurRadius: 40,
                               ),
                             ],
@@ -338,7 +365,9 @@ class _IntentionalRestScreenState extends ConsumerState<IntentionalRestScreen>
                   ),
                   child: Text(
                     'Box Breathing Cycle: Inhale 4s ➔ Hold 4s ➔ Exhale 4s ➔ Hold 4s',
-                    style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),

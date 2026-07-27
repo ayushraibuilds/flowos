@@ -28,14 +28,8 @@ void main() {
 
   Widget createTestWidget() {
     return ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-      ],
-      child: const MaterialApp(
-        home: Scaffold(
-          body: HomeScreen(),
-        ),
-      ),
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: const MaterialApp(home: Scaffold(body: HomeScreen())),
     );
   }
 
@@ -72,7 +66,9 @@ void main() {
       await cleanUpWidget(tester);
     });
 
-    testWidgets('Daily score shows incomplete indicator when zero engagement', (tester) async {
+    testWidgets('Daily score shows incomplete indicator when zero engagement', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

@@ -10,7 +10,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
 import '../../../features/xp/providers/xp_providers.dart'
-    show streakProvider, streakPausedProvider, todayPlanProvider;
+    show streakProvider, streakPausedProvider;
 import '../../../features/energy/providers/energy_providers.dart';
 import '../../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../../../features/tasks/providers/task_providers.dart';
@@ -65,11 +65,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _setupSheetShown = false;
 
-  void _maybeShowDeviceSetupSheet(BuildContext context) async {
+  void _maybeShowDeviceSetupSheet() async {
     if (_setupSheetShown) return;
 
     final prefs = await SharedPreferences.getInstance();
-    final lastDismissedStr = prefs.getString('flowos_setup_sheet_dismissed_date');
+    final lastDismissedStr = prefs.getString(
+      'flowos_setup_sheet_dismissed_date',
+    );
     if (lastDismissedStr != null) {
       final lastDismissed = DateTime.parse(lastDismissedStr);
       final difference = DateTime.now().difference(lastDismissed);
@@ -78,15 +80,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
+    if (!mounted) return;
     _setupSheetShown = true;
-    if (mounted) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (context) => const DeviceSetupSheet(),
-      );
-    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const DeviceSetupSheet(),
+    );
   }
 
   @override
@@ -97,7 +98,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (profileLoaded && needsSetup) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _maybeShowDeviceSetupSheet(context);
+        if (mounted) {
+          _maybeShowDeviceSetupSheet();
+        }
       });
     }
 
@@ -113,7 +116,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const HomeGardenHero(),
               if (ref.watch(userProfileProvider).isInProtectedWindow()) ...[
                 const SizedBox(height: AppSpacing.md),
-                _buildProtectedWindowBanner(context, ref.read(userProfileProvider)),
+                _buildProtectedWindowBanner(
+                  context,
+                  ref.read(userProfileProvider),
+                ),
               ],
               const SizedBox(height: AppSpacing.lg),
               // ─── Header: Level + Streak ────────────────────────
@@ -126,7 +132,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildXPBar(context, ref),
               const SizedBox(height: AppSpacing.xxl),
               // ─── Rhythm Recommendation Card ────────────────────
-              ref.watch(rhythmRecommendationProvider).when(
+              ref
+                  .watch(rhythmRecommendationProvider)
+                  .when(
                     data: (rec) {
                       if (rec == null) return const SizedBox.shrink();
                       return Padding(
@@ -466,11 +474,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         label: 'Log Scroll',
         onTap: () => context.push('/scroll-tracker'),
       ),
-      (
-        icon: '📊',
-        label: 'Insights',
-        onTap: () => context.push('/insights'),
-      ),
+      (icon: '📊', label: 'Insights', onTap: () => context.push('/insights')),
     ];
 
     return Row(
@@ -532,7 +536,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return 'Evening recovery & ritual 🧘';
   }
 
-  Widget _buildProtectedWindowBanner(BuildContext context, UserProfile profile) {
+  Widget _buildProtectedWindowBanner(
+    BuildContext context,
+    UserProfile profile,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
@@ -600,11 +607,5 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
-  }
-
-  static String _formatHour(int hour) {
-    if (hour == 0) return '12 AM';
-    if (hour == 12) return '12 PM';
-    return hour < 12 ? '$hour AM' : '${hour - 12} PM';
   }
 }

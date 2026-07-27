@@ -53,10 +53,7 @@ class FlowEmptyState extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppSpacing.xxl),
-              ElevatedButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),
@@ -68,12 +65,12 @@ class FlowEmptyState extends StatelessWidget {
 
   /// No tasks yet
   static FlowEmptyState tasks({VoidCallback? onAdd}) => FlowEmptyState(
-        emoji: '📝',
-        title: 'No tasks yet',
-        subtitle: 'Add your first task or use Brain Dump\nto get AI-sorted tasks.',
-        actionLabel: 'Add Task',
-        onAction: onAdd,
-      );
+    emoji: '📝',
+    title: 'No tasks yet',
+    subtitle: 'Add your first task or use Brain Dump\nto get AI-sorted tasks.',
+    actionLabel: 'Add Task',
+    onAction: onAdd,
+  );
 
   /// No focus sessions today
   static const focusSessions = FlowEmptyState(
@@ -93,7 +90,8 @@ class FlowEmptyState extends StatelessWidget {
   static const achievements = FlowEmptyState(
     emoji: '🏆',
     title: 'No achievements unlocked',
-    subtitle: 'Complete tasks, focus sessions, and\nbuild streaks to earn badges.',
+    subtitle:
+        'Complete tasks, focus sessions, and\nbuild streaks to earn badges.',
   );
 
   /// No scroll logs
@@ -145,11 +143,7 @@ class FlowErrorState extends StatelessWidget {
   final String? message;
   final VoidCallback? onRetry;
 
-  const FlowErrorState({
-    super.key,
-    this.message,
-    this.onRetry,
-  });
+  const FlowErrorState({super.key, this.message, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -249,7 +243,11 @@ class FlowSyncIndicator extends StatelessWidget {
     final (icon, color, label) = switch (status) {
       'syncing' => (Icons.sync_rounded, AppColors.focusBlue, 'Syncing...'),
       'synced' => (Icons.cloud_done_rounded, AppColors.emerald, 'Synced'),
-      'error' => (Icons.sync_problem_rounded, AppColors.dangerCoral, 'Sync error'),
+      'error' => (
+        Icons.sync_problem_rounded,
+        AppColors.dangerCoral,
+        'Sync error',
+      ),
       _ => (Icons.cloud_off_rounded, AppColors.textTertiary, 'Offline'),
     };
 
@@ -260,10 +258,7 @@ class FlowSyncIndicator extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: AppTypography.caption.copyWith(
-            color: color,
-            fontSize: 10,
-          ),
+          style: AppTypography.caption.copyWith(color: color, fontSize: 10),
         ),
       ],
     );

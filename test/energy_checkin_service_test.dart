@@ -62,7 +62,10 @@ void main() {
       // 3rd log
       bonus = await service.logEnergy(TimeOfDayColumn.evening, 5);
       expect(bonus, true); // 3x bonus awarded!
-      expect(await db.xpLedgerDao.getLifetimeXP(), 20); // XpConstants.energyCheckin3x is 20
+      expect(
+        await db.xpLedgerDao.getLifetimeXP(),
+        20,
+      ); // XpConstants.energyCheckin3x is 20
     });
 
     test('idempotency of 3x bonus on subsequent updates', () async {

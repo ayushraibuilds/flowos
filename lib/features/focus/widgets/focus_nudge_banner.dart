@@ -21,7 +21,8 @@ class FocusNudgeBanner extends StatefulWidget {
   State<FocusNudgeBanner> createState() => _FocusNudgeBannerState();
 }
 
-class _FocusNudgeBannerState extends State<FocusNudgeBanner> with SingleTickerProviderStateMixin {
+class _FocusNudgeBannerState extends State<FocusNudgeBanner>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -41,7 +42,10 @@ class _FocusNudgeBannerState extends State<FocusNudgeBanner> with SingleTickerPr
       duration: const Duration(milliseconds: 300),
     );
 
-    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, -0.5),
       end: Offset.zero,
@@ -93,7 +97,9 @@ class _FocusNudgeBannerState extends State<FocusNudgeBanner> with SingleTickerPr
           decoration: BoxDecoration(
             color: AppColors.background2.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: AppColors.warningAmber.withValues(alpha: 0.25)),
+            border: Border.all(
+              color: AppColors.warningAmber.withValues(alpha: 0.25),
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
@@ -133,7 +139,10 @@ class _FocusNudgeBannerState extends State<FocusNudgeBanner> with SingleTickerPr
                 onPressed: _dismiss,
                 style: TextButton.styleFrom(
                   minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
@@ -155,7 +164,10 @@ class _FocusNudgeBannerState extends State<FocusNudgeBanner> with SingleTickerPr
                   foregroundColor: Colors.black,
                   elevation: 0,
                   minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(100),
                   ),

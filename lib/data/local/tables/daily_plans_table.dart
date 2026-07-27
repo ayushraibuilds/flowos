@@ -13,12 +13,16 @@ class DailyPlans extends Table {
   TextColumn get mit3Id => text().nullable()();
 
   // Morning state
-  IntColumn get morningEnergy => integer().withDefault(const Constant(3))(); // 1-5
-  IntColumn get scrollBudgetMinutes => integer().withDefault(const Constant(30))();
+  IntColumn get morningEnergy =>
+      integer().withDefault(const Constant(3))(); // 1-5
+  IntColumn get scrollBudgetMinutes =>
+      integer().withDefault(const Constant(30))();
 
   // Ritual tracking
-  BoolColumn get intentionCompleted => boolean().withDefault(const Constant(false))();
-  BoolColumn get shutdownCompleted => boolean().withDefault(const Constant(false))();
+  BoolColumn get intentionCompleted =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get shutdownCompleted =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get intentionNote => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

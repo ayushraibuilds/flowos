@@ -97,7 +97,9 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       autoSync: prefs.getBool(_keyAutoSync) ?? true,
       focusProtection: FocusProtectionLevel.values.firstWhere(
         (level) => level.name == prefs.getString(_keyFocusProtection),
-        orElse: () => isOnboarded ? FocusProtectionLevel.softReturn : FocusProtectionLevel.pauseAndProtect,
+        orElse: () => isOnboarded
+            ? FocusProtectionLevel.softReturn
+            : FocusProtectionLevel.pauseAndProtect,
       ),
     );
   }

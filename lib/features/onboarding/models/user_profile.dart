@@ -87,12 +87,17 @@ class UserProfile {
       distractions: distractions ?? this.distractions,
       protectedStartHour: protectedStartHour ?? this.protectedStartHour,
       protectedEndHour: protectedEndHour ?? this.protectedEndHour,
-      protectedWeekdaysOnly: protectedWeekdaysOnly ?? this.protectedWeekdaysOnly,
+      protectedWeekdaysOnly:
+          protectedWeekdaysOnly ?? this.protectedWeekdaysOnly,
       protectionMode: protectionMode ?? this.protectionMode,
-      preferredFocusMinutes: preferredFocusMinutes ?? this.preferredFocusMinutes,
-      completedOnboardingVersion: completedOnboardingVersion ?? this.completedOnboardingVersion,
-      deviceSetupAcknowledged: deviceSetupAcknowledged ?? this.deviceSetupAcknowledged,
-      protectedWindowConfigured: protectedWindowConfigured ?? this.protectedWindowConfigured,
+      preferredFocusMinutes:
+          preferredFocusMinutes ?? this.preferredFocusMinutes,
+      completedOnboardingVersion:
+          completedOnboardingVersion ?? this.completedOnboardingVersion,
+      deviceSetupAcknowledged:
+          deviceSetupAcknowledged ?? this.deviceSetupAcknowledged,
+      protectedWindowConfigured:
+          protectedWindowConfigured ?? this.protectedWindowConfigured,
     );
   }
 
@@ -102,17 +107,20 @@ class UserProfile {
 
     // Check if weekdays only is enabled, and if today is a weekday
     if (protectedWeekdaysOnly) {
-      if (time.weekday == DateTime.saturday || time.weekday == DateTime.sunday) {
+      if (time.weekday == DateTime.saturday ||
+          time.weekday == DateTime.sunday) {
         return false;
       }
     }
 
     final currentHour = time.hour;
     if (protectedStartHour <= protectedEndHour) {
-      return currentHour >= protectedStartHour && currentHour < protectedEndHour;
+      return currentHour >= protectedStartHour &&
+          currentHour < protectedEndHour;
     } else {
       // Overnight range, e.g. 22:00 to 06:00
-      return currentHour >= protectedStartHour || currentHour < protectedEndHour;
+      return currentHour >= protectedStartHour ||
+          currentHour < protectedEndHour;
     }
   }
 

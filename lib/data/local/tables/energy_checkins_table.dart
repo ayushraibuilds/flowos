@@ -5,7 +5,8 @@ import 'package:drift/drift.dart';
 class EnergyCheckIns extends Table {
   TextColumn get id => text()();
 
-  TextColumn get timeOfDay => textEnum<TimeOfDayColumn>()(); // morning, afternoon, evening
+  TextColumn get timeOfDay =>
+      textEnum<TimeOfDayColumn>()(); // morning, afternoon, evening
   IntColumn get value => integer()(); // 1-5
   DateTimeColumn get date => dateTime()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

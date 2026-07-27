@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -14,7 +13,6 @@ import 'package:flowos/features/focus/services/policy_writer.dart';
 import 'package:flowos/features/focus/models/effective_policy.dart';
 import 'package:flowos/features/flow_garden/services/garden_service.dart';
 import 'package:flowos/features/flow_garden/models/garden_day.dart';
-import 'package:flowos/features/focus/services/ambient_sound_player.dart';
 
 void main() {
   group('Milestone 5 FocusTimerState & Phase Tests', () {
@@ -23,11 +21,11 @@ void main() {
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      db = AppDatabase.forTesting(drift.DatabaseConnection(NativeDatabase.memory()));
+      db = AppDatabase.forTesting(
+        drift.DatabaseConnection(NativeDatabase.memory()),
+      );
       container = ProviderContainer(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-        ],
+        overrides: [databaseProvider.overrideWithValue(db)],
       );
     });
 
@@ -37,10 +35,9 @@ void main() {
     });
 
     test('startSession generates seed internally and persists in DB', () async {
-      final success = await container.read(focusTimerNotifierProvider.notifier).startSession(
-        type: SessionTypeColumn.pomodoro,
-        durationMinutes: 25,
-      );
+      final success = await container
+          .read(focusTimerNotifierProvider.notifier)
+          .startSession(type: SessionTypeColumn.pomodoro, durationMinutes: 25);
       expect(success, isTrue);
 
       final state = container.read(focusTimerNotifierProvider);
@@ -58,17 +55,15 @@ void main() {
 
     test('Reject start session if a timer is already active', () async {
       // Start first session
-      final success1 = await container.read(focusTimerNotifierProvider.notifier).startSession(
-        type: SessionTypeColumn.pomodoro,
-        durationMinutes: 25,
-      );
+      final success1 = await container
+          .read(focusTimerNotifierProvider.notifier)
+          .startSession(type: SessionTypeColumn.pomodoro, durationMinutes: 25);
       expect(success1, isTrue);
 
       // Start second session without completing/stopping first
-      final success2 = await container.read(focusTimerNotifierProvider.notifier).startSession(
-        type: SessionTypeColumn.pomodoro,
-        durationMinutes: 25,
-      );
+      final success2 = await container
+          .read(focusTimerNotifierProvider.notifier)
+          .startSession(type: SessionTypeColumn.pomodoro, durationMinutes: 25);
       expect(success2, isFalse); // rejected
     });
 
@@ -104,52 +99,53 @@ void main() {
 
       // Re-create notifier via fresh container to trigger rehydration
       final newContainer = ProviderContainer(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-        ],
+        overrides: [databaseProvider.overrideWithValue(db)],
       );
       newContainer.read(focusTimerNotifierProvider);
-      
+
       // Wait for async rehydration query to resolve
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final rehydratedState = newContainer.read(focusTimerNotifierProvider);
       expect(rehydratedState, isNotNull);
       expect(rehydratedState!.sessionId, equals('test-session-123'));
       expect(rehydratedState.phase, equals(FocusTimerPhase.running));
-      
+
       newContainer.dispose();
     });
 
-    test('Rehydration clears conflicting preferences when DB disagrees', () async {
-      // Preferences has running session, but DB has no matching row
-      SharedPreferences.setMockInitialValues({
-        'flowos_active_session_id': 'conflicting-session',
-        'flowos_active_phase': FocusTimerPhase.running.name,
-      });
+    test(
+      'Rehydration clears conflicting preferences when DB disagrees',
+      () async {
+        // Preferences has running session, but DB has no matching row
+        SharedPreferences.setMockInitialValues({
+          'flowos_active_session_id': 'conflicting-session',
+          'flowos_active_phase': FocusTimerPhase.running.name,
+        });
 
-      final newContainer = ProviderContainer(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-        ],
-      );
-      newContainer.read(focusTimerNotifierProvider);
-      
-      // Wait for async rehydration query to resolve
-      await Future.delayed(const Duration(milliseconds: 100));
+        final newContainer = ProviderContainer(
+          overrides: [databaseProvider.overrideWithValue(db)],
+        );
+        newContainer.read(focusTimerNotifierProvider);
 
-      final rehydratedState = newContainer.read(focusTimerNotifierProvider);
-      // DB check returns null, preferences should be cleared, state is null
-      expect(rehydratedState, isNull);
+        // Wait for async rehydration query to resolve
+        await Future.delayed(const Duration(milliseconds: 100));
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('flowos_active_session_id'), isNull);
-      
-      newContainer.dispose();
-    });
+        final rehydratedState = newContainer.read(focusTimerNotifierProvider);
+        // DB check returns null, preferences should be cleared, state is null
+        expect(rehydratedState, isNull);
+
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('flowos_active_session_id'), isNull);
+
+        newContainer.dispose();
+      },
+    );
 
     test('Stale paused session auto-finalizes', () async {
-      final oldTime = DateTime.now().toUtc().subtract(const Duration(minutes: 65));
+      final oldTime = DateTime.now().toUtc().subtract(
+        const Duration(minutes: 65),
+      );
       SharedPreferences.setMockInitialValues({
         'flowos_active_session_id': 'paused-stale-session',
         'flowos_active_session_type': SessionTypeColumn.pomodoro.name,
@@ -171,12 +167,10 @@ void main() {
       );
 
       final newContainer = ProviderContainer(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-        ],
+        overrides: [databaseProvider.overrideWithValue(db)],
       );
       newContainer.read(focusTimerNotifierProvider);
-      
+
       // Wait for async rehydration query and stopSession completion
       await Future.delayed(const Duration(milliseconds: 150));
 
@@ -188,179 +182,203 @@ void main() {
       final session = await db.focusSessionsDao.getById('paused-stale-session');
       expect(session, isNotNull);
       expect(session!.completedAt, isNotNull);
-      expect(session.qualityScore, equals('F')); // Stopped with F due to stale/aborted timeout
+      expect(
+        session.qualityScore,
+        equals('F'),
+      ); // Stopped with F due to stale/aborted timeout
 
       // Calling clearActiveSession should then wipe preferences and state
-      await newContainer.read(focusTimerNotifierProvider.notifier).clearActiveSession();
+      await newContainer
+          .read(focusTimerNotifierProvider.notifier)
+          .clearActiveSession();
       expect(newContainer.read(focusTimerNotifierProvider), isNull);
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString('flowos_active_session_id'), isNull);
-      
+
       newContainer.dispose();
     });
 
-    test('Partial credit bounds: progress >= 60% and time >= 10m gets D and partial XP, otherwise F and 0 XP', () async {
-      final service = FocusSessionService(db);
-      
-      // Case A: 5 minutes elapsed out of 25 (progress = 20%, < 10 minutes) -> F grade, 0 XP
-      await db.focusSessionsDao.insertSession(
-        FocusSessionsCompanion(
-          id: const drift.Value('partial-1'),
-          sessionType: const drift.Value(SessionTypeColumn.pomodoro),
-          durationMinutes: const drift.Value(25),
-          startedAt: drift.Value(DateTime.now()),
-        ),
-      );
-      final res1 = await service.stopSession(
-        sessionId: 'partial-1',
-        elapsedSeconds: 5 * 60,
-        totalSeconds: 25 * 60,
-        pauseCount: 0,
-        backgroundCount: 0,
-        type: SessionTypeColumn.pomodoro,
-      );
-      expect(res1.xpEarned, equals(0));
-      final s1 = await db.focusSessionsDao.getById('partial-1');
-      expect(s1!.qualityScore, equals('F'));
+    test(
+      'Partial credit bounds: progress >= 60% and time >= 10m gets D and partial XP, otherwise F and 0 XP',
+      () async {
+        final service = FocusSessionService(db);
 
-      // Case B: 18 minutes elapsed out of 25 (progress = 72% >= 60%, minutes = 18 >= 10m) -> D grade, partial XP
-      await db.focusSessionsDao.insertSession(
-        FocusSessionsCompanion(
-          id: const drift.Value('partial-2'),
-          sessionType: const drift.Value(SessionTypeColumn.pomodoro),
-          durationMinutes: const drift.Value(25),
-          startedAt: drift.Value(DateTime.now()),
-        ),
-      );
-      final res2 = await service.stopSession(
-        sessionId: 'partial-2',
-        elapsedSeconds: 18 * 60,
-        totalSeconds: 25 * 60,
-        pauseCount: 0,
-        backgroundCount: 0,
-        type: SessionTypeColumn.pomodoro,
-      );
-      expect(res2.xpEarned, greaterThan(0));
-      final s2 = await db.focusSessionsDao.getById('partial-2');
-      expect(s2!.qualityScore, equals('D'));
-    });
+        // Case A: 5 minutes elapsed out of 25 (progress = 20%, < 10 minutes) -> F grade, 0 XP
+        await db.focusSessionsDao.insertSession(
+          FocusSessionsCompanion(
+            id: const drift.Value('partial-1'),
+            sessionType: const drift.Value(SessionTypeColumn.pomodoro),
+            durationMinutes: const drift.Value(25),
+            startedAt: drift.Value(DateTime.now()),
+          ),
+        );
+        final res1 = await service.stopSession(
+          sessionId: 'partial-1',
+          elapsedSeconds: 5 * 60,
+          totalSeconds: 25 * 60,
+          pauseCount: 0,
+          backgroundCount: 0,
+          type: SessionTypeColumn.pomodoro,
+        );
+        expect(res1.xpEarned, equals(0));
+        final s1 = await db.focusSessionsDao.getById('partial-1');
+        expect(s1!.qualityScore, equals('F'));
 
-    test('Overnight rollover or stale countdown session auto-finalizes to completed or stopped phase', () async {
-      final now = DateTime.now().toUtc();
-      final expectedEnd = now.subtract(const Duration(minutes: 2)); // naturally completed 2 minutes ago
-      
-      SharedPreferences.setMockInitialValues({
-        'flowos_active_session_id': 'completed-stale-session',
-        'flowos_active_session_type': SessionTypeColumn.pomodoro.name,
-        'flowos_active_phase': FocusTimerPhase.running.name,
-        'flowos_active_total_seconds': 25 * 60,
-        'flowos_active_elapsed_seconds': 25 * 60,
-        'flowos_active_started_at_utc': now.subtract(const Duration(minutes: 27)).toIso8601String(),
-        'flowos_active_expected_end_time_utc': expectedEnd.toIso8601String(),
-        'flowos_active_seed_kind': 'flower',
-        'flowos_active_seed_emoji': '🌸',
-      });
+        // Case B: 18 minutes elapsed out of 25 (progress = 72% >= 60%, minutes = 18 >= 10m) -> D grade, partial XP
+        await db.focusSessionsDao.insertSession(
+          FocusSessionsCompanion(
+            id: const drift.Value('partial-2'),
+            sessionType: const drift.Value(SessionTypeColumn.pomodoro),
+            durationMinutes: const drift.Value(25),
+            startedAt: drift.Value(DateTime.now()),
+          ),
+        );
+        final res2 = await service.stopSession(
+          sessionId: 'partial-2',
+          elapsedSeconds: 18 * 60,
+          totalSeconds: 25 * 60,
+          pauseCount: 0,
+          backgroundCount: 0,
+          type: SessionTypeColumn.pomodoro,
+        );
+        expect(res2.xpEarned, greaterThan(0));
+        final s2 = await db.focusSessionsDao.getById('partial-2');
+        expect(s2!.qualityScore, equals('D'));
+      },
+    );
 
-      await db.focusSessionsDao.insertSession(
-        FocusSessionsCompanion(
-          id: const drift.Value('completed-stale-session'),
-          sessionType: const drift.Value(SessionTypeColumn.pomodoro),
-          durationMinutes: const drift.Value(25),
-          startedAt: drift.Value(DateTime.now().subtract(const Duration(minutes: 27))),
-        ),
-      );
+    test(
+      'Overnight rollover or stale countdown session auto-finalizes to completed or stopped phase',
+      () async {
+        final now = DateTime.now().toUtc();
+        final expectedEnd = now.subtract(
+          const Duration(minutes: 2),
+        ); // naturally completed 2 minutes ago
 
-      final newContainer = ProviderContainer(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-        ],
-      );
-      newContainer.read(focusTimerNotifierProvider);
+        SharedPreferences.setMockInitialValues({
+          'flowos_active_session_id': 'completed-stale-session',
+          'flowos_active_session_type': SessionTypeColumn.pomodoro.name,
+          'flowos_active_phase': FocusTimerPhase.running.name,
+          'flowos_active_total_seconds': 25 * 60,
+          'flowos_active_elapsed_seconds': 25 * 60,
+          'flowos_active_started_at_utc': now
+              .subtract(const Duration(minutes: 27))
+              .toIso8601String(),
+          'flowos_active_expected_end_time_utc': expectedEnd.toIso8601String(),
+          'flowos_active_seed_kind': 'flower',
+          'flowos_active_seed_emoji': '🌸',
+        });
 
-      // Wait for async rehydration query and completeSession completion
-      await Future.delayed(const Duration(milliseconds: 150));
+        await db.focusSessionsDao.insertSession(
+          FocusSessionsCompanion(
+            id: const drift.Value('completed-stale-session'),
+            sessionType: const drift.Value(SessionTypeColumn.pomodoro),
+            durationMinutes: const drift.Value(25),
+            startedAt: drift.Value(
+              DateTime.now().subtract(const Duration(minutes: 27)),
+            ),
+          ),
+        );
 
-      final rehydratedState = newContainer.read(focusTimerNotifierProvider);
-      // Completed naturally while closed should transition to completed phase
-      expect(rehydratedState, isNotNull);
-      expect(rehydratedState!.phase, equals(FocusTimerPhase.completed));
+        final newContainer = ProviderContainer(
+          overrides: [databaseProvider.overrideWithValue(db)],
+        );
+        newContainer.read(focusTimerNotifierProvider);
 
-      final session = await db.focusSessionsDao.getById('completed-stale-session');
-      expect(session, isNotNull);
-      expect(session!.completedAt, isNotNull);
-      expect(session.qualityScore, isNot(equals('F'))); // Completed successfully
-      
-      newContainer.dispose();
-    });
+        // Wait for async rehydration query and completeSession completion
+        await Future.delayed(const Duration(milliseconds: 150));
 
-    test('Pausing focus session deactivates only focus blocker policy', () async {
-      final writer = const SharedPrefsPolicyWriter();
-      
-      // Setup focus + sleep policies
-      final focusPolicy = SourcePolicy(
-        sessionId: 'session-123',
-        activeUntil: DateTime.now().add(const Duration(minutes: 10)),
-        selectedPackages: {'pkg.a'},
-        protectionMode: ProtectionMode.guard,
-        source: PolicySource.focus,
-        scopedBreaks: [],
-      );
-      final sleepPolicy = SourcePolicy(
-        sessionId: 'sleep-123',
-        activeUntil: DateTime.now().add(const Duration(hours: 8)),
-        selectedPackages: {'pkg.b'},
-        protectionMode: ProtectionMode.guard,
-        source: PolicySource.sleep,
-        scopedBreaks: [],
-      );
+        final rehydratedState = newContainer.read(focusTimerNotifierProvider);
+        // Completed naturally while closed should transition to completed phase
+        expect(rehydratedState, isNotNull);
+        expect(rehydratedState!.phase, equals(FocusTimerPhase.completed));
 
-      await writer.activatePolicy(focusPolicy);
-      await writer.activatePolicy(sleepPolicy);
+        final session = await db.focusSessionsDao.getById(
+          'completed-stale-session',
+        );
+        expect(session, isNotNull);
+        expect(session!.completedAt, isNotNull);
+        expect(
+          session.qualityScore,
+          isNot(equals('F')),
+        ); // Completed successfully
 
-      // Verify both are active
-      var active = await writer.getActivePolicies();
-      expect(active?.focus, isNotNull);
-      expect(active?.sleep, isNotNull);
+        newContainer.dispose();
+      },
+    );
 
-      // Pause Focus timer (implicitly calls deactivatePolicy on focus)
-      await writer.deactivatePolicy(PolicySource.focus);
+    test(
+      'Pausing focus session deactivates only focus blocker policy',
+      () async {
+        final writer = const SharedPrefsPolicyWriter();
 
-      active = await writer.getActivePolicies();
-      expect(active?.focus, isNull);
-      expect(active?.sleep, isNotNull); // Sleep policy remains fully active!
-    });
+        // Setup focus + sleep policies
+        final focusPolicy = SourcePolicy(
+          sessionId: 'session-123',
+          activeUntil: DateTime.now().add(const Duration(minutes: 10)),
+          selectedPackages: {'pkg.a'},
+          protectionMode: ProtectionMode.guard,
+          source: PolicySource.focus,
+          scopedBreaks: [],
+        );
+        final sleepPolicy = SourcePolicy(
+          sessionId: 'sleep-123',
+          activeUntil: DateTime.now().add(const Duration(hours: 8)),
+          selectedPackages: {'pkg.b'},
+          protectionMode: ProtectionMode.guard,
+          source: PolicySource.sleep,
+          scopedBreaks: [],
+        );
 
-    test('Suspending focus session keeps focus blocker policy active', () async {
-      final writer = const SharedPrefsPolicyWriter();
-      
-      // Setup focus policy
-      final focusPolicy = SourcePolicy(
-        sessionId: 'session-456',
-        activeUntil: DateTime.now().add(const Duration(minutes: 10)),
-        selectedPackages: {'pkg.a'},
-        protectionMode: ProtectionMode.guard,
-        source: PolicySource.focus,
-        scopedBreaks: [],
-      );
+        await writer.activatePolicy(focusPolicy);
+        await writer.activatePolicy(sleepPolicy);
 
-      await writer.activatePolicy(focusPolicy);
+        // Verify both are active
+        var active = await writer.getActivePolicies();
+        expect(active?.focus, isNotNull);
+        expect(active?.sleep, isNotNull);
 
-      // Verify it is active
-      var active = await writer.getActivePolicies();
-      expect(active?.focus, isNotNull);
+        // Pause Focus timer (implicitly calls deactivatePolicy on focus)
+        await writer.deactivatePolicy(PolicySource.focus);
 
-      // Suspend Focus session (implicitly called on backgrounding)
-      await writer.suspendPolicy(PolicySource.focus);
+        active = await writer.getActivePolicies();
+        expect(active?.focus, isNull);
+        expect(active?.sleep, isNotNull); // Sleep policy remains fully active!
+      },
+    );
 
-      active = await writer.getActivePolicies();
-      expect(active?.focus, isNotNull); // Focus policy remains active!
-    });
+    test(
+      'Suspending focus session keeps focus blocker policy active',
+      () async {
+        final writer = const SharedPrefsPolicyWriter();
+
+        // Setup focus policy
+        final focusPolicy = SourcePolicy(
+          sessionId: 'session-456',
+          activeUntil: DateTime.now().add(const Duration(minutes: 10)),
+          selectedPackages: {'pkg.a'},
+          protectionMode: ProtectionMode.guard,
+          source: PolicySource.focus,
+          scopedBreaks: [],
+        );
+
+        await writer.activatePolicy(focusPolicy);
+
+        // Verify it is active
+        var active = await writer.getActivePolicies();
+        expect(active?.focus, isNotNull);
+
+        // Suspend Focus session (implicitly called on backgrounding)
+        await writer.suspendPolicy(PolicySource.focus);
+
+        active = await writer.getActivePolicies();
+        expect(active?.focus, isNotNull); // Focus policy remains active!
+      },
+    );
 
     test('GardenService reads exact persisted seed details', () async {
       final now = DateTime.now();
-      final start = DateTime(now.year, now.month, now.day);
-      
       // Insert completed focus session with custom persisted seed details
       await db.focusSessionsDao.insertSession(
         FocusSessionsCompanion(
@@ -378,9 +396,11 @@ void main() {
 
       final service = GardenService(db);
       final day = await service.buildDay(now);
-      
+
       // Verify object grew from persisted seed
-      final grown = day.objects.firstWhere((o) => o.id == 'focus-custom-seed-session');
+      final grown = day.objects.firstWhere(
+        (o) => o.id == 'focus-custom-seed-session',
+      );
       expect(grown.kind, equals(GardenObjectKind.tree));
       expect(grown.emoji, equals('🌴'));
     });

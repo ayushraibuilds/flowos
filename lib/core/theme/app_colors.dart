@@ -139,7 +139,7 @@ abstract final class AppColors {
 
 /// Energy levels for tasks — used throughout the app.
 enum EnergyLevel {
-  deep,   // 🔥 Deep Work
+  deep, // 🔥 Deep Work
   medium, // ⚡ Medium
-  light,  // 🌿 Light
+  light, // 🌿 Light
 }

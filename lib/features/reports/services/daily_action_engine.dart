@@ -14,7 +14,8 @@ class DailyActionEngine {
       return WeeklyAction(
         id: _generateId('daily_reduce_scroll'),
         type: WeeklyActionType.reduceOneTrigger,
-        description: 'Set a tighter scroll budget of ${todayScrollBudget - 5 > 5 ? todayScrollBudget - 5 : 5} minutes for tomorrow.',
+        description:
+            'Set a tighter scroll budget of ${todayScrollBudget - 5 > 5 ? todayScrollBudget - 5 : 5} minutes for tomorrow.',
       );
     }
 
@@ -23,7 +24,8 @@ class DailyActionEngine {
       return WeeklyAction(
         id: _generateId('daily_mit_reset'),
         type: WeeklyActionType.scheduleFocusWindow,
-        description: 'Schedule your first MIT during your protected window tomorrow.',
+        description:
+            'Schedule your first MIT during your protected window tomorrow.',
       );
     }
 

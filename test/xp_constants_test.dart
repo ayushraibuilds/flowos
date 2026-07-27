@@ -136,13 +136,14 @@ void main() {
       });
 
       test('deep work > pomodoro (reward longer focus)', () {
-        expect(XpConstants.deepWorkComplete,
-            greaterThan(XpConstants.pomodoroComplete));
+        expect(
+          XpConstants.deepWorkComplete,
+          greaterThan(XpConstants.pomodoroComplete),
+        );
       });
 
       test('MIT completion > regular task (reward priority)', () {
-        expect(XpConstants.mitComplete,
-            greaterThan(XpConstants.taskComplete));
+        expect(XpConstants.mitComplete, greaterThan(XpConstants.taskComplete));
       });
     });
   });

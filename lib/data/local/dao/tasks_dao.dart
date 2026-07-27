@@ -16,41 +16,48 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   // ─── Read ──────────────────────────────────────────────────────
 
   /// All active (not deleted) tasks, ordered by sort order
-  Future<List<Task>> getAllActive() => (select(tasks)
-        ..where((t) => t.deletedAt.isNull())
-        ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-      .get();
+  Future<List<Task>> getAllActive() =>
+      (select(tasks)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .get();
 
   /// Watch all active tasks (reactive stream)
-  Stream<List<Task>> watchAllActive() => (select(tasks)
-        ..where((t) => t.deletedAt.isNull())
-        ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-      .watch();
+  Stream<List<Task>> watchAllActive() =>
+      (select(tasks)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .watch();
 
   /// Get tasks by energy level
   Future<List<Task>> getByEnergyLevel(EnergyLevelColumn level) =>
       (select(tasks)
-            ..where((t) => t.deletedAt.isNull() & t.energyLevel.equalsValue(level))
+            ..where(
+              (t) => t.deletedAt.isNull() & t.energyLevel.equalsValue(level),
+            )
             ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
           .get();
 
   /// Get today's MITs (max 3)
-  Future<List<Task>> getMITs() => (select(tasks)
-        ..where((t) => t.deletedAt.isNull() & t.isMIT.equals(true))
-        ..limit(3))
-      .get();
+  Future<List<Task>> getMITs() =>
+      (select(tasks)
+            ..where((t) => t.deletedAt.isNull() & t.isMIT.equals(true))
+            ..limit(3))
+          .get();
 
   /// Watch today's MITs
-  Stream<List<Task>> watchMITs() => (select(tasks)
-        ..where((t) => t.deletedAt.isNull() & t.isMIT.equals(true))
-        ..limit(3))
-      .watch();
+  Stream<List<Task>> watchMITs() =>
+      (select(tasks)
+            ..where((t) => t.deletedAt.isNull() & t.isMIT.equals(true))
+            ..limit(3))
+          .watch();
 
   /// Get incomplete tasks
-  Future<List<Task>> getIncomplete() => (select(tasks)
-        ..where((t) => t.deletedAt.isNull() & t.isCompleted.equals(false))
-        ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
-      .get();
+  Future<List<Task>> getIncomplete() =>
+      (select(tasks)
+            ..where((t) => t.deletedAt.isNull() & t.isCompleted.equals(false))
+            ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+          .get();
 
   /// Get a single task by ID
   Future<Task?> getById(String id) =>
@@ -59,14 +66,18 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   Future<void> _recordOutboxUpsert(String id) async {
     final task = await getById(id);
     if (task != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('tasks'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(task.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('tasks'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(task.toJson())),
+            ),
+          );
     }
   }
 
@@ -83,7 +94,9 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   /// Update a task
   Future<void> updateTask(TasksCompanion entry) async {
     await transaction(() async {
-      await (update(tasks)..where((t) => t.id.equals(entry.id.value))).write(entry);
+      await (update(
+        tasks,
+      )..where((t) => t.id.equals(entry.id.value))).write(entry);
       await _recordOutboxUpsert(entry.id.value);
     });
   }
@@ -91,12 +104,14 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   /// Mark task as completed
   Future<void> completeTask(String id, int xp) async {
     await transaction(() async {
-      await (update(tasks)..where((t) => t.id.equals(id))).write(TasksCompanion(
-        isCompleted: const Value(true),
-        completedAt: Value(DateTime.now()),
-        xpEarned: Value(xp),
-        updatedAt: Value(DateTime.now()),
-      ));
+      await (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(
+          isCompleted: const Value(true),
+          completedAt: Value(DateTime.now()),
+          xpEarned: Value(xp),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
       await _recordOutboxUpsert(id);
     });
   }
@@ -104,10 +119,9 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   /// Toggle MIT status
   Future<void> toggleMIT(String id, bool isMIT) async {
     await transaction(() async {
-      await (update(tasks)..where((t) => t.id.equals(id))).write(TasksCompanion(
-        isMIT: Value(isMIT),
-        updatedAt: Value(DateTime.now()),
-      ));
+      await (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(isMIT: Value(isMIT), updatedAt: Value(DateTime.now())),
+      );
       await _recordOutboxUpsert(id);
     });
   }
@@ -117,8 +131,11 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   /// stale MITs from previous days accumulating.
   Future<void> clearAllMITs() async {
     await transaction(() async {
-      final affected = await (select(tasks)..where((t) => t.isMIT.equals(true) & t.deletedAt.isNull())).get();
-      await (update(tasks)..where((t) => t.isMIT.equals(true) & t.deletedAt.isNull()))
+      final affected = await (select(
+        tasks,
+      )..where((t) => t.isMIT.equals(true) & t.deletedAt.isNull())).get();
+      await (update(tasks)
+            ..where((t) => t.isMIT.equals(true) & t.deletedAt.isNull()))
           .write(const TasksCompanion(isMIT: Value(false)));
       for (final task in affected) {
         await _recordOutboxUpsert(task.id);
@@ -129,10 +146,12 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   /// Soft delete
   Future<void> softDelete(String id) async {
     await transaction(() async {
-      await (update(tasks)..where((t) => t.id.equals(id))).write(TasksCompanion(
-        deletedAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
-      ));
+      await (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(
+          deletedAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
       await _recordOutboxUpsert(id);
     });
   }
@@ -141,8 +160,9 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
   Future<void> reorder(List<String> orderedIds) async {
     await transaction(() async {
       for (int i = 0; i < orderedIds.length; i++) {
-        await (update(tasks)..where((t) => t.id.equals(orderedIds[i])))
-            .write(TasksCompanion(sortOrder: Value(i)));
+        await (update(tasks)..where((t) => t.id.equals(orderedIds[i]))).write(
+          TasksCompanion(sortOrder: Value(i)),
+        );
         await _recordOutboxUpsert(orderedIds[i]);
       }
     });
@@ -150,7 +170,8 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertTaskFromSync(TasksCompanion entry) => into(tasks).insert(entry);
+  Future<void> insertTaskFromSync(TasksCompanion entry) =>
+      into(tasks).insert(entry);
   Future<void> updateTaskFromSync(TasksCompanion entry) =>
       (update(tasks)..where((t) => t.id.equals(entry.id.value))).write(entry);
 
@@ -160,12 +181,14 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
     final startOfDay = DateTime(now.year, now.month, now.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    final result = await (select(tasks)
-          ..where((t) =>
-              t.isCompleted.equals(true) &
-              t.completedAt.isBiggerOrEqualValue(startOfDay) &
-              t.completedAt.isSmallerThanValue(endOfDay)))
-        .get();
+    final result =
+        await (select(tasks)..where(
+              (t) =>
+                  t.isCompleted.equals(true) &
+                  t.completedAt.isBiggerOrEqualValue(startOfDay) &
+                  t.completedAt.isSmallerThanValue(endOfDay),
+            ))
+            .get();
     return result.length;
   }
 
@@ -179,7 +202,8 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
 
   /// Watch total lifetime completed tasks count
   Stream<int> watchCompletedCount() {
-    return (select(tasks)..where((t) => t.isCompleted.equals(true) & t.deletedAt.isNull()))
+    return (select(tasks)
+          ..where((t) => t.isCompleted.equals(true) & t.deletedAt.isNull()))
         .watch()
         .map((list) => list.length);
   }

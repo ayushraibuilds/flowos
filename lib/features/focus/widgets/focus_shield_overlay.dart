@@ -128,15 +128,21 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
           children: [
             Text(
               'Why do you need to unlock ${widget.appDisplayName} right now?',
-              style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             TextField(
               controller: controller,
-              style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: 'e.g., Checking flight status, quick update...',
-                hintStyle: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                hintStyle: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
                 border: const OutlineInputBorder(),
                 focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.dangerCoral),
@@ -151,7 +157,9 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
             onPressed: () => Navigator.pop(ctx, ''),
             child: Text(
               'Skip',
-              style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
           ),
           TextButton(
@@ -179,18 +187,12 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
   }
 
   Future<void> _handleResumeFocus() async {
-    await _logUnlockAttempt(
-      outcome: 'returned_to_focus',
-      breakMinutes: 0,
-    );
+    await _logUnlockAttempt(outcome: 'returned_to_focus', breakMinutes: 0);
     widget.onKeepFocus();
   }
 
   Future<void> _handleCancelSession() async {
-    await _logUnlockAttempt(
-      outcome: 'session_cancelled',
-      breakMinutes: 0,
-    );
+    await _logUnlockAttempt(outcome: 'session_cancelled', breakMinutes: 0);
     widget.onCancelSession();
   }
 
@@ -297,7 +299,9 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
               const SizedBox(height: AppSpacing.md),
               Text(
                 _getInstructionText(),
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
@@ -314,13 +318,17 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                     children: [
                       if (!_canAction)
                         CircularProgressIndicator(
-                          value: _secondsRemaining /
+                          value:
+                              _secondsRemaining /
                               (widget.protectionMode == ProtectionMode.nudge
                                   ? 10
-                                  : widget.protectionMode == ProtectionMode.guard
-                                      ? 20
-                                      : 30),
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.dangerCoral),
+                                  : widget.protectionMode ==
+                                        ProtectionMode.guard
+                                  ? 20
+                                  : 30),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.dangerCoral,
+                          ),
                           backgroundColor: AppColors.background2,
                           strokeWidth: 4,
                         ),
@@ -347,7 +355,9 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
 
               // Actions Block
               if (_canAction) ...[
-                if ((widget.protectionMode == ProtectionMode.guard || widget.protectionMode == ProtectionMode.nudge) && widget.bypassAllowed) ...[
+                if ((widget.protectionMode == ProtectionMode.guard ||
+                        widget.protectionMode == ProtectionMode.nudge) &&
+                    widget.bypassAllowed) ...[
                   ElevatedButton(
                     onPressed: _handleResumeFocus,
                     style: ElevatedButton.styleFrom(
@@ -363,7 +373,8 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _showIntentionDialog(_selectedBreakMinutes),
+                          onPressed: () =>
+                              _showIntentionDialog(_selectedBreakMinutes),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size.fromHeight(50),
                           ),
@@ -420,7 +431,9 @@ class _FocusShieldOverlayState extends ConsumerState<FocusShieldOverlay>
             margin: const EdgeInsets.symmetric(horizontal: 6),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: isSel ? AppColors.dangerCoral.withValues(alpha: 0.15) : AppColors.background2,
+              color: isSel
+                  ? AppColors.dangerCoral.withValues(alpha: 0.15)
+                  : AppColors.background2,
               borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
               border: Border.all(
                 color: isSel ? AppColors.dangerCoral : Colors.transparent,

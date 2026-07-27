@@ -4,10 +4,10 @@ enum ProtectionMode { nudge, guard, deep }
 
 extension ProtectionModeValue on ProtectionMode {
   int get strictnessValue => switch (this) {
-        ProtectionMode.nudge => 0,
-        ProtectionMode.guard => 1,
-        ProtectionMode.deep => 2,
-      };
+    ProtectionMode.nudge => 0,
+    ProtectionMode.guard => 1,
+    ProtectionMode.deep => 2,
+  };
 }
 
 enum PolicySource { focus, sleep }
@@ -24,16 +24,16 @@ class ScopedBreak {
   });
 
   Map<String, dynamic> toJson() => {
-        'packageName': packageName,
-        'expiresAt': expiresAt.millisecondsSinceEpoch,
-        'source': source.name,
-      };
+    'packageName': packageName,
+    'expiresAt': expiresAt.millisecondsSinceEpoch,
+    'source': source.name,
+  };
 
   factory ScopedBreak.fromJson(Map<String, dynamic> json) => ScopedBreak(
-        packageName: json['packageName'] as String,
-        expiresAt: DateTime.fromMillisecondsSinceEpoch(json['expiresAt'] as int),
-        source: PolicySource.values.byName(json['source'] as String),
-      );
+    packageName: json['packageName'] as String,
+    expiresAt: DateTime.fromMillisecondsSinceEpoch(json['expiresAt'] as int),
+    source: PolicySource.values.byName(json['source'] as String),
+  );
 
   bool get isExpired => DateTime.now().isAfter(expiresAt);
 }
@@ -58,28 +58,32 @@ class SourcePolicy {
   });
 
   Map<String, dynamic> toJson() => {
-        'sessionId': sessionId,
-        'activeUntil': activeUntil.millisecondsSinceEpoch,
-        'selectedPackages': selectedPackages.toList(),
-        'protectionMode': protectionMode.name,
-        'source': source.name,
-        'scopedBreaks': scopedBreaks.map((b) => b.toJson()).toList(),
-        'maxActiveUntil': maxActiveUntil?.millisecondsSinceEpoch,
-      };
+    'sessionId': sessionId,
+    'activeUntil': activeUntil.millisecondsSinceEpoch,
+    'selectedPackages': selectedPackages.toList(),
+    'protectionMode': protectionMode.name,
+    'source': source.name,
+    'scopedBreaks': scopedBreaks.map((b) => b.toJson()).toList(),
+    'maxActiveUntil': maxActiveUntil?.millisecondsSinceEpoch,
+  };
 
   factory SourcePolicy.fromJson(Map<String, dynamic> json) => SourcePolicy(
-        sessionId: json['sessionId'] as String? ?? '',
-        activeUntil: DateTime.fromMillisecondsSinceEpoch(json['activeUntil'] as int),
-        selectedPackages: List<String>.from(json['selectedPackages'] ?? []).toSet(),
-        protectionMode: ProtectionMode.values.byName(json['protectionMode'] as String),
-        source: PolicySource.values.byName(json['source'] as String),
-        scopedBreaks: (json['scopedBreaks'] as List? ?? [])
-            .map((b) => ScopedBreak.fromJson(Map<String, dynamic>.from(b)))
-            .toList(),
-        maxActiveUntil: json['maxActiveUntil'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(json['maxActiveUntil'] as int)
-            : null,
-      );
+    sessionId: json['sessionId'] as String? ?? '',
+    activeUntil: DateTime.fromMillisecondsSinceEpoch(
+      json['activeUntil'] as int,
+    ),
+    selectedPackages: List<String>.from(json['selectedPackages'] ?? []).toSet(),
+    protectionMode: ProtectionMode.values.byName(
+      json['protectionMode'] as String,
+    ),
+    source: PolicySource.values.byName(json['source'] as String),
+    scopedBreaks: (json['scopedBreaks'] as List? ?? [])
+        .map((b) => ScopedBreak.fromJson(Map<String, dynamic>.from(b)))
+        .toList(),
+    maxActiveUntil: json['maxActiveUntil'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(json['maxActiveUntil'] as int)
+        : null,
+  );
 
   bool get isExpired => DateTime.now().isAfter(activeUntil);
 }
@@ -90,23 +94,24 @@ class ActivePolicies {
 
   static const guardBreakOptions = [5, 10, 15];
 
-  const ActivePolicies({
-    this.focus,
-    this.sleep,
-  });
+  const ActivePolicies({this.focus, this.sleep});
 
   Map<String, dynamic> toJson() => {
-        'schemaVersion': 1,
-        'focus': focus?.toJson(),
-        'sleep': sleep?.toJson(),
-      };
+    'schemaVersion': 1,
+    'focus': focus?.toJson(),
+    'sleep': sleep?.toJson(),
+  };
 
   factory ActivePolicies.fromJson(Map<String, dynamic> json) {
     final focusJson = json['focus'];
     final sleepJson = json['sleep'];
     return ActivePolicies(
-      focus: focusJson != null ? SourcePolicy.fromJson(Map<String, dynamic>.from(focusJson)) : null,
-      sleep: sleepJson != null ? SourcePolicy.fromJson(Map<String, dynamic>.from(sleepJson)) : null,
+      focus: focusJson != null
+          ? SourcePolicy.fromJson(Map<String, dynamic>.from(focusJson))
+          : null,
+      sleep: sleepJson != null
+          ? SourcePolicy.fromJson(Map<String, dynamic>.from(sleepJson))
+          : null,
     );
   }
 
@@ -130,12 +135,14 @@ class ActivePolicies {
     final activeSleep = (sleep != null && !sleep!.isExpired) ? sleep : null;
 
     ProtectionMode? focusMode;
-    if (activeFocus != null && activeFocus.selectedPackages.contains(packageName)) {
+    if (activeFocus != null &&
+        activeFocus.selectedPackages.contains(packageName)) {
       focusMode = activeFocus.protectionMode;
     }
 
     ProtectionMode? sleepMode;
-    if (activeSleep != null && activeSleep.selectedPackages.contains(packageName)) {
+    if (activeSleep != null &&
+        activeSleep.selectedPackages.contains(packageName)) {
       sleepMode = activeSleep.protectionMode;
     }
 
@@ -143,7 +150,9 @@ class ActivePolicies {
     if (focusMode == null) return sleepMode;
     if (sleepMode == null) return focusMode;
 
-    return focusMode.strictnessValue >= sleepMode.strictnessValue ? focusMode : sleepMode;
+    return focusMode.strictnessValue >= sleepMode.strictnessValue
+        ? focusMode
+        : sleepMode;
   }
 
   bool isScopedBreakActive(String packageName) {
@@ -151,14 +160,17 @@ class ActivePolicies {
 
     // Check focus breaks
     final activeFocus = (focus != null && !focus!.isExpired) ? focus : null;
-    if (activeFocus != null && activeFocus.selectedPackages.contains(packageName)) {
+    if (activeFocus != null &&
+        activeFocus.selectedPackages.contains(packageName)) {
       final breakActive = activeFocus.scopedBreaks.any(
         (b) => b.packageName == packageName && b.expiresAt.isAfter(now),
       );
       if (breakActive) {
         final activeSleep = (sleep != null && !sleep!.isExpired) ? sleep : null;
-        if (activeSleep != null && activeSleep.selectedPackages.contains(packageName)) {
-          if (activeSleep.protectionMode.strictnessValue > activeFocus.protectionMode.strictnessValue) {
+        if (activeSleep != null &&
+            activeSleep.selectedPackages.contains(packageName)) {
+          if (activeSleep.protectionMode.strictnessValue >
+              activeFocus.protectionMode.strictnessValue) {
             return false; // Deep sleep wins, Instagram remains blocked.
           }
           final sleepBreakActive = activeSleep.scopedBreaks.any(
@@ -172,14 +184,17 @@ class ActivePolicies {
 
     // Check sleep breaks
     final activeSleep = (sleep != null && !sleep!.isExpired) ? sleep : null;
-    if (activeSleep != null && activeSleep.selectedPackages.contains(packageName)) {
+    if (activeSleep != null &&
+        activeSleep.selectedPackages.contains(packageName)) {
       final breakActive = activeSleep.scopedBreaks.any(
         (b) => b.packageName == packageName && b.expiresAt.isAfter(now),
       );
       if (breakActive) {
         final activeFocus = (focus != null && !focus!.isExpired) ? focus : null;
-        if (activeFocus != null && activeFocus.selectedPackages.contains(packageName)) {
-          if (activeFocus.protectionMode.strictnessValue > activeSleep.protectionMode.strictnessValue) {
+        if (activeFocus != null &&
+            activeFocus.selectedPackages.contains(packageName)) {
+          if (activeFocus.protectionMode.strictnessValue >
+              activeSleep.protectionMode.strictnessValue) {
             return false;
           }
         }

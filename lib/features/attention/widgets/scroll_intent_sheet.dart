@@ -20,11 +20,36 @@ class ScrollIntentSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = [
-      (key: 'reply', emoji: '💬', title: 'Reply to someone', desc: 'Direct communication check-in'),
-      (key: 'lookup', emoji: '🔍', title: 'Look something up', desc: 'Specific query search'),
-      (key: 'rest', emoji: '🔋', title: 'Take a rest break', desc: 'Step away to recharge without screen scrolling'),
-      (key: 'avoiding', emoji: '🫣', title: "I'm avoiding something", desc: 'Resistance check-in'),
-      (key: 'scrolling', emoji: '📱', title: 'Just scrolling', desc: 'Honest casual browsing'),
+      (
+        key: 'reply',
+        emoji: '💬',
+        title: 'Reply to someone',
+        desc: 'Direct communication check-in',
+      ),
+      (
+        key: 'lookup',
+        emoji: '🔍',
+        title: 'Look something up',
+        desc: 'Specific query search',
+      ),
+      (
+        key: 'rest',
+        emoji: '🔋',
+        title: 'Take a rest break',
+        desc: 'Step away to recharge without screen scrolling',
+      ),
+      (
+        key: 'avoiding',
+        emoji: '🫣',
+        title: "I'm avoiding something",
+        desc: 'Resistance check-in',
+      ),
+      (
+        key: 'scrolling',
+        emoji: '📱',
+        title: 'Just scrolling',
+        desc: 'Honest casual browsing',
+      ),
     ];
 
     return Container(
@@ -61,7 +86,9 @@ class ScrollIntentSheet extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Setting a clear intent preserves focus and agency.',
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
           ),
           const SizedBox(height: AppSpacing.xl),
 
@@ -71,7 +98,8 @@ class ScrollIntentSheet extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: options.length,
-              separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {
                 final opt = options[index];
                 return InkWell(
@@ -87,8 +115,12 @@ class ScrollIntentSheet extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.background2,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.04),
+                      ),
                     ),
                     child: Row(
                       children: [

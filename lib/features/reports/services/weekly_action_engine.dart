@@ -13,13 +13,17 @@ class WeeklyActionEngine {
     required UserProfile profile,
   }) {
     // Rule 1: If one distraction app > 40% of scroll -> reduceOneTrigger (that app)
-    final totalScrollMin = scrollLogs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
+    final totalScrollMin = scrollLogs.fold<int>(
+      0,
+      (sum, l) => sum + l.durationMinutes,
+    );
     if (totalScrollMin > 0) {
       final appDurations = <String, int>{};
       for (final l in scrollLogs) {
-        appDurations[l.appName] = (appDurations[l.appName] ?? 0) + l.durationMinutes;
+        appDurations[l.appName] =
+            (appDurations[l.appName] ?? 0) + l.durationMinutes;
       }
-      
+
       String? highestScrollApp;
       int maxScroll = -1;
       appDurations.forEach((app, min) {
@@ -28,13 +32,14 @@ class WeeklyActionEngine {
           highestScrollApp = app;
         }
       });
-      
+
       if (highestScrollApp != null && (maxScroll / totalScrollMin) > 0.40) {
         final app = highestScrollApp!;
         return WeeklyAction(
           id: _generateId('reduce_$app'),
           type: WeeklyActionType.reduceOneTrigger,
-          description: 'Treat $app as firm for 7 days (intent check-in gate required).',
+          description:
+              'Treat $app as firm for 7 days (intent check-in gate required).',
           targetApp: app,
         );
       }
@@ -49,7 +54,8 @@ class WeeklyActionEngine {
       return WeeklyAction(
         id: _generateId('move_${task.id}'),
         type: WeeklyActionType.moveTaskToEnergy,
-        description: "Move '${task.title}' to your $startHourStr - $endHourStr deep window.",
+        description:
+            "Move '${task.title}' to your $startHourStr - $endHourStr deep window.",
         taskId: task.id,
         startHour: rhythmRec.windowStartHour,
         endHour: rhythmRec.windowEndHour,
@@ -58,7 +64,10 @@ class WeeklyActionEngine {
     }
 
     // Rule 3: Else if focus minutes < 60 for week -> scheduleFocusWindow (25m tomorrow morning)
-    final totalFocusMin = sessions.fold<int>(0, (sum, s) => sum + s.actualMinutes);
+    final totalFocusMin = sessions.fold<int>(
+      0,
+      (sum, s) => sum + s.actualMinutes,
+    );
     if (totalFocusMin < 60) {
       return WeeklyAction(
         id: _generateId('schedule_morning_25'),
@@ -75,7 +84,8 @@ class WeeklyActionEngine {
     return WeeklyAction(
       id: _generateId('schedule_onboarding_window'),
       type: WeeklyActionType.scheduleFocusWindow,
-      description: 'Schedule focus window tomorrow during your protected hours ($profileStartStr - $profileEndStr).',
+      description:
+          'Schedule focus window tomorrow during your protected hours ($profileStartStr - $profileEndStr).',
       startHour: profile.protectedStartHour,
       endHour: profile.protectedEndHour,
     );

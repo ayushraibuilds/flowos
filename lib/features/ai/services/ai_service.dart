@@ -24,7 +24,8 @@ class AuthenticatedAiInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     // Retried request already has updated Bearer token from onError refresh
-    if (options.extra['retried'] == true && options.headers.containsKey('Authorization')) {
+    if (options.extra['retried'] == true &&
+        options.headers.containsKey('Authorization')) {
       if (!options.headers.containsKey('X-Request-ID')) {
         options.headers['X-Request-ID'] =
             'ai_req_${DateTime.now().microsecondsSinceEpoch}';
@@ -102,10 +103,14 @@ class AuthenticatedAiInterceptor extends Interceptor {
 
           final newToken = await _sharedRefreshFuture;
           if (newToken != null && newToken.isNotEmpty) {
-            final retryHeaders = Map<String, dynamic>.from(err.requestOptions.headers);
+            final retryHeaders = Map<String, dynamic>.from(
+              err.requestOptions.headers,
+            );
             retryHeaders['Authorization'] = 'Bearer $newToken';
 
-            final retryExtra = Map<String, dynamic>.from(err.requestOptions.extra);
+            final retryExtra = Map<String, dynamic>.from(
+              err.requestOptions.extra,
+            );
             retryExtra['retried'] = true;
 
             final retryOptions = err.requestOptions.copyWith(
@@ -227,19 +232,23 @@ class AiService {
           ? (defaultTargetPlatform == TargetPlatform.iOS ? _iosDevUrl : _devUrl)
           : _prodUrl;
 
-      _dio = Dio(BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 10),
-        headers: {'Content-Type': 'application/json'},
-      ));
+      _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 10),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
 
-      _dio.interceptors.add(AuthenticatedAiInterceptor(
-        dio: _dio,
-        tokenSupplier: tokenSupplier,
-        refreshTokenSupplier: refreshTokenSupplier,
-      ));
+      _dio.interceptors.add(
+        AuthenticatedAiInterceptor(
+          dio: _dio,
+          tokenSupplier: tokenSupplier,
+          refreshTokenSupplier: refreshTokenSupplier,
+        ),
+      );
     }
   }
 
@@ -279,8 +288,10 @@ class AiService {
   }) async {
     _lastError = null;
     try {
-      final response =
-          await _dio.post('/ai/break-suggestion', data: sessionData);
+      final response = await _dio.post(
+        '/ai/break-suggestion',
+        data: sessionData,
+      );
       if (response.statusCode == 200) {
         return BreakContent.fromJson(response.data);
       }
@@ -308,11 +319,14 @@ class AiService {
   }) async {
     _lastError = null;
     try {
-      final response = await _dio.post('/ai/brain-dump', data: {
-        'raw_text': rawText,
-        'current_energy': currentEnergy,
-        'prompt_version': 1,
-      });
+      final response = await _dio.post(
+        '/ai/brain-dump',
+        data: {
+          'raw_text': rawText,
+          'current_energy': currentEnergy,
+          'prompt_version': 1,
+        },
+      );
       if (response.statusCode == 200) {
         final tasks = (response.data['tasks'] as List)
             .map((t) => BrainDumpTask.fromJson(t))
@@ -407,7 +421,8 @@ class DailyReportInsight {
       highlight: 'You showed up today. That matters more than any score.',
       growthArea: 'Try setting your MITs before 9 AM tomorrow.',
       energyInsight: 'Track energy 3x daily to unlock personalized insights.',
-      tomorrowTip: 'Pick one deep task first thing. Momentum builds from there.',
+      tomorrowTip:
+          'Pick one deep task first thing. Momentum builds from there.',
     );
   }
 
@@ -494,7 +509,9 @@ class WeeklyReview {
       summary: json['summary'] ?? '',
       wins: List<String>.from(json['wins'] ?? []),
       growthAreas: List<String>.from(json['growth_areas'] ?? []),
-      reflectionQuestions: List<String>.from(json['reflection_questions'] ?? []),
+      reflectionQuestions: List<String>.from(
+        json['reflection_questions'] ?? [],
+      ),
       nextWeekFocus: json['next_week_focus'] ?? '',
     );
   }

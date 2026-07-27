@@ -13,16 +13,16 @@ class NotificationDailyCountsDao extends DatabaseAccessor<AppDatabase>
 
   Future<List<NotificationDailyCount>> getForDay(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
-    return (select(notificationDailyCounts)
-          ..where((t) => t.day.equals(startOfDay)))
-        .get();
+    return (select(
+      notificationDailyCounts,
+    )..where((t) => t.day.equals(startOfDay))).get();
   }
 
   Future<bool> markBatchProcessed(String batchId) async {
     try {
-      final existing = await (select(processedNotificationBatches)
-            ..where((t) => t.batchId.equals(batchId)))
-          .getSingleOrNull();
+      final existing = await (select(
+        processedNotificationBatches,
+      )..where((t) => t.batchId.equals(batchId))).getSingleOrNull();
       if (existing != null) {
         return false;
       }
@@ -48,22 +48,27 @@ class NotificationDailyCountsDao extends DatabaseAccessor<AppDatabase>
   ) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final query = select(notificationDailyCounts)
-      ..where((t) =>
-          t.day.equals(startOfDay) &
-          t.platform.equals(platform) &
-          t.appRef.equals(appRef));
+      ..where(
+        (t) =>
+            t.day.equals(startOfDay) &
+            t.platform.equals(platform) &
+            t.appRef.equals(appRef),
+      );
     final existing = await query.getSingleOrNull();
 
     if (existing != null) {
-      await (update(notificationDailyCounts)
-            ..where((t) =>
+      await (update(notificationDailyCounts)..where(
+            (t) =>
                 t.day.equals(startOfDay) &
                 t.platform.equals(platform) &
-                t.appRef.equals(appRef)))
-          .write(NotificationDailyCountsCompanion(
-        count: Value(existing.count + increment),
-        syncedAt: Value(DateTime.now()),
-      ));
+                t.appRef.equals(appRef),
+          ))
+          .write(
+            NotificationDailyCountsCompanion(
+              count: Value(existing.count + increment),
+              syncedAt: Value(DateTime.now()),
+            ),
+          );
     } else {
       await into(notificationDailyCounts).insert(
         NotificationDailyCountsCompanion.insert(

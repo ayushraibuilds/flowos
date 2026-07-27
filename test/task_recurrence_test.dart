@@ -46,12 +46,14 @@ void main() {
       );
 
       // Seed the database
-      await db.tasksDao.insertTask(TasksCompanion.insert(
-        id: 'task-1',
-        title: 'Simple Task',
-        energyLevel: EnergyLevelColumn.medium,
-        category: TaskCategoryColumn.work,
-      ));
+      await db.tasksDao.insertTask(
+        TasksCompanion.insert(
+          id: 'task-1',
+          title: 'Simple Task',
+          energyLevel: EnergyLevelColumn.medium,
+          category: TaskCategoryColumn.work,
+        ),
+      );
 
       await service.completeTask(task);
 
@@ -84,14 +86,16 @@ void main() {
         deletedAt: null,
       );
 
-      await db.tasksDao.insertTask(TasksCompanion.insert(
-        id: 'task-2',
-        title: 'Daily Routine',
-        energyLevel: EnergyLevelColumn.light,
-        category: TaskCategoryColumn.personal,
-        dueDate: Value(baseDate),
-        recurrenceRule: const Value(RecurrenceRuleColumn.daily),
-      ));
+      await db.tasksDao.insertTask(
+        TasksCompanion.insert(
+          id: 'task-2',
+          title: 'Daily Routine',
+          energyLevel: EnergyLevelColumn.light,
+          category: TaskCategoryColumn.personal,
+          dueDate: Value(baseDate),
+          recurrenceRule: const Value(RecurrenceRuleColumn.daily),
+        ),
+      );
 
       await service.completeTask(task);
 
@@ -104,46 +108,51 @@ void main() {
       expect(incomplete.dueDate, DateTime(2026, 7, 11, 10, 0, 0)); // Saturday
     });
 
-    test('Completing weekday task on Friday spawns new task for Monday', () async {
-      final baseDate = DateTime(2026, 7, 10, 10, 0, 0); // Friday
-      final task = Task(
-        id: 'task-3',
-        title: 'Weekday standup',
-        description: '',
-        energyLevel: EnergyLevelColumn.light,
-        estimatedMinutes: 15,
-        frictionScore: 1,
-        category: TaskCategoryColumn.work,
-        dueDate: baseDate,
-        sortOrder: 0,
-        isMIT: false,
-        isCompleted: false,
-        completedAt: null,
-        xpEarned: 0,
-        parentTaskId: null,
-        recurrenceRule: RecurrenceRuleColumn.weekdays,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        deletedAt: null,
-      );
+    test(
+      'Completing weekday task on Friday spawns new task for Monday',
+      () async {
+        final baseDate = DateTime(2026, 7, 10, 10, 0, 0); // Friday
+        final task = Task(
+          id: 'task-3',
+          title: 'Weekday standup',
+          description: '',
+          energyLevel: EnergyLevelColumn.light,
+          estimatedMinutes: 15,
+          frictionScore: 1,
+          category: TaskCategoryColumn.work,
+          dueDate: baseDate,
+          sortOrder: 0,
+          isMIT: false,
+          isCompleted: false,
+          completedAt: null,
+          xpEarned: 0,
+          parentTaskId: null,
+          recurrenceRule: RecurrenceRuleColumn.weekdays,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          deletedAt: null,
+        );
 
-      await db.tasksDao.insertTask(TasksCompanion.insert(
-        id: 'task-3',
-        title: 'Weekday standup',
-        energyLevel: EnergyLevelColumn.light,
-        category: TaskCategoryColumn.work,
-        dueDate: Value(baseDate),
-        recurrenceRule: const Value(RecurrenceRuleColumn.weekdays),
-      ));
+        await db.tasksDao.insertTask(
+          TasksCompanion.insert(
+            id: 'task-3',
+            title: 'Weekday standup',
+            energyLevel: EnergyLevelColumn.light,
+            category: TaskCategoryColumn.work,
+            dueDate: Value(baseDate),
+            recurrenceRule: const Value(RecurrenceRuleColumn.weekdays),
+          ),
+        );
 
-      await service.completeTask(task);
+        await service.completeTask(task);
 
-      final activeTasks = await db.tasksDao.getAllActive();
-      expect(activeTasks.length, 2);
+        final activeTasks = await db.tasksDao.getAllActive();
+        expect(activeTasks.length, 2);
 
-      final incomplete = activeTasks.firstWhere((t) => !t.isCompleted);
-      expect(incomplete.dueDate, DateTime(2026, 7, 13, 10, 0, 0)); // Monday
-    });
+        final incomplete = activeTasks.firstWhere((t) => !t.isCompleted);
+        expect(incomplete.dueDate, DateTime(2026, 7, 13, 10, 0, 0)); // Monday
+      },
+    );
 
     test('Completing weekly task spawns new task in +7 days', () async {
       final baseDate = DateTime(2026, 7, 10, 10, 0, 0); // Friday
@@ -168,14 +177,16 @@ void main() {
         deletedAt: null,
       );
 
-      await db.tasksDao.insertTask(TasksCompanion.insert(
-        id: 'task-4',
-        title: 'Weekly Report',
-        energyLevel: EnergyLevelColumn.medium,
-        category: TaskCategoryColumn.work,
-        dueDate: Value(baseDate),
-        recurrenceRule: const Value(RecurrenceRuleColumn.weekly),
-      ));
+      await db.tasksDao.insertTask(
+        TasksCompanion.insert(
+          id: 'task-4',
+          title: 'Weekly Report',
+          energyLevel: EnergyLevelColumn.medium,
+          category: TaskCategoryColumn.work,
+          dueDate: Value(baseDate),
+          recurrenceRule: const Value(RecurrenceRuleColumn.weekly),
+        ),
+      );
 
       await service.completeTask(task);
 
@@ -183,7 +194,10 @@ void main() {
       expect(activeTasks.length, 2);
 
       final incomplete = activeTasks.firstWhere((t) => !t.isCompleted);
-      expect(incomplete.dueDate, DateTime(2026, 7, 17, 10, 0, 0)); // Next Friday
+      expect(
+        incomplete.dueDate,
+        DateTime(2026, 7, 17, 10, 0, 0),
+      ); // Next Friday
     });
 
     test('Completing monthly task on Jan 31st clamps to Feb 28th', () async {
@@ -209,14 +223,16 @@ void main() {
         deletedAt: null,
       );
 
-      await db.tasksDao.insertTask(TasksCompanion.insert(
-        id: 'task-5',
-        title: 'Monthly Review',
-        energyLevel: EnergyLevelColumn.medium,
-        category: TaskCategoryColumn.personal,
-        dueDate: Value(baseDate),
-        recurrenceRule: const Value(RecurrenceRuleColumn.monthly),
-      ));
+      await db.tasksDao.insertTask(
+        TasksCompanion.insert(
+          id: 'task-5',
+          title: 'Monthly Review',
+          energyLevel: EnergyLevelColumn.medium,
+          category: TaskCategoryColumn.personal,
+          dueDate: Value(baseDate),
+          recurrenceRule: const Value(RecurrenceRuleColumn.monthly),
+        ),
+      );
 
       await service.completeTask(task);
 
@@ -224,7 +240,10 @@ void main() {
       expect(activeTasks.length, 2);
 
       final incomplete = activeTasks.firstWhere((t) => !t.isCompleted);
-      expect(incomplete.dueDate, DateTime(2026, 2, 28, 12, 0, 0)); // Clamped to Feb 28th
+      expect(
+        incomplete.dueDate,
+        DateTime(2026, 2, 28, 12, 0, 0),
+      ); // Clamped to Feb 28th
     });
   });
 }

@@ -34,8 +34,8 @@ extension FocusProtectionLevelDetails on FocusProtectionLevel {
       this == FocusProtectionLevel.intentionalExit;
 
   ProtectionMode toProtectionMode() => switch (this) {
-        FocusProtectionLevel.softReturn => ProtectionMode.nudge,
-        FocusProtectionLevel.pauseAndProtect => ProtectionMode.guard,
-        FocusProtectionLevel.intentionalExit => ProtectionMode.deep,
-      };
+    FocusProtectionLevel.softReturn => ProtectionMode.nudge,
+    FocusProtectionLevel.pauseAndProtect => ProtectionMode.guard,
+    FocusProtectionLevel.intentionalExit => ProtectionMode.deep,
+  };
 }

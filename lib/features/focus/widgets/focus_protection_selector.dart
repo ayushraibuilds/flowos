@@ -21,18 +21,22 @@ class FocusProtectionSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final protectedAppsAsync = ref.watch(protectedAppsStreamProvider);
     final protectedApps = protectedAppsAsync.valueOrNull ?? [];
-    final focusProtectedCount = protectedApps.where((a) => a.protectsFocus).length;
+    final focusProtectedCount = protectedApps
+        .where((a) => a.protectsFocus)
+        .length;
     final hasProtectedApps = focusProtectedCount > 0;
 
     final String description = switch (value) {
       FocusProtectionLevel.softReturn =>
         'A kind cue welcomes you back; your timer keeps moving.',
-      FocusProtectionLevel.pauseAndProtect => hasProtectedApps
-        ? 'Your timer pauses when you leave FlowOS. Your $focusProtectedCount Protected App(s) will also redirect you back.'
-        : 'Your timer pauses when you leave FlowOS. (Add apps to your Protected list in settings to block them during focus.)',
-      FocusProtectionLevel.intentionalExit => hasProtectedApps
-        ? 'Pause on leave, a 5-second reflection before exiting, and blocking active for your $focusProtectedCount Protected App(s).'
-        : 'Pause on leave, a 5-second reflection before exiting. (Add apps to your Protected list in settings to block them.)',
+      FocusProtectionLevel.pauseAndProtect =>
+        hasProtectedApps
+            ? 'Your timer pauses when you leave FlowOS. Your $focusProtectedCount Protected App(s) will also redirect you back.'
+            : 'Your timer pauses when you leave FlowOS. (Add apps to your Protected list in settings to block them during focus.)',
+      FocusProtectionLevel.intentionalExit =>
+        hasProtectedApps
+            ? 'Pause on leave, a 5-second reflection before exiting, and blocking active for your $focusProtectedCount Protected App(s).'
+            : 'Pause on leave, a 5-second reflection before exiting. (Add apps to your Protected list in settings to block them.)',
     };
 
     return Container(

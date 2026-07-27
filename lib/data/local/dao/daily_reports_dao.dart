@@ -20,14 +20,18 @@ class DailyReportsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final report = await getById(id);
     if (report != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('daily_reports'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(report.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('daily_reports'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(report.toJson())),
+            ),
+          );
     }
   }
 
@@ -42,11 +46,12 @@ class DailyReportsDao extends DatabaseAccessor<AppDatabase>
   Future<DailyReport?> getForDate(DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
-    return (select(dailyReports)
-          ..where((r) =>
+    return (select(dailyReports)..where(
+          (r) =>
               r.date.isBiggerOrEqualValue(start) &
               r.date.isSmallerThanValue(end) &
-              r.deletedAt.isNull()))
+              r.deletedAt.isNull(),
+        ))
         .getSingleOrNull();
   }
 
@@ -59,17 +64,14 @@ class DailyReportsDao extends DatabaseAccessor<AppDatabase>
           .get();
 
   /// Get reports modified since a given timestamp
-  Future<List<DailyReport>> getModifiedSince(DateTime since) =>
-      (select(dailyReports)
-            ..where((r) => r.updatedAt.isBiggerOrEqualValue(since)))
-          .get();
+  Future<List<DailyReport>> getModifiedSince(DateTime since) => (select(
+    dailyReports,
+  )..where((r) => r.updatedAt.isBiggerOrEqualValue(since))).get();
 
   /// Upsert report (insert or update on conflict)
   Future<void> upsertReport(DailyReportsCompanion entry) async {
     await transaction(() async {
-      final updatedEntry = entry.copyWith(
-        updatedAt: Value(DateTime.now()),
-      );
+      final updatedEntry = entry.copyWith(updatedAt: Value(DateTime.now()));
       await into(dailyReports).insertOnConflictUpdate(updatedEntry);
       await _recordOutboxUpsert(entry.id.value);
     });
@@ -77,7 +79,9 @@ class DailyReportsDao extends DatabaseAccessor<AppDatabase>
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertReportFromSync(DailyReportsCompanion entry) => into(dailyReports).insert(entry);
-  Future<void> updateReportFromSync(DailyReportsCompanion entry) =>
-      (update(dailyReports)..where((r) => r.id.equals(entry.id.value))).write(entry);
+  Future<void> insertReportFromSync(DailyReportsCompanion entry) =>
+      into(dailyReports).insert(entry);
+  Future<void> updateReportFromSync(DailyReportsCompanion entry) => (update(
+    dailyReports,
+  )..where((r) => r.id.equals(entry.id.value))).write(entry);
 }

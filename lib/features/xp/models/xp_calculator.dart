@@ -44,7 +44,8 @@ class XpCalculator {
     int baseXP = switch (sessionType) {
       SessionTypeColumn.pomodoro => XpConstants.pomodoroComplete,
       SessionTypeColumn.deepWork => XpConstants.deepWorkComplete,
-      SessionTypeColumn.custom => (actualMinutes * 1.6).round(), // ~40 XP per 25m
+      SessionTypeColumn.custom =>
+        (actualMinutes * 1.6).round(), // ~40 XP per 25m
     };
 
     // Partial credit: if completed < 100% but >= 60%, proportional XP
@@ -89,18 +90,20 @@ class XpCalculator {
     if (baseXP <= 0) return 0;
 
     // Record to ledger
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.focusComplete),
-      pointsDelta: Value(baseXP),
-      sourceEntityId: Value(sessionId),
-      explanation: Value(
-        'Completed ${actualMinutes}m ${sessionType.name} session (Quality: $quality)'
-        '${taskId == null ? " (standalone)" : ""}'
-        '${streakDays >= 7 ? " · ${streakMultiplier}x streak" : ""}',
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.focusComplete),
+        pointsDelta: Value(baseXP),
+        sourceEntityId: Value(sessionId),
+        explanation: Value(
+          'Completed ${actualMinutes}m ${sessionType.name} session (Quality: $quality)'
+          '${taskId == null ? " (standalone)" : ""}'
+          '${streakDays >= 7 ? " · ${streakMultiplier}x streak" : ""}',
+        ),
+        timestamp: Value(DateTime.now()),
       ),
-      timestamp: Value(DateTime.now()),
-    ));
+    );
 
     return baseXP;
   }
@@ -124,8 +127,9 @@ class XpCalculator {
 
     // Light task daily cap
     if (energyLevel == EnergyLevelColumn.light) {
-      final lightXPToday = await _ledgerDao
-          .sumTodayByType(XpActionTypeColumn.taskComplete);
+      final lightXPToday = await _ledgerDao.sumTodayByType(
+        XpActionTypeColumn.taskComplete,
+      );
       if (lightXPToday >= XpConstants.dailyCapLightTasks) {
         baseXP = 0; // Cap reached
       }
@@ -142,16 +146,16 @@ class XpCalculator {
 
     if (baseXP <= 0) return 0;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.taskComplete),
-      pointsDelta: Value(baseXP),
-      sourceEntityId: Value(taskId),
-      explanation: Value(
-        'Completed: "$taskTitle"${isMIT ? " (MIT)" : ""}',
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.taskComplete),
+        pointsDelta: Value(baseXP),
+        sourceEntityId: Value(taskId),
+        explanation: Value('Completed: "$taskTitle"${isMIT ? " (MIT)" : ""}'),
+        timestamp: Value(DateTime.now()),
       ),
-      timestamp: Value(DateTime.now()),
-    ));
+    );
 
     return baseXP;
   }
@@ -162,13 +166,15 @@ class XpCalculator {
   Future<int> awardAllMITsBonus() async {
     const xp = XpConstants.allMitsDaily;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.allMitsDaily),
-      pointsDelta: const Value(xp),
-      explanation: const Value('All 3 MITs completed today! 🎯'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.allMitsDaily),
+        pointsDelta: const Value(xp),
+        explanation: const Value('All 3 MITs completed today! 🎯'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }
@@ -178,13 +184,15 @@ class XpCalculator {
   Future<int> awardFocusRitualXP() async {
     const xp = XpConstants.focusRitualComplete;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.focusRitualComplete),
-      pointsDelta: const Value(xp),
-      explanation: const Value('Focus ritual completed 🧘'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.focusRitualComplete),
+        pointsDelta: const Value(xp),
+        explanation: const Value('Focus ritual completed 🧘'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }
@@ -192,13 +200,15 @@ class XpCalculator {
   Future<int> awardShutdownRitualXP() async {
     const xp = XpConstants.shutdownRitualComplete;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.shutdownRitualComplete),
-      pointsDelta: const Value(xp),
-      explanation: const Value('Shutdown ritual completed 🌙'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.shutdownRitualComplete),
+        pointsDelta: const Value(xp),
+        explanation: const Value('Shutdown ritual completed 🌙'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }
@@ -208,13 +218,15 @@ class XpCalculator {
   Future<int> awardBounceBackBonus(String recoveryType) async {
     const xp = XpConstants.bounceBackBonus;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.bounceBackBonus),
-      pointsDelta: const Value(xp),
-      explanation: Value('Recovery after scrolling: $recoveryType 🔄'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.bounceBackBonus),
+        pointsDelta: const Value(xp),
+        explanation: Value('Recovery after scrolling: $recoveryType 🔄'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }
@@ -224,13 +236,15 @@ class XpCalculator {
   Future<int> awardBreakContentXP() async {
     const xp = XpConstants.breakContentUsed;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.breakContentUsed),
-      pointsDelta: const Value(xp),
-      explanation: const Value('Engaged with break content 🧩'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.breakContentUsed),
+        pointsDelta: const Value(xp),
+        explanation: const Value('Engaged with break content 🧩'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }
@@ -240,13 +254,15 @@ class XpCalculator {
   Future<int> awardEnergyCheckin3xBonus() async {
     const xp = XpConstants.energyCheckin3x;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.energyCheckin3x),
-      pointsDelta: const Value(xp),
-      explanation: const Value('All 3 energy check-ins completed ⚡'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.energyCheckin3x),
+        pointsDelta: const Value(xp),
+        explanation: const Value('All 3 energy check-ins completed ⚡'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }
@@ -256,13 +272,15 @@ class XpCalculator {
   Future<int> awardStreakBonus(int streakDays) async {
     const xp = XpConstants.sevenDayStreak;
 
-    await _appendEntry(XpLedgerEntriesCompanion(
-      id: Value(_uuid.v4()),
-      actionType: const Value(XpActionTypeColumn.sevenDayStreak),
-      pointsDelta: const Value(xp),
-      explanation: Value('$streakDays-day streak milestone! 🔥'),
-      timestamp: Value(DateTime.now()),
-    ));
+    await _appendEntry(
+      XpLedgerEntriesCompanion(
+        id: Value(_uuid.v4()),
+        actionType: const Value(XpActionTypeColumn.sevenDayStreak),
+        pointsDelta: const Value(xp),
+        explanation: Value('$streakDays-day streak milestone! 🔥'),
+        timestamp: Value(DateTime.now()),
+      ),
+    );
 
     return xp;
   }

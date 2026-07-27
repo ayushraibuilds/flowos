@@ -6,11 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../focus/providers/focus_timer_provider.dart';
-import '../../focus/models/focus_timer_stage.dart';
-import '../../focus/models/effective_policy.dart';
-import '../../focus/services/focus_session_service.dart';
-import '../../focus/services/protection_policy_service.dart';
-import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
 import '../providers/garden_providers.dart';
 import 'home_garden_scene.dart';
@@ -51,7 +46,9 @@ class HomeGardenHero extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 'Garden is resting',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -66,10 +63,13 @@ class HomeGardenHero extends ConsumerWidget {
           ctaText = 'Return to Focus 🎯';
           ctaCallback = () {
             if (activeTimer.sessionType == SessionTypeColumn.deepWork) {
-              context.push('/deep-work', extra: {
-                'taskId': activeTimer.taskId,
-                'taskTitle': activeTimer.taskTitle,
-              });
+              context.push(
+                '/deep-work',
+                extra: {
+                  'taskId': activeTimer.taskId,
+                  'taskTitle': activeTimer.taskTitle,
+                },
+              );
             } else {
               context.push('/focus');
             }
@@ -190,16 +190,23 @@ class HomeGardenHero extends ConsumerWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.black.withValues(alpha: 0.65),
                           foregroundColor: AppColors.textPrimary,
-                          side: BorderSide(color: AppColors.emerald.withValues(alpha: 0.5), width: 1.5),
+                          side: BorderSide(
+                            color: AppColors.emerald.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusCard,
+                            ),
                           ),
                           elevation: 0,
                         ),
                         onPressed: ctaCallback,
                         child: Text(
                           ctaText,
-                          style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
+                          style: AppTypography.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),

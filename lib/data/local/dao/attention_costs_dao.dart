@@ -19,10 +19,11 @@ class AttentionCostsDao extends DatabaseAccessor<AppDatabase>
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    return (select(attentionCosts)
-          ..where((c) =>
+    return (select(attentionCosts)..where(
+          (c) =>
               c.timestamp.isBiggerOrEqualValue(start) &
-              c.timestamp.isSmallerThanValue(end)))
+              c.timestamp.isSmallerThanValue(end),
+        ))
         .get();
   }
 
@@ -37,17 +38,17 @@ class AttentionCostsDao extends DatabaseAccessor<AppDatabase>
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    return (select(attentionCosts)
-          ..where((c) =>
+    return (select(attentionCosts)..where(
+          (c) =>
               c.timestamp.isBiggerOrEqualValue(start) &
-              c.timestamp.isSmallerThanValue(end)))
+              c.timestamp.isSmallerThanValue(end),
+        ))
         .watch()
         .map((list) => list.fold<int>(0, (sum, c) => sum + c.dailyScoreImpact));
   }
 
   /// Get modified since (for sync purposes)
-  Future<List<AttentionCost>> getModifiedSince(DateTime since) =>
-      (select(attentionCosts)
-            ..where((c) => c.timestamp.isBiggerOrEqualValue(since)))
-          .get();
+  Future<List<AttentionCost>> getModifiedSince(DateTime since) => (select(
+    attentionCosts,
+  )..where((c) => c.timestamp.isBiggerOrEqualValue(since))).get();
 }

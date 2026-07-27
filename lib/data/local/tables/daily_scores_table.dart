@@ -7,7 +7,8 @@ class DailyScores extends Table {
   IntColumn get score => integer()(); // 0-100
   TextColumn get grade => text().nullable()(); // null when incomplete
   BoolColumn get isIncomplete => boolean()();
-  RealColumn get availableWeight => real()(); // 1.0 (complete) or 0.75 (Attention omitted)
+  RealColumn get availableWeight =>
+      real()(); // 1.0 (complete) or 0.75 (Attention omitted)
   IntColumn get scoringVersion => integer()(); // 1 for V1, 2 for V2
 
   // Pillar scores breakdown

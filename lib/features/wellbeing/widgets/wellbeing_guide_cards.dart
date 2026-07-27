@@ -24,22 +24,26 @@ class WellbeingGuideCards extends StatelessWidget {
     WellbeingGuideCard(
       icon: '🧘',
       title: 'Neck Release',
-      content: 'Drop your left ear towards your left shoulder. Hold for 15 seconds, taking deep breaths. Repeat on the right side to release screen tension.',
+      content:
+          'Drop your left ear towards your left shoulder. Hold for 15 seconds, taking deep breaths. Repeat on the right side to release screen tension.',
     ),
     WellbeingGuideCard(
       icon: '👁️',
       title: '20-20-20 Eye Detox',
-      content: 'Look away from your screen. Focus on an object 20 feet away for 20 seconds. Roll your eyes slowly clockwise, then counter-clockwise.',
+      content:
+          'Look away from your screen. Focus on an object 20 feet away for 20 seconds. Roll your eyes slowly clockwise, then counter-clockwise.',
     ),
     WellbeingGuideCard(
       icon: '💪',
       title: 'Shoulder Shrugs',
-      content: 'Shrug your shoulders up towards your ears. Hold for 3 seconds, then roll them back and drop them down. Repeat 5 times to loosen up.',
+      content:
+          'Shrug your shoulders up towards your ears. Hold for 3 seconds, then roll them back and drop them down. Repeat 5 times to loosen up.',
     ),
     WellbeingGuideCard(
       icon: '💧',
       title: 'Hydro Focus',
-      content: 'Drink a glass of water. Dehydration causes a drop in concentration and cognitive processing speed. Replenish your mind.',
+      content:
+          'Drink a glass of water. Dehydration causes a drop in concentration and cognitive processing speed. Replenish your mind.',
     ),
   ];
 
@@ -74,10 +78,7 @@ class WellbeingGuideCards extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.icon,
-                      style: const TextStyle(fontSize: 32),
-                    ),
+                    Text(item.icon, style: const TextStyle(fontSize: 32)),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(

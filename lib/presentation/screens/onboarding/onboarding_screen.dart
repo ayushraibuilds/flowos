@@ -74,10 +74,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
         children: [
-          OnboardingWelcomeScreen(
-            onContinue: _nextPage,
-            onSkip: _skipToHome,
-          ),
+          OnboardingWelcomeScreen(onContinue: _nextPage, onSkip: _skipToHome),
           OnboardingRhythmScreen(
             onContinue: (goals, minutes) {
               _goals = goals;
@@ -85,9 +82,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               _nextPage();
             },
           ),
-          OnboardingConnectScreen(
-            onComplete: _finishOnboarding,
-          ),
+          OnboardingConnectScreen(onComplete: _finishOnboarding),
         ],
       ),
     );

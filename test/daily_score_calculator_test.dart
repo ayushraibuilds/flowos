@@ -104,8 +104,11 @@ void main() {
         // Every score 0-100 must produce a valid grade
         for (int i = 0; i <= 100; i++) {
           final grade = DailyScoreCalculator.gradeFromScore(i);
-          expect(['A+', 'A', 'B', 'C', 'D', 'F'], contains(grade),
-              reason: 'Score $i produced invalid grade: $grade');
+          expect(
+            ['A+', 'A', 'B', 'C', 'D', 'F'],
+            contains(grade),
+            reason: 'Score $i produced invalid grade: $grade',
+          );
         }
       });
     });
@@ -113,8 +116,11 @@ void main() {
     group('messageForGrade', () {
       test('every grade has a non-empty message', () {
         for (final grade in ['A+', 'A', 'B', 'C', 'D', 'F']) {
-          expect(DailyScoreCalculator.messageForGrade(grade).isNotEmpty, true,
-              reason: 'Grade $grade has empty message');
+          expect(
+            DailyScoreCalculator.messageForGrade(grade).isNotEmpty,
+            true,
+            reason: 'Grade $grade has empty message',
+          );
         }
       });
     });
@@ -180,8 +186,11 @@ void main() {
             recoveryActions: 0,
             attentionCoverage: DataCoverage.complete,
           );
-          expect(result.score, greaterThanOrEqualTo(prevScore),
-              reason: '$mins min should score >= $prevScore');
+          expect(
+            result.score,
+            greaterThanOrEqualTo(prevScore),
+            reason: '$mins min should score >= $prevScore',
+          );
           prevScore = result.score;
         }
       });
@@ -200,8 +209,11 @@ void main() {
             recoveryActions: 1,
             attentionCoverage: DataCoverage.complete,
           );
-          expect(result.score, lessThanOrEqualTo(prevScore),
-              reason: '$mins min scroll should score <= $prevScore');
+          expect(
+            result.score,
+            lessThanOrEqualTo(prevScore),
+            reason: '$mins min scroll should score <= $prevScore',
+          );
           prevScore = result.score;
         }
       });

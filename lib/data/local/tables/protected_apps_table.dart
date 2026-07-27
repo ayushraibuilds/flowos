@@ -9,7 +9,8 @@ class ProtectedApps extends Table {
   TextColumn get displayName => text()();
   TextColumn get category => text().nullable()();
   BoolColumn get protectsFocus => boolean().withDefault(const Constant(true))();
-  BoolColumn get protectsSleep => boolean().withDefault(const Constant(false))();
+  BoolColumn get protectsSleep =>
+      boolean().withDefault(const Constant(false))();
   BoolColumn get isEssential => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 

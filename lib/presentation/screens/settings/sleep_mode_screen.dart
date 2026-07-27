@@ -78,7 +78,9 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
 
     if (selectedTime != null) {
       final selectedMinutes = selectedTime.hour * 60 + selectedTime.minute;
-      final otherMinutes = isBedtime ? schedule.wakeMinute : schedule.bedtimeMinute;
+      final otherMinutes = isBedtime
+          ? schedule.wakeMinute
+          : schedule.bedtimeMinute;
 
       if (selectedMinutes == otherMinutes) {
         if (mounted) {
@@ -148,7 +150,10 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
       final label = app['label'] ?? '';
       final isSleepChecked = _localSleepState[pkg] ?? false;
 
-      final existing = await db.protectedAppsDao.getByPlatformAndRef('android', pkg);
+      final existing = await db.protectedAppsDao.getByPlatformAndRef(
+        'android',
+        pkg,
+      );
 
       if (isSleepChecked) {
         final entryId = existing?.id ?? const Uuid().v4();
@@ -225,13 +230,17 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   'Sleep Mode is currently unsupported on iOS.',
-                  style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Selected-app shielding during bedtime requires native Android permissions.',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -271,12 +280,14 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
               Text(
                 schedule.enabled ? 'Enabled' : 'Disabled',
                 style: AppTypography.bodySmall.copyWith(
-                  color: schedule.enabled ? AppColors.emerald : AppColors.textTertiary,
+                  color: schedule.enabled
+                      ? AppColors.emerald
+                      : AppColors.textTertiary,
                 ),
               ),
               Switch(
                 value: schedule.enabled,
-                activeColor: AppColors.emerald,
+                activeThumbColor: AppColors.emerald,
                 onChanged: (val) {
                   ref.read(sleepModeProvider.notifier).toggleEnabled(val);
                 },
@@ -294,7 +305,9 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
               // 1. Bedtime & Wake Time Card
               Text(
                 ' Bedtime Boundary',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               FlowSurface(
@@ -314,12 +327,16 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                             children: [
                               Text(
                                 'BEDTIME',
-                                style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
                               ),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
                                 _formatMinute(schedule.bedtimeMinute),
-                                style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+                                style: AppTypography.h2.copyWith(
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ],
                           ),
@@ -344,12 +361,16 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                               children: [
                                 Text(
                                   'WAKE TIME',
-                                  style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.textTertiary,
+                                  ),
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
                                   _formatMinute(schedule.wakeMinute),
-                                  style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
+                                  style: AppTypography.h2.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -365,12 +386,17 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
               // 2. Weekdays Selector
               Text(
                 ' Repeat Days',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               FlowSurface(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.md,
+                    horizontal: AppSpacing.sm,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
@@ -386,7 +412,9 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
               // 3. Strictness Selector
               Text(
                 ' Protection Mode',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               FlowSurface(
@@ -426,7 +454,9 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                 children: [
                   Text(
                     ' Apps to Quiet Tonight',
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   if (_hasLocalChanges)
                     TextButton(
@@ -442,7 +472,10 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                             )
                           : Text(
                               'Save App Choices',
-                              style: TextStyle(color: AppColors.emerald, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: AppColors.emerald,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                 ],
@@ -455,14 +488,16 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                     data: (apps) {
                       final nonEssential = apps.where((app) {
                         final pkg = app['packageName'] ?? '';
-                        return pkg != 'com.android.settings' && pkg != 'com.android.phone';
+                        return pkg != 'com.android.settings' &&
+                            pkg != 'com.android.phone';
                       }).toList();
 
                       return ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: nonEssential.length,
-                        separatorBuilder: (_, __) => Divider(color: AppColors.glassBorder, height: 1),
+                        separatorBuilder: (_, __) =>
+                            Divider(color: AppColors.glassBorder, height: 1),
                         itemBuilder: (ctx, idx) {
                           final app = nonEssential[idx];
                           final pkg = app['packageName'] ?? '';
@@ -472,11 +507,15 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                           return CheckboxListTile(
                             title: Text(
                               label,
-                              style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             subtitle: Text(
                               pkg,
-                              style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textTertiary,
+                              ),
                             ),
                             value: isChecked,
                             activeColor: AppColors.emerald,
@@ -492,11 +531,12 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
                       );
                     },
                     loading: () => Center(
-                      child: CircularProgressIndicator(color: AppColors.emerald),
+                      child: CircularProgressIndicator(
+                        color: AppColors.emerald,
+                      ),
                     ),
-                    error: (err, _) => Center(
-                      child: Text('Failed to load apps: $err'),
-                    ),
+                    error: (err, _) =>
+                        Center(child: Text('Failed to load apps: $err')),
                   ),
                 ),
               ),
@@ -507,7 +547,11 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
     );
   }
 
-  Widget _buildWeekdayChip(int day, List<int> weekdaysList, SleepSchedule schedule) {
+  Widget _buildWeekdayChip(
+    int day,
+    List<int> weekdaysList,
+    SleepSchedule schedule,
+  ) {
     final daysStr = ['', 'M', 'T', 'W', 'T', 'F', 'S', 'S'];
     final isSelected = weekdaysList.contains(day);
 
@@ -518,7 +562,9 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
         height: 38,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isSelected ? AppColors.emerald.withValues(alpha: 0.2) : Colors.transparent,
+          color: isSelected
+              ? AppColors.emerald.withValues(alpha: 0.2)
+              : Colors.transparent,
           border: Border.all(
             color: isSelected ? AppColors.emerald : AppColors.glassBorder,
             width: 1.5,
@@ -557,10 +603,13 @@ class _SleepModeScreenState extends ConsumerState<SleepModeScreen> {
         description,
         style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
       ),
+      // ignore: deprecated_member_use
       value: level,
+      // ignore: deprecated_member_use
       groupValue: currentLevel,
       activeColor: AppColors.emerald,
       contentPadding: EdgeInsets.zero,
+      // ignore: deprecated_member_use
       onChanged: (val) {
         if (val != null) {
           ref.read(sleepModeProvider.notifier).updateProtectionLevel(val);

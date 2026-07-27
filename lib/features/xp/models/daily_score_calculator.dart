@@ -7,7 +7,8 @@ class DailyScoreResult {
   final String? grade; // null when incomplete
   final String message;
   final bool isIncomplete;
-  final double availableWeight; // 1.0 when complete, 0.75 when Attention is omitted
+  final double
+  availableWeight; // 1.0 when complete, 0.75 when Attention is omitted
   final String coverageLabel;
   final int scoringVersion;
 
@@ -66,15 +67,19 @@ class DailyScoreCalculator {
     final double focusScore = _focusScore(focusMinutes);
     final double mitScore = (mitsCompleted / 3.0 * 100.0).clamp(0.0, 100.0);
     final double intentionScore = intentionCompleted ? 100.0 : 0.0;
-    
+
     // Care subweights: exactly 1/3 each
-    final double recoveryScore = recoveryActions == 0 ? 0.0 : (recoveryActions == 1 ? 50.0 : 100.0);
+    final double recoveryScore = recoveryActions == 0
+        ? 0.0
+        : (recoveryActions == 1 ? 50.0 : 100.0);
     final double ritualShutdownScore = shutdownCompleted ? 100.0 : 0.0;
     final double energyScore = (energyCheckIns / 3.0 * 100.0).clamp(0.0, 100.0);
-    final double careScore = (recoveryScore + ritualShutdownScore + energyScore) / 3.0;
+    final double careScore =
+        (recoveryScore + ritualShutdownScore + energyScore) / 3.0;
 
     final double focusPoints = focusScore * XpConstants.focusWeight;
-    final double intentPoints = (mitScore * 0.8 + intentionScore * 0.2) * XpConstants.intentWeight;
+    final double intentPoints =
+        (mitScore * 0.8 + intentionScore * 0.2) * XpConstants.intentWeight;
     final double carePoints = careScore * XpConstants.careWeight;
 
     // Check if attention data is incomplete or legacy manual-only
@@ -84,7 +89,10 @@ class DailyScoreCalculator {
       // Omit Attention pillar (0.25 weight) and normalize the remaining 0.75 weight (Focus 0.35, Intent 0.25, Care 0.15)
       final double rawSum = focusPoints + intentPoints + carePoints;
       final double availableWeight = 0.75;
-      final int normalizedScore = (rawSum / availableWeight).round().clamp(0, 100);
+      final int normalizedScore = (rawSum / availableWeight).round().clamp(
+        0,
+        100,
+      );
 
       return DailyScoreResult(
         score: normalizedScore,
@@ -105,7 +113,8 @@ class DailyScoreCalculator {
     final double attentionScore = _attentionScore(scrollMinutes, scrollBudget);
     final double attentionPoints = attentionScore * XpConstants.attentionWeight;
 
-    final double rawSum = focusPoints + intentPoints + attentionPoints + carePoints;
+    final double rawSum =
+        focusPoints + intentPoints + attentionPoints + carePoints;
     final int finalScore = rawSum.round().clamp(0, 100);
     final String grade = gradeFromScore(finalScore);
 
@@ -139,7 +148,9 @@ class DailyScoreCalculator {
   static double _attentionScore(int scrollMinutes, int budget) {
     if (budget <= 0) {
       // No budget set — full score if no scrolling, else scale
-      return scrollMinutes == 0 ? 100.0 : (100.0 - scrollMinutes * 2.0).clamp(0.0, 100.0);
+      return scrollMinutes == 0
+          ? 100.0
+          : (100.0 - scrollMinutes * 2.0).clamp(0.0, 100.0);
     }
 
     if (scrollMinutes <= 0) return 100.0;

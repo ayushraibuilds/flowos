@@ -7,7 +7,6 @@
 .packages
 build/
 .pub/
-pubspec.lock
 
 # Android
 **/android/**/gradle-wrapper.jar

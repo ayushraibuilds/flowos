@@ -17,14 +17,18 @@ class AchievementsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final achievement = await getById(id);
     if (achievement != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('achievements'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(achievement.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('achievements'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(achievement.toJson())),
+            ),
+          );
     }
   }
 
@@ -51,9 +55,11 @@ class AchievementsDao extends DatabaseAccessor<AppDatabase>
 
   /// Check if a specific achievement is unlocked
   Future<bool> isUnlocked(String key) async {
-    final result = await (select(achievements)
-          ..where((a) => a.achievementKey.equals(key) & a.deletedAt.isNull()))
-        .getSingleOrNull();
+    final result =
+        await (select(achievements)..where(
+              (a) => a.achievementKey.equals(key) & a.deletedAt.isNull(),
+            ))
+            .getSingleOrNull();
     return result != null;
   }
 
@@ -63,13 +69,15 @@ class AchievementsDao extends DatabaseAccessor<AppDatabase>
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertAchievementFromSync(AchievementsCompanion entry) => into(achievements).insert(entry);
+  Future<void> insertAchievementFromSync(AchievementsCompanion entry) =>
+      into(achievements).insert(entry);
   Future<void> updateAchievementFromSync(AchievementsCompanion entry) =>
-      (update(achievements)..where((a) => a.id.equals(entry.id.value))).write(entry);
+      (update(
+        achievements,
+      )..where((a) => a.id.equals(entry.id.value))).write(entry);
 
   /// Get achievements modified since a given timestamp (for sync push).
-  Future<List<Achievement>> getModifiedSince(DateTime since) =>
-      (select(achievements)
-            ..where((a) => a.updatedAt.isBiggerOrEqualValue(since)))
-          .get();
+  Future<List<Achievement>> getModifiedSince(DateTime since) => (select(
+    achievements,
+  )..where((a) => a.updatedAt.isBiggerOrEqualValue(since))).get();
 }

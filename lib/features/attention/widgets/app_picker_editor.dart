@@ -9,7 +9,11 @@ import '../../../features/attention/providers/app_picker_providers.dart';
 class AppPickerEditor extends ConsumerStatefulWidget {
   final Map<String, bool> initialFocusState;
   final Map<String, bool> initialSleepState;
-  final void Function(Map<String, bool> focusState, Map<String, bool> sleepState) onSelectionChanged;
+  final void Function(
+    Map<String, bool> focusState,
+    Map<String, bool> sleepState,
+  )
+  onSelectionChanged;
   final bool showLegacySuggestions;
 
   const AppPickerEditor({
@@ -24,7 +28,8 @@ class AppPickerEditor extends ConsumerStatefulWidget {
   ConsumerState<AppPickerEditor> createState() => _AppPickerEditorState();
 }
 
-class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTickerProviderStateMixin {
+class _AppPickerEditorState extends ConsumerState<AppPickerEditor>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _searchQuery = '';
   final _searchController = TextEditingController();
@@ -106,9 +111,12 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
 
         return essentialAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error loading essential apps: $err')),
+          error: (err, stack) =>
+              Center(child: Text('Error loading essential apps: $err')),
           data: (essentials) {
-            final essentialPackageNames = essentials.map((e) => e['packageName']).toSet();
+            final essentialPackageNames = essentials
+                .map((e) => e['packageName'])
+                .toSet();
 
             // Filter distracting apps by search query
             final distractingApps = launchable.where((app) {
@@ -124,7 +132,9 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
 
             final essentialApps = essentials.where((app) {
               final pkg = app['packageName'] ?? '';
-              final label = app['packageName'] == 'com.flowos.flowos' ? 'FlowOS' : (app['reason'] ?? 'System app');
+              final label = app['packageName'] == 'com.flowos.flowos'
+                  ? 'FlowOS'
+                  : (app['reason'] ?? 'System app');
               if (_searchQuery.isEmpty) return true;
               return label.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                   pkg.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -138,7 +148,9 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                   indicatorColor: AppColors.emerald,
                   labelColor: AppColors.textPrimary,
                   unselectedLabelColor: AppColors.textSecondary,
-                  labelStyle: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
+                  labelStyle: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                   unselectedLabelStyle: AppTypography.bodySmall,
                   tabs: const [
                     Tab(text: 'Distracting'),
@@ -152,16 +164,24 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                     backgroundColor: AppColors.background1,
                     content: Text(
                       'We found ${_suggestedPackages.length} apps from your earlier setup. Pre-fill them as distracting?',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     actions: [
                       TextButton(
                         onPressed: _prefillSuggestions,
-                        child: Text('Pre-fill', style: TextStyle(color: AppColors.emerald)),
+                        child: Text(
+                          'Pre-fill',
+                          style: TextStyle(color: AppColors.emerald),
+                        ),
                       ),
                       TextButton(
                         onPressed: _dismissBanner,
-                        child: const Text('Dismiss', style: TextStyle(color: AppColors.textSecondary)),
+                        child: const Text(
+                          'Dismiss',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
                       ),
                     ],
                   ),
@@ -171,11 +191,18 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: TextField(
                     controller: _searchController,
-                    style: AppTypography.body.copyWith(color: AppColors.textPrimary),
+                    style: AppTypography.body.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Search apps...',
-                      hintStyle: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
-                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                      hintStyle: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                      ),
                       fillColor: AppColors.background1,
                       filled: true,
                       border: OutlineInputBorder(
@@ -201,8 +228,12 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                       distractingApps.isEmpty
                           ? Center(
                               child: Text(
-                                _searchQuery.isEmpty ? 'No apps found.' : 'No matching apps found.',
-                                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                                _searchQuery.isEmpty
+                                    ? 'No apps found.'
+                                    : 'No matching apps found.',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             )
                           : ListView.builder(
@@ -220,8 +251,12 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                       essentialApps.isEmpty
                           ? Center(
                               child: Text(
-                                _searchQuery.isEmpty ? 'No essential apps.' : 'No matching essential apps.',
-                                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                                _searchQuery.isEmpty
+                                    ? 'No essential apps.'
+                                    : 'No matching essential apps.',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             )
                           : ListView.builder(
@@ -249,7 +284,10 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
     final iconAsync = ref.watch(appIconProvider(packageName));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
@@ -262,10 +300,20 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
               width: 40,
               height: 40,
               child: iconAsync.when(
-                loading: () => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (_, __) => const Icon(Icons.android, color: AppColors.textSecondary),
+                loading: () => const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (_, __) =>
+                    const Icon(Icons.android, color: AppColors.textSecondary),
                 data: (bytes) => bytes != null
-                    ? Image.memory(bytes, width: 40, height: 40, fit: BoxFit.contain)
+                    ? Image.memory(
+                        bytes,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.contain,
+                      )
                     : const Icon(Icons.android, color: AppColors.textSecondary),
               ),
             ),
@@ -286,7 +334,9 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                   const SizedBox(height: 2),
                   Text(
                     packageName,
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -305,12 +355,17 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                     setState(() {
                       _localFocusState[packageName] = val ?? false;
                     });
-                    widget.onSelectionChanged(_localFocusState, _localSleepState);
+                    widget.onSelectionChanged(
+                      _localFocusState,
+                      _localSleepState,
+                    );
                   },
                 ),
                 Text(
                   'Focus',
-                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -326,12 +381,17 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                     setState(() {
                       _localSleepState[packageName] = val ?? false;
                     });
-                    widget.onSelectionChanged(_localFocusState, _localSleepState);
+                    widget.onSelectionChanged(
+                      _localFocusState,
+                      _localSleepState,
+                    );
                   },
                 ),
                 Text(
                   'Sleep',
-                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -345,7 +405,10 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
     final iconAsync = ref.watch(appIconProvider(packageName));
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
@@ -358,10 +421,20 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
               width: 40,
               height: 40,
               child: iconAsync.when(
-                loading: () => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (_, __) => const Icon(Icons.android, color: AppColors.textSecondary),
+                loading: () => const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (_, __) =>
+                    const Icon(Icons.android, color: AppColors.textSecondary),
                 data: (bytes) => bytes != null
-                    ? Image.memory(bytes, width: 40, height: 40, fit: BoxFit.contain)
+                    ? Image.memory(
+                        bytes,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.contain,
+                      )
                     : const Icon(Icons.android, color: AppColors.textSecondary),
               ),
             ),
@@ -382,14 +455,20 @@ class _AppPickerEditorState extends ConsumerState<AppPickerEditor> with SingleTi
                   const SizedBox(height: 2),
                   Text(
                     packageName,
-                    style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.lock_outline_rounded, color: AppColors.textSecondary, size: 20),
+            const Icon(
+              Icons.lock_outline_rounded,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
             const SizedBox(width: AppSpacing.sm),
           ],
         ),

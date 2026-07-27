@@ -5,6 +5,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import '../tables/achievements_table.dart';
 import '../tables/attention_costs_table.dart';
@@ -99,7 +101,143 @@ class AppDatabase extends _$AppDatabase {
   String _activeOwnerId = 'local';
   String get activeOwnerId => _activeOwnerId;
   void setActiveOwnerId(String? ownerId) {
-    _activeOwnerId = (ownerId != null && ownerId.isNotEmpty) ? ownerId : 'local';
+    _activeOwnerId = (ownerId != null && ownerId.isNotEmpty)
+        ? ownerId
+        : 'local';
+  }
+
+  /// Checks if a physical table exists in SQLite.
+  Future<bool> _hasTable(String tableName) async {
+    final result = await customSelect(
+      "SELECT count(*) as cnt FROM sqlite_master WHERE type='table' AND name=?",
+      variables: [Variable.withString(tableName)],
+    ).getSingle();
+    return (result.read<int>('cnt')) > 0;
+  }
+
+  /// Checks if a physical column exists in a table via PRAGMA table_info.
+  Future<bool> _hasColumn(String tableName, String columnName) async {
+    if (!await _hasTable(tableName)) return false;
+    final columns = await customSelect("PRAGMA table_info('$tableName')").get();
+    return columns.any((row) => row.read<String>('name') == columnName);
+  }
+
+  /// Safely adds a column only if the table exists and column does not exist physically.
+  Future<void> _safeAddColumn(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    if (await _hasTable(table.actualTableName) &&
+        !await _hasColumn(table.actualTableName, column.name)) {
+      try {
+        await m.addColumn(table, column);
+      } catch (_) {
+        try {
+          final sql =
+              'ALTER TABLE "${table.actualTableName}" ADD COLUMN "${column.name}"';
+          await customStatement(sql);
+        } catch (_) {}
+      }
+    }
+  }
+
+  /// Safely creates a table only if it does not already exist physically.
+  Future<void> _safeCreateTable(Migrator m, TableInfo table) async {
+    if (!await _hasTable(table.actualTableName)) {
+      await m.createTable(table);
+    }
+  }
+
+  /// Inspects physical SQLite schema and repairs any missing tables or columns idempotently.
+  Future<void> _verifyAndRepairPhysicalSchema(Migrator m) async {
+    for (final table in allTables) {
+      if (!await _hasTable(table.actualTableName)) {
+        await m.createTable(table);
+      } else {
+        for (final col in table.$columns) {
+          await _safeAddColumn(m, table, col);
+        }
+      }
+    }
+
+    // Defensive backfill for legacy rows where newly added non-nullable columns might be NULL
+    if (await _hasTable('tasks')) {
+      await customStatement(
+        "UPDATE tasks SET description = '' WHERE description IS NULL;",
+      );
+      await customStatement(
+        "UPDATE tasks SET energy_level = 0 WHERE energy_level IS NULL;",
+      );
+      await customStatement(
+        "UPDATE tasks SET estimated_minutes = 15 WHERE estimated_minutes IS NULL;",
+      );
+      await customStatement(
+        "UPDATE tasks SET friction_score = 0 WHERE friction_score IS NULL;",
+      );
+      await customStatement(
+        "UPDATE tasks SET category = 'work' WHERE category IS NULL;",
+      );
+      await customStatement(
+        "UPDATE tasks SET sort_order = 0 WHERE sort_order IS NULL;",
+      );
+      await customStatement(
+        "UPDATE tasks SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('daily_plans')) {
+      await customStatement(
+        "UPDATE daily_plans SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('daily_reports')) {
+      await customStatement(
+        "UPDATE daily_reports SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('focus_sessions')) {
+      await customStatement(
+        "UPDATE focus_sessions SET created_at = 1600000000 WHERE created_at IS NULL;",
+      );
+      await customStatement(
+        "UPDATE focus_sessions SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('scroll_logs')) {
+      await customStatement(
+        "UPDATE scroll_logs SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('energy_check_ins')) {
+      await customStatement(
+        "UPDATE energy_check_ins SET created_at = 1600000000 WHERE created_at IS NULL;",
+      );
+      await customStatement(
+        "UPDATE energy_check_ins SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('achievements')) {
+      await customStatement(
+        "UPDATE achievements SET updated_at = 1600000000 WHERE updated_at IS NULL;",
+      );
+    }
+    if (await _hasTable('device_usage_records')) {
+      await customStatement(
+        "UPDATE device_usage_records SET is_distracting = 0 WHERE is_distracting IS NULL;",
+      );
+      await customStatement(
+        "UPDATE device_usage_records SET platform = 'android' WHERE platform IS NULL;",
+      );
+      await customStatement(
+        "UPDATE device_usage_records SET date = 1600000000 WHERE date IS NULL;",
+      );
+      await customStatement(
+        "UPDATE device_usage_records SET sync_time = 1600000000 WHERE sync_time IS NULL;",
+      );
+      await customStatement(
+        "UPDATE device_usage_records SET minutes = 0 WHERE minutes IS NULL;",
+      );
+    }
   }
 
   @override
@@ -109,103 +247,133 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
-        await m.addColumn(scrollLogs, scrollLogs.intent);
-        await m.addColumn(scrollLogs, scrollLogs.wasTimeboxed);
-        await m.addColumn(scrollLogs, scrollLogs.plannedMinutes);
-        await m.addColumn(dailyPlans, dailyPlans.intentionNote);
+        await _safeAddColumn(m, scrollLogs, scrollLogs.intent);
+        await _safeAddColumn(m, scrollLogs, scrollLogs.wasTimeboxed);
+        await _safeAddColumn(m, scrollLogs, scrollLogs.plannedMinutes);
+        await _safeAddColumn(m, dailyPlans, dailyPlans.intentionNote);
       }
       if (from < 3) {
-        await m.createTable(deviceUsageRecords);
+        await _safeCreateTable(m, deviceUsageRecords);
       }
       if (from < 4) {
-        await m.createTable(unlockAttempts);
+        await _safeCreateTable(m, unlockAttempts);
       }
       if (from < 5) {
-        await m.createTable(deviceDayMetrics);
-        await m.createTable(protectedApps);
+        await _safeCreateTable(m, deviceDayMetrics);
+        await _safeCreateTable(m, protectedApps);
         if (from >= 3) {
-          await m.addColumn(deviceUsageRecords, deviceUsageRecords.source);
-          await m.addColumn(deviceUsageRecords, deviceUsageRecords.category);
-          await m.addColumn(deviceUsageRecords, deviceUsageRecords.isDistracting);
-          // Note: Drift will automatically apply default values on columns,
-          // but we also perform a manual backfill to populate any existing rows:
-          await customStatement("UPDATE device_usage_records SET source = 'android_usage'");
+          await _safeAddColumn(
+            m,
+            deviceUsageRecords,
+            deviceUsageRecords.source,
+          );
+          await _safeAddColumn(
+            m,
+            deviceUsageRecords,
+            deviceUsageRecords.category,
+          );
+          await _safeAddColumn(
+            m,
+            deviceUsageRecords,
+            deviceUsageRecords.isDistracting,
+          );
+          await customStatement(
+            "UPDATE device_usage_records SET source = 'android_usage' WHERE source IS NULL",
+          );
         }
       }
       if (from < 6) {
-        await m.addColumn(dailyReports, dailyReports.coverageState);
+        await _safeAddColumn(m, dailyReports, dailyReports.coverageState);
       }
       if (from < 7) {
-        await m.createTable(sleepSchedules);
-        await m.createTable(notificationDailyCounts);
-        await m.createTable(processedNotificationBatches);
-        await m.addColumn(deviceDayMetrics, deviceDayMetrics.notificationObservedFrom);
-        await m.addColumn(deviceDayMetrics, deviceDayMetrics.unlockCoverage);
-        await m.addColumn(deviceDayMetrics, deviceDayMetrics.notificationCoverage);
+        await _safeCreateTable(m, sleepSchedules);
+        await _safeCreateTable(m, notificationDailyCounts);
+        await _safeCreateTable(m, processedNotificationBatches);
+        await _safeAddColumn(
+          m,
+          deviceDayMetrics,
+          deviceDayMetrics.notificationObservedFrom,
+        );
+        await _safeAddColumn(
+          m,
+          deviceDayMetrics,
+          deviceDayMetrics.unlockCoverage,
+        );
+        await _safeAddColumn(
+          m,
+          deviceDayMetrics,
+          deviceDayMetrics.notificationCoverage,
+        );
       }
       if (from < 8) {
-        await m.createTable(dailyScores);
-        await m.addColumn(focusSessions, focusSessions.gardenSeedKind);
-        await m.addColumn(focusSessions, focusSessions.gardenVariant);
-        await m.addColumn(focusSessions, focusSessions.gardenSeedEmoji);
+        await _safeCreateTable(m, dailyScores);
+        await _safeAddColumn(m, focusSessions, focusSessions.gardenSeedKind);
+        await _safeAddColumn(m, focusSessions, focusSessions.gardenVariant);
+        await _safeAddColumn(m, focusSessions, focusSessions.gardenSeedEmoji);
 
         // Sync-aware V1 backfill of legacy scores
-        await customStatement('''
-          INSERT OR IGNORE INTO daily_scores (
-            day, score, grade, is_incomplete, available_weight, scoring_version,
-            focus_points, intent_points, attention_points, care_points, computed_at
-          )
-          SELECT 
-            r1.date,
-            r1.daily_score,
-            CASE 
-              WHEN r1.coverage_state = 'complete' THEN
-                CASE 
-                  WHEN r1.daily_score >= 90 THEN 'A+'
-                  WHEN r1.daily_score >= 80 THEN 'A'
-                  WHEN r1.daily_score >= 70 THEN 'B'
-                  WHEN r1.daily_score >= 55 THEN 'C'
-                  WHEN r1.daily_score >= 40 THEN 'D'
-                  ELSE 'F'
-                END
-              ELSE NULL
-            END,
-            CASE WHEN r1.coverage_state = 'complete' THEN 0 ELSE 1 END,
-            CASE WHEN r1.coverage_state = 'complete' THEN 1.0 ELSE 0.75 END,
-            1,
-            0.0,
-            0.0,
-            NULL,
-            0.0,
-            r1.generated_at
-          FROM daily_reports r1
-          WHERE r1.generated_at = (
-            SELECT MAX(r2.generated_at)
-            FROM daily_reports r2
-            WHERE r2.date = r1.date
-          )
-        ''');
+        if (await _hasTable('daily_reports')) {
+          await customStatement('''
+            INSERT OR IGNORE INTO daily_scores (
+              day, score, grade, is_incomplete, available_weight, scoring_version,
+              focus_points, intent_points, attention_points, care_points, computed_at
+            )
+            SELECT 
+              r1.date,
+              r1.daily_score,
+              CASE 
+                WHEN r1.coverage_state = 'complete' THEN
+                  CASE 
+                    WHEN r1.daily_score >= 90 THEN 'A+'
+                    WHEN r1.daily_score >= 80 THEN 'A'
+                    WHEN r1.daily_score >= 70 THEN 'B'
+                    WHEN r1.daily_score >= 55 THEN 'C'
+                    WHEN r1.daily_score >= 40 THEN 'D'
+                    ELSE 'F'
+                  END
+                ELSE NULL
+              END,
+              CASE WHEN r1.coverage_state = 'complete' THEN 0 ELSE 1 END,
+              CASE WHEN r1.coverage_state = 'complete' THEN 1.0 ELSE 0.75 END,
+              1,
+              0.0,
+              0.0,
+              NULL,
+              0.0,
+              r1.generated_at
+            FROM daily_reports r1
+            WHERE r1.generated_at = (
+              SELECT MAX(r2.generated_at)
+              FROM daily_reports r2
+              WHERE r2.date = r1.date
+            )
+          ''');
+        }
       }
       if (from < 9) {
-        await m.createTable(syncOutbox);
-        await m.addColumn(dailyPlans, dailyPlans.updatedAt);
-        await m.addColumn(dailyPlans, dailyPlans.deletedAt);
-        await m.addColumn(dailyReports, dailyReports.updatedAt);
-        await m.addColumn(dailyReports, dailyReports.deletedAt);
-        await m.addColumn(focusSessions, focusSessions.createdAt);
-        await m.addColumn(focusSessions, focusSessions.updatedAt);
-        await m.addColumn(focusSessions, focusSessions.deletedAt);
-        await m.addColumn(scrollLogs, scrollLogs.updatedAt);
-        await m.addColumn(scrollLogs, scrollLogs.deletedAt);
-        await m.addColumn(energyCheckIns, energyCheckIns.createdAt);
-        await m.addColumn(energyCheckIns, energyCheckIns.updatedAt);
-        await m.addColumn(energyCheckIns, energyCheckIns.deletedAt);
-        await m.addColumn(achievements, achievements.updatedAt);
-        await m.addColumn(achievements, achievements.deletedAt);
+        await _safeCreateTable(m, syncOutbox);
+        await _safeAddColumn(m, dailyPlans, dailyPlans.updatedAt);
+        await _safeAddColumn(m, dailyPlans, dailyPlans.deletedAt);
+        await _safeAddColumn(m, dailyReports, dailyReports.updatedAt);
+        await _safeAddColumn(m, dailyReports, dailyReports.deletedAt);
+        await _safeAddColumn(m, focusSessions, focusSessions.createdAt);
+        await _safeAddColumn(m, focusSessions, focusSessions.updatedAt);
+        await _safeAddColumn(m, focusSessions, focusSessions.deletedAt);
+        await _safeAddColumn(m, scrollLogs, scrollLogs.updatedAt);
+        await _safeAddColumn(m, scrollLogs, scrollLogs.deletedAt);
+        await _safeAddColumn(m, energyCheckIns, energyCheckIns.createdAt);
+        await _safeAddColumn(m, energyCheckIns, energyCheckIns.updatedAt);
+        await _safeAddColumn(m, energyCheckIns, energyCheckIns.deletedAt);
+        await _safeAddColumn(m, achievements, achievements.updatedAt);
+        await _safeAddColumn(m, achievements, achievements.deletedAt);
       }
       if (from < 10) {
-        await m.addColumn(syncOutbox, syncOutbox.ownerId);
+        await _safeAddColumn(m, syncOutbox, syncOutbox.ownerId);
       }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON;');
+      await _verifyAndRepairPhysicalSchema(Migrator(this));
     },
   );
 
@@ -228,7 +396,10 @@ class AppDatabase extends _$AppDatabase {
         batch.deleteWhere(deviceDayMetrics, (_) => const Constant(true));
         batch.deleteWhere(sleepSchedules, (_) => const Constant(true));
         batch.deleteWhere(notificationDailyCounts, (_) => const Constant(true));
-        batch.deleteWhere(processedNotificationBatches, (_) => const Constant(true));
+        batch.deleteWhere(
+          processedNotificationBatches,
+          (_) => const Constant(true),
+        );
         batch.deleteWhere(dailyScores, (_) => const Constant(true));
         batch.deleteWhere(syncOutbox, (_) => const Constant(true));
       });
@@ -236,10 +407,39 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
+void quarantineCorruptDatabase(File file, String reason) {
+  try {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final quarantinePath = '${file.path}.corrupt_$timestamp';
+    file.copySync(quarantinePath);
+    file.deleteSync();
+    debugPrint(
+      '⚠️ Database corruption detected ($reason). Original database quarantined to: $quarantinePath',
+    );
+  } catch (e) {
+    debugPrint('⚠️ Quarantine attempt failed: $e');
+  }
+}
+
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'flowos.sqlite'));
+    if (file.existsSync()) {
+      try {
+        final testDb = sqlite3.open(file.path);
+        final result = testDb.select('PRAGMA quick_check;');
+        testDb.close();
+        if (result.isNotEmpty && result.first.values.isNotEmpty) {
+          final status = result.first.values.first.toString();
+          if (status != 'ok') {
+            quarantineCorruptDatabase(file, status);
+          }
+        }
+      } catch (e) {
+        quarantineCorruptDatabase(file, e.toString());
+      }
+    }
     return NativeDatabase.createInBackground(file);
   });
 }

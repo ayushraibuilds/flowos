@@ -42,9 +42,10 @@ class _BreakScreenState extends State<BreakScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _scaleAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -52,8 +53,12 @@ class _BreakScreenState extends State<BreakScreen>
       ),
     );
 
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    if (widget.qualityGrade == 'A' || widget.qualityGrade == 'B' || widget.qualityGrade == 'D') {
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
+    if (widget.qualityGrade == 'A' ||
+        widget.qualityGrade == 'B' ||
+        widget.qualityGrade == 'D') {
       _confettiController.play();
     }
 
@@ -83,7 +88,9 @@ class _BreakScreenState extends State<BreakScreen>
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
-              child: _showBreakContent ? _buildBreakContent() : _buildXPReveal(),
+              child: _showBreakContent
+                  ? _buildBreakContent()
+                  : _buildXPReveal(),
             ),
             ConfettiWidget(
               confettiController: _confettiController,
@@ -138,8 +145,9 @@ class _BreakScreenState extends State<BreakScreen>
                     vertical: AppSpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.gradeColor(widget.qualityGrade)
-                        .withValues(alpha: 0.15),
+                    color: AppColors.gradeColor(
+                      widget.qualityGrade,
+                    ).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
                     border: Border.all(
                       color: AppColors.gradeColor(widget.qualityGrade),
@@ -184,8 +192,10 @@ class _BreakScreenState extends State<BreakScreen>
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _miniStat('+${widget.xpEarned} XP', AppColors.emerald),
-                _miniStat('Grade ${widget.qualityGrade}',
-                    AppColors.gradeColor(widget.qualityGrade)),
+                _miniStat(
+                  'Grade ${widget.qualityGrade}',
+                  AppColors.gradeColor(widget.qualityGrade),
+                ),
                 _miniStat('${widget.focusMinutes} min', AppColors.focusBlue),
               ],
             ),

@@ -15,7 +15,8 @@ class OnboardingWelcomeScreen extends StatefulWidget {
   });
 
   @override
-  State<OnboardingWelcomeScreen> createState() => _OnboardingWelcomeScreenState();
+  State<OnboardingWelcomeScreen> createState() =>
+      _OnboardingWelcomeScreenState();
 }
 
 class _OnboardingWelcomeScreenState extends State<OnboardingWelcomeScreen>
@@ -42,10 +43,7 @@ class _OnboardingWelcomeScreenState extends State<OnboardingWelcomeScreen>
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            AppColors.background0,
-            AppColors.background1,
-          ],
+          colors: [AppColors.background0, AppColors.background1],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -98,13 +96,12 @@ class _OnboardingWelcomeScreenState extends State<OnboardingWelcomeScreen>
                     backgroundColor: AppColors.emerald,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    'Continue',
-                    style: AppTypography.button,
-                  ),
+                  child: Text('Continue', style: AppTypography.button),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -142,14 +139,22 @@ class _SproutPainter extends CustomPainter {
     final glowPaint = Paint()
       ..color = AppColors.emerald.withValues(alpha: 0.15 + (progress * 0.1))
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-    canvas.drawCircle(center + const Offset(0, 10), 40 + (progress * 15), glowPaint);
+    canvas.drawCircle(
+      center + const Offset(0, 10),
+      40 + (progress * 15),
+      glowPaint,
+    );
 
     // Soil/Seed Base
     final soilPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.05)
       ..style = PaintingStyle.fill;
     canvas.drawOval(
-      Rect.fromCenter(center: center + const Offset(0, 50), width: 120, height: 20),
+      Rect.fromCenter(
+        center: center + const Offset(0, 50),
+        width: 120,
+        height: 20,
+      ),
       soilPaint,
     );
 

@@ -1,7 +1,7 @@
 enum WeeklyActionType {
-  scheduleFocusWindow,  // book protected time
-  reduceOneTrigger,     // lower budget or flag one distraction for firm treatment
-  moveTaskToEnergy,     // reschedule / re-energy a hard task
+  scheduleFocusWindow, // book protected time
+  reduceOneTrigger, // lower budget or flag one distraction for firm treatment
+  moveTaskToEnergy, // reschedule / re-energy a hard task
 }
 
 class WeeklyAction {

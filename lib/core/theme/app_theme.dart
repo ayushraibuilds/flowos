@@ -37,42 +37,62 @@ class AppTheme {
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 48, fontWeight: FontWeight.w800, height: 1.0,
-          color: AppColors.textPrimary, letterSpacing: -1.0,
+          fontSize: 48,
+          fontWeight: FontWeight.w800,
+          height: 1.0,
+          color: AppColors.textPrimary,
+          letterSpacing: -1.0,
         ),
         headlineLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 28, fontWeight: FontWeight.w700, height: 1.2,
-          color: AppColors.textPrimary, letterSpacing: -0.5,
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          height: 1.2,
+          color: AppColors.textPrimary,
+          letterSpacing: -0.5,
         ),
         headlineMedium: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 22, fontWeight: FontWeight.w600, height: 1.3,
-          color: AppColors.textPrimary, letterSpacing: -0.3,
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
+          color: AppColors.textPrimary,
+          letterSpacing: -0.3,
         ),
         headlineSmall: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 18, fontWeight: FontWeight.w600, height: 1.3,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
           color: AppColors.textPrimary,
         ),
         bodyLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 15, fontWeight: FontWeight.w400, height: 1.5,
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          height: 1.5,
           color: AppColors.textPrimary,
         ),
         bodyMedium: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 13, fontWeight: FontWeight.w400, height: 1.5,
+          fontSize: 13,
+          fontWeight: FontWeight.w400,
+          height: 1.5,
           color: AppColors.textSecondary,
         ),
         bodySmall: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 11, fontWeight: FontWeight.w500, height: 1.4,
-          color: AppColors.textSecondary, letterSpacing: 0.3,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.3,
         ),
         labelLarge: TextStyle(
           fontFamily: 'Inter',
-          fontSize: 15, fontWeight: FontWeight.w600, height: 1.0,
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          height: 1.0,
           color: AppColors.textPrimary,
         ),
       ),
@@ -84,7 +104,9 @@ class AppTheme {
         scrolledUnderElevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.light,
         titleTextStyle: TextStyle(
-          fontSize: 18, fontWeight: FontWeight.w600, height: 1.3,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
           color: AppColors.textPrimary,
         ),
         iconTheme: IconThemeData(color: AppColors.textPrimary),
@@ -97,8 +119,14 @@ class AppTheme {
         unselectedItemColor: AppColors.textTertiary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-        unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+        selectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w400,
+        ),
       ),
 
       // Cards
@@ -122,9 +150,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15, fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -137,9 +163,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusButton),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15, fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -147,9 +171,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.emerald,
-          textStyle: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w500,
-          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         ),
       ),
 
@@ -197,7 +219,8 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.background3,
         contentTextStyle: const TextStyle(
-          fontSize: 13, color: AppColors.textPrimary,
+          fontSize: 13,
+          color: AppColors.textPrimary,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusButton),

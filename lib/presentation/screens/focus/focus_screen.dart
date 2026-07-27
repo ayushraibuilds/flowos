@@ -55,7 +55,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     (label: 'Flowtime', minutes: 0, breakMin: 0),
   ];
 
-  String _selectedSound = 'none';
+  final String _selectedSound = 'none';
   final _sounds = [
     (key: 'none', icon: Icons.volume_off_rounded, label: 'Silent'),
     (key: 'binaural', icon: Icons.psychology_rounded, label: 'Binaural'),
@@ -82,14 +82,15 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     );
 
     if (widget.durationMinutes != null) {
-      if (widget.durationMinutes == 25)
+      if (widget.durationMinutes == 25) {
         _selectedSessionType = 0;
-      else if (widget.durationMinutes == 52)
+      } else if (widget.durationMinutes == 52) {
         _selectedSessionType = 1;
-      else if (widget.durationMinutes == 90)
+      } else if (widget.durationMinutes == 90) {
         _selectedSessionType = 2;
-      else
+      } else {
         _selectedSessionType = 3;
+      }
     }
 
     if (widget.autoStart) {
@@ -155,7 +156,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         );
         final appDisplayName = protectedApp?.displayName ?? trigger.packageName;
 
-        if (context.mounted) {
+        if (mounted) {
           await FocusShieldOverlay.show(
             context,
             packageName: trigger.packageName,
@@ -197,7 +198,6 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   }
 
   Future<void> _startTimer() async {
-    final isFlowtime = _selectedSessionType == 3;
     final int minutes =
         (widget.durationMinutes ?? _sessionTypes[_selectedSessionType].minutes);
 
@@ -316,7 +316,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       final elapsed = active.elapsedSeconds;
       final actualMin = (elapsed / 60).round();
 
-      final result = active.completionResult ??
+      final result =
+          active.completionResult ??
           await ref.read(focusTimerNotifierProvider.notifier).completeSession();
       await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
 

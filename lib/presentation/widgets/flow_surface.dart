@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
-enum FlowSurfaceVariant {
-  standard,
-  elevated,
-  floating,
-}
+enum FlowSurfaceVariant { standard, elevated, floating }
 
 /// A reusable glassmorphic surface component for FlowOS.
 /// Unifies container styling across screens using defined glass tokens.
@@ -37,7 +33,8 @@ class FlowSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final finalBorderRadius = borderRadius ?? BorderRadius.circular(AppSpacing.radiusCard);
+    final finalBorderRadius =
+        borderRadius ?? BorderRadius.circular(AppSpacing.radiusCard);
 
     // Fetch theme-based configurations mapping to defined glass tokens
     final Color tintColor;
@@ -48,17 +45,22 @@ class FlowSurface extends StatelessWidget {
       case FlowSurfaceVariant.standard:
         tintColor = AppColors.background2.withValues(alpha: 0.72);
         blurAmount = AppColors.glassBlur;
-        finalBorder = border ?? Border.all(color: AppColors.glassBorder, width: 0.5);
+        finalBorder =
+            border ?? Border.all(color: AppColors.glassBorder, width: 0.5);
         break;
       case FlowSurfaceVariant.elevated:
         tintColor = AppColors.background3.withValues(alpha: 0.80);
         blurAmount = AppColors.glassElevatedBlur;
-        finalBorder = border ?? Border.all(color: AppColors.glassElevatedBorder, width: 0.5);
+        finalBorder =
+            border ??
+            Border.all(color: AppColors.glassElevatedBorder, width: 0.5);
         break;
       case FlowSurfaceVariant.floating:
         tintColor = AppColors.background3.withValues(alpha: 0.85);
         blurAmount = AppColors.glassFloatingBlur;
-        finalBorder = border ?? Border.all(color: AppColors.glassFloatingBorder, width: 0.5);
+        finalBorder =
+            border ??
+            Border.all(color: AppColors.glassFloatingBorder, width: 0.5);
         break;
     }
 
@@ -74,7 +76,7 @@ class FlowSurface extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.24),
                   blurRadius: 16,
                   offset: const Offset(0, 8),
-                )
+                ),
               ]
             : null,
       ),

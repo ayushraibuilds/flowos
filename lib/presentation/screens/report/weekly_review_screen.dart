@@ -48,38 +48,57 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
     final weekEnd = todayStart.add(const Duration(days: 1));
 
     // Fetch completed tasks in range
-    final completedTasksLast7Days = await (db.select(db.tasks)
-          ..where((t) =>
-              t.isCompleted.equals(true) &
-              t.completedAt.isBiggerOrEqualValue(weekStart) &
-              t.completedAt.isSmallerThanValue(weekEnd)))
-        .get();
+    final completedTasksLast7Days =
+        await (db.select(db.tasks)..where(
+              (t) =>
+                  t.isCompleted.equals(true) &
+                  t.completedAt.isBiggerOrEqualValue(weekStart) &
+                  t.completedAt.isSmallerThanValue(weekEnd),
+            ))
+            .get();
     final totalTasksCompleted = completedTasksLast7Days.length;
 
     // Fetch focus sessions in range
-    final sessions = await db.focusSessionsDao.getByDateRange(weekStart, weekEnd);
-    final totalFocusMinutes = sessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
-    final totalFocusHours = double.parse((totalFocusMinutes / 60.0).toStringAsFixed(1));
+    final sessions = await db.focusSessionsDao.getByDateRange(
+      weekStart,
+      weekEnd,
+    );
+    final totalFocusMinutes = sessions.fold<int>(
+      0,
+      (sum, s) => sum + s.durationMinutes,
+    );
+    final totalFocusHours = double.parse(
+      (totalFocusMinutes / 60.0).toStringAsFixed(1),
+    );
 
     // Fetch recovery actions from manual scroll logs in range
-    final manualScrollLogs = await (db.select(db.scrollLogs)
-          ..where((l) =>
-              l.timestamp.isBiggerOrEqualValue(weekStart) &
-              l.timestamp.isSmallerThanValue(weekEnd) &
-              l.appName.like('% [Auto]').not()))
-        .get();
-    final recoveryActions = manualScrollLogs.where((l) => l.recoveryActionTaken).length;
+    final manualScrollLogs =
+        await (db.select(db.scrollLogs)..where(
+              (l) =>
+                  l.timestamp.isBiggerOrEqualValue(weekStart) &
+                  l.timestamp.isSmallerThanValue(weekEnd) &
+                  l.appName.like('% [Auto]').not(),
+            ))
+            .get();
+    final recoveryActions = manualScrollLogs
+        .where((l) => l.recoveryActionTaken)
+        .length;
 
     // Fetch XP earned in range
-    final xpEntries = await (db.select(db.xpLedgerEntries)
-          ..where((x) =>
-              x.timestamp.isBiggerOrEqualValue(weekStart) &
-              x.timestamp.isSmallerThanValue(weekEnd)))
-        .get();
+    final xpEntries =
+        await (db.select(db.xpLedgerEntries)..where(
+              (x) =>
+                  x.timestamp.isBiggerOrEqualValue(weekStart) &
+                  x.timestamp.isSmallerThanValue(weekEnd),
+            ))
+            .get();
     final totalXp = xpEntries.fold<int>(0, (sum, x) => sum + x.pointsDelta);
 
     // Fetch energy check-ins in range
-    final energyCheckins = await db.energyCheckInsDao.getCheckInsInRange(weekStart, weekEnd);
+    final energyCheckins = await db.energyCheckInsDao.getCheckInsInRange(
+      weekStart,
+      weekEnd,
+    );
 
     // Calculate daily scores and MIT metrics per day
     final dailyScores = <int>[];
@@ -99,15 +118,22 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       final hasShutdown = plan?.shutdownCompleted ?? false;
       final scrollBudget = plan?.scrollBudgetMinutes ?? 30;
 
-      final daySessions = sessions.where((s) =>
-          s.startedAt.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          s.startedAt.isBefore(dayEnd));
-      final dayFocusMinutes = daySessions.fold<int>(0, (sum, s) => sum + s.durationMinutes);
+      final daySessions = sessions.where(
+        (s) =>
+            s.startedAt.isAfter(day.subtract(const Duration(seconds: 1))) &&
+            s.startedAt.isBefore(dayEnd),
+      );
+      final dayFocusMinutes = daySessions.fold<int>(
+        0,
+        (sum, s) => sum + s.durationMinutes,
+      );
 
-      final dayCompletedTasks = completedTasksLast7Days.where((t) =>
-          t.completedAt != null &&
-          t.completedAt!.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          t.completedAt!.isBefore(dayEnd));
+      final dayCompletedTasks = completedTasksLast7Days.where(
+        (t) =>
+            t.completedAt != null &&
+            t.completedAt!.isAfter(day.subtract(const Duration(seconds: 1))) &&
+            t.completedAt!.isBefore(dayEnd),
+      );
 
       final dayMits = dayCompletedTasks.where((t) => t.isMIT).length;
       mitsCompleted += dayMits;
@@ -117,15 +143,21 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       final dayScrollMinutes = attentionDay.effectiveDistractingMinutes;
       scrollTotalMinutes += dayScrollMinutes;
 
-      final dayEnergyCheckins = energyCheckins.where((e) =>
-          e.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          e.date.isBefore(dayEnd));
+      final dayEnergyCheckins = energyCheckins.where(
+        (e) =>
+            e.date.isAfter(day.subtract(const Duration(seconds: 1))) &&
+            e.date.isBefore(dayEnd),
+      );
       final dayEnergyCount = dayEnergyCheckins.length;
 
-      final dayScrollLogs = manualScrollLogs.where((l) =>
-          l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
-          l.timestamp.isBefore(dayEnd));
-      final dayRecoveryActions = dayScrollLogs.where((l) => l.recoveryActionTaken).length;
+      final dayScrollLogs = manualScrollLogs.where(
+        (l) =>
+            l.timestamp.isAfter(day.subtract(const Duration(seconds: 1))) &&
+            l.timestamp.isBefore(dayEnd),
+      );
+      final dayRecoveryActions = dayScrollLogs
+          .where((l) => l.recoveryActionTaken)
+          .length;
 
       final scoreResult = DailyScoreCalculator.calculate(
         focusMinutes: dayFocusMinutes,
@@ -156,8 +188,12 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       }
     }
 
-    final bestDayScore = dailyScores.isEmpty ? 0 : dailyScores.reduce((a, b) => a > b ? a : b);
-    final worstDayScore = dailyScores.isEmpty ? 0 : dailyScores.reduce((a, b) => a < b ? a : b);
+    final bestDayScore = dailyScores.isEmpty
+        ? 0
+        : dailyScores.reduce((a, b) => a > b ? a : b);
+    final worstDayScore = dailyScores.isEmpty
+        ? 0
+        : dailyScores.reduce((a, b) => a < b ? a : b);
 
     _weekData = {
       'week_start': weekStart.toIso8601String().split('T')[0],
@@ -190,21 +226,24 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
 
     if (mounted) {
       setState(() {
-        _review = review ?? WeeklyReview(
-          summary: 'A solid week of building habits. Check the numbers below.',
-          wins: [
-            'Maintained a $streakDays-day streak',
-            '$totalTasksCompleted tasks completed',
-            'Earned $totalXp XP this week'
-          ],
-          growthAreas: ['Try protecting morning hours for deep work'],
-          reflectionQuestions: [
-            'What was your focus highlight this week?',
-            'What drained your attention most?',
-            'If you could only do 3 things next week, what would they be?',
-          ],
-          nextWeekFocus: 'Start each day with one deep work session.',
-        );
+        _review =
+            review ??
+            WeeklyReview(
+              summary:
+                  'A solid week of building habits. Check the numbers below.',
+              wins: [
+                'Maintained a $streakDays-day streak',
+                '$totalTasksCompleted tasks completed',
+                'Earned $totalXp XP this week',
+              ],
+              growthAreas: ['Try protecting morning hours for deep work'],
+              reflectionQuestions: [
+                'What was your focus highlight this week?',
+                'What drained your attention most?',
+                'If you could only do 3 things next week, what would they be?',
+              ],
+              nextWeekFocus: 'Start each day with one deep work session.',
+            );
         _weeklyAction = weeklyAction;
         _loading = false;
       });
@@ -392,33 +431,35 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           style: AppTypography.h1.copyWith(color: AppColors.emerald),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        ...(_review!.wins.map((win) => Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.emerald.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-              border: Border.all(
-                color: AppColors.emerald.withValues(alpha: 0.2),
+        ...(_review!.wins.map(
+          (win) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.emerald.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                border: Border.all(
+                  color: AppColors.emerald.withValues(alpha: 0.2),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Text('✓ ', style: TextStyle(color: AppColors.emerald)),
-                Expanded(
-                  child: Text(
-                    win,
-                    style: AppTypography.body.copyWith(
-                      color: AppColors.textPrimary,
+              child: Row(
+                children: [
+                  Text('✓ ', style: TextStyle(color: AppColors.emerald)),
+                  Expanded(
+                    child: Text(
+                      win,
+                      style: AppTypography.body.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ))),
+        )),
       ],
     );
   }
@@ -434,23 +475,25 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           style: AppTypography.h1.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        ...(_review!.growthAreas.map((area) => Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.background2,
-              borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            ),
-            child: Text(
-              area,
-              style: AppTypography.body.copyWith(
-                color: AppColors.textSecondary,
+        ...(_review!.growthAreas.map(
+          (area) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.background2,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+              ),
+              child: Text(
+                area,
+                style: AppTypography.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ),
-        ))),
+        )),
       ],
     );
   }
@@ -513,15 +556,11 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           decoration: BoxDecoration(
             color: AppColors.emerald.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-            border: Border.all(
-              color: AppColors.emerald.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: AppColors.emerald.withValues(alpha: 0.2)),
           ),
           child: Text(
             _review!.nextWeekFocus,
-            style: AppTypography.h3.copyWith(
-              color: AppColors.emerald,
-            ),
+            style: AppTypography.h3.copyWith(color: AppColors.emerald),
             textAlign: TextAlign.center,
           ),
         ),
@@ -550,7 +589,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
           const SizedBox(height: AppSpacing.xxl),
           Text(
             'You are all set for next week. Keep up the great work!',
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -572,7 +613,9 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
         const SizedBox(height: AppSpacing.xs),
         Text(
           'Choose one change to apply to your plan.',
-          style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textTertiary,
+          ),
         ),
         const SizedBox(height: AppSpacing.xxl),
         ActionCommitCard(
@@ -585,7 +628,8 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 _weeklyAction = const WeeklyAction(
                   id: 'alternate_focus_window',
                   type: WeeklyActionType.scheduleFocusWindow,
-                  description: 'Schedule one 25-minute focus window tomorrow at 9:00 AM.',
+                  description:
+                      'Schedule one 25-minute focus window tomorrow at 9:00 AM.',
                   startHour: 9,
                   endHour: 10,
                 );
@@ -593,7 +637,8 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                 _weeklyAction = const WeeklyAction(
                   id: 'alternate_firm_protection',
                   type: WeeklyActionType.reduceOneTrigger,
-                  description: 'Enable Firm protection mode for all distracting apps.',
+                  description:
+                      'Enable Firm protection mode for all distracting apps.',
                 );
               }
             });

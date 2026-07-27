@@ -22,13 +22,15 @@ void main() {
 
     test('serializes all 8 tables and includes version & timestamps', () async {
       // Add a mock task
-      await db.tasksDao.insertTask(TasksCompanion(
-        id: const Value('test-task-123'),
-        title: const Value('Test Data Export Task'),
-        energyLevel: const Value(EnergyLevelColumn.deep),
-        category: const Value(TaskCategoryColumn.work),
-        isCompleted: const Value(false),
-      ));
+      await db.tasksDao.insertTask(
+        TasksCompanion(
+          id: const Value('test-task-123'),
+          title: const Value('Test Data Export Task'),
+          energyLevel: const Value(EnergyLevelColumn.deep),
+          category: const Value(TaskCategoryColumn.work),
+          isCompleted: const Value(false),
+        ),
+      );
 
       final jsonStr = await service.serializeData();
       final Map<String, dynamic> data = json.decode(jsonStr);

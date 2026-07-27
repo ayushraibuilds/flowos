@@ -15,7 +15,8 @@ class FocusSessions extends Table {
   // Actual performance
   IntColumn get actualMinutes => integer().withDefault(const Constant(0))();
   IntColumn get pauseCount => integer().withDefault(const Constant(0))();
-  IntColumn get appBackgroundCount => integer().withDefault(const Constant(0))();
+  IntColumn get appBackgroundCount =>
+      integer().withDefault(const Constant(0))();
 
   // Extras
   TextColumn get ambientSound => text().nullable()();
@@ -24,7 +25,8 @@ class FocusSessions extends Table {
 
   // Results
   IntColumn get xpEarned => integer().withDefault(const Constant(0))();
-  TextColumn get qualityScore => text().withDefault(const Constant(''))(); // A/B/C/D
+  TextColumn get qualityScore =>
+      text().withDefault(const Constant(''))(); // A/B/C/D
 
   // Timestamps
   DateTimeColumn get startedAt => dateTime()();

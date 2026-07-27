@@ -11,7 +11,8 @@ class UserProfileStore {
 
   UserProfile getProfile() {
     final raw = _prefs.getString(_key);
-    final onboardingComplete = _prefs.getBool('flowos_onboarding_complete') ?? false;
+    final onboardingComplete =
+        _prefs.getBool('flowos_onboarding_complete') ?? false;
 
     if (raw == null) {
       if (onboardingComplete) {
@@ -25,9 +26,12 @@ class UserProfileStore {
     try {
       final json = jsonDecode(raw) as Map<String, dynamic>;
       var profile = UserProfile.fromJson(json);
-      
-      final completedVersion = json['completedOnboardingVersion'] ?? (onboardingComplete ? 1 : 0);
-      final windowConfigured = json['protectedWindowConfigured'] ?? (onboardingComplete || completedVersion == 1);
+
+      final completedVersion =
+          json['completedOnboardingVersion'] ?? (onboardingComplete ? 1 : 0);
+      final windowConfigured =
+          json['protectedWindowConfigured'] ??
+          (onboardingComplete || completedVersion == 1);
 
       profile = profile.copyWith(
         completedOnboardingVersion: completedVersion,

@@ -6,7 +6,7 @@ import 'package:flowos/features/attention/repository/attention_data_repository.d
 
 class FakeDeviceAttentionPlatform extends DeviceAttentionPlatform {
   bool hasUsage = false;
-  
+
   @override
   Future<PermissionStates> getPermissionStates() async {
     return PermissionStates(
@@ -40,7 +40,7 @@ void main() {
     test('syncUsage does not sync when permission is denied', () async {
       platform.hasUsage = false;
       await repository.syncUsage(days: 1);
-      
+
       final today = DateTime.now();
       final dayData = await repository.getAttentionDay(today);
       expect(dayData.coverage, DataCoverage.notConnected);

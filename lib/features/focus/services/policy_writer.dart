@@ -39,7 +39,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
         return ActivePolicies.fromPrefsJson(jsonStr);
       }
     } catch (e, st) {
-      debugPrint('SharedPrefsPolicyWriter: Failed to parse active policies: $e\n$st');
+      debugPrint(
+        'SharedPrefsPolicyWriter: Failed to parse active policies: $e\n$st',
+      );
     }
     return const ActivePolicies();
   }
@@ -64,7 +66,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
       try {
         await _channel.invokeMethod('startForegroundService');
       } catch (e, st) {
-        debugPrint('SharedPrefsPolicyWriter: startForegroundService failed: $e\n$st');
+        debugPrint(
+          'SharedPrefsPolicyWriter: startForegroundService failed: $e\n$st',
+        );
       }
     }
   }
@@ -94,7 +98,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
       try {
         await _channel.invokeMethod('stopForegroundService');
       } catch (e, st) {
-        debugPrint('SharedPrefsPolicyWriter: stopForegroundService failed: $e\n$st');
+        debugPrint(
+          'SharedPrefsPolicyWriter: stopForegroundService failed: $e\n$st',
+        );
       }
     }
 
@@ -112,7 +118,9 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
             });
             await prefs.setString(nudgeKey, jsonEncode(list));
           } catch (e, st) {
-            debugPrint('SharedPrefsPolicyWriter: Failed to clear nudge events: $e\n$st');
+            debugPrint(
+              'SharedPrefsPolicyWriter: Failed to clear nudge events: $e\n$st',
+            );
           }
         }
       }
@@ -124,7 +132,10 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
     return _serialized(() => _renewLeaseImpl(source, newActiveUntil));
   }
 
-  Future<void> _renewLeaseImpl(PolicySource source, DateTime newActiveUntil) async {
+  Future<void> _renewLeaseImpl(
+    PolicySource source,
+    DateTime newActiveUntil,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await getActivePolicies() ?? const ActivePolicies();
 
@@ -151,10 +162,7 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
       );
     }
 
-    final updated = ActivePolicies(
-      focus: updatedFocus,
-      sleep: updatedSleep,
-    );
+    final updated = ActivePolicies(focus: updatedFocus, sleep: updatedSleep);
 
     await prefs.setString(_key, updated.toPrefsJson());
   }
@@ -184,7 +192,8 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
         source: current.focus!.source,
         scopedBreaks: breaks,
       );
-    } else if (scopedBreak.source == PolicySource.sleep && current.sleep != null) {
+    } else if (scopedBreak.source == PolicySource.sleep &&
+        current.sleep != null) {
       final breaks = List<ScopedBreak>.from(current.sleep!.scopedBreaks);
       breaks.removeWhere((b) => b.packageName == scopedBreak.packageName);
       breaks.add(scopedBreak);
@@ -199,10 +208,7 @@ class SharedPrefsPolicyWriter implements PolicyWriter {
       );
     }
 
-    final updated = ActivePolicies(
-      focus: updatedFocus,
-      sleep: updatedSleep,
-    );
+    final updated = ActivePolicies(focus: updatedFocus, sleep: updatedSleep);
 
     await prefs.setString(_key, updated.toPrefsJson());
   }
@@ -262,10 +268,7 @@ class FakePolicyWriter implements PolicyWriter {
       );
     }
 
-    policies = ActivePolicies(
-      focus: updatedFocus,
-      sleep: updatedSleep,
-    );
+    policies = ActivePolicies(focus: updatedFocus, sleep: updatedSleep);
   }
 
   @override
@@ -286,7 +289,8 @@ class FakePolicyWriter implements PolicyWriter {
         source: policies.focus!.source,
         scopedBreaks: breaks,
       );
-    } else if (scopedBreak.source == PolicySource.sleep && policies.sleep != null) {
+    } else if (scopedBreak.source == PolicySource.sleep &&
+        policies.sleep != null) {
       final breaks = List<ScopedBreak>.from(policies.sleep!.scopedBreaks);
       breaks.removeWhere((b) => b.packageName == scopedBreak.packageName);
       breaks.add(scopedBreak);
@@ -301,9 +305,6 @@ class FakePolicyWriter implements PolicyWriter {
       );
     }
 
-    policies = ActivePolicies(
-      focus: updatedFocus,
-      sleep: updatedSleep,
-    );
+    policies = ActivePolicies(focus: updatedFocus, sleep: updatedSleep);
   }
 }

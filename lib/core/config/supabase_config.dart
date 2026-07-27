@@ -45,7 +45,11 @@ class SupabaseConfig {
     String? devId = prefs.getString('flowos_device_id');
     if (devId == null) {
       try {
-        final platform = Platform.isIOS ? 'ios' : Platform.isAndroid ? 'android' : 'device';
+        final platform = Platform.isIOS
+            ? 'ios'
+            : Platform.isAndroid
+            ? 'android'
+            : 'device';
         devId = '$platform-${const Uuid().v4()}';
       } catch (_) {
         devId = 'device-${const Uuid().v4()}';

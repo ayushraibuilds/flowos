@@ -20,14 +20,18 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final checkin = await getById(id);
     if (checkin != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('energy_checkins'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(checkin.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('energy_checkins'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(checkin.toJson())),
+            ),
+          );
     }
   }
 
@@ -42,11 +46,12 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
   Future<List<EnergyCheckIn>> getForDate(DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
-    return (select(energyCheckIns)
-          ..where((e) =>
+    return (select(energyCheckIns)..where(
+          (e) =>
               e.date.isBiggerOrEqualValue(start) &
               e.date.isSmallerThanValue(end) &
-              e.deletedAt.isNull()))
+              e.deletedAt.isNull(),
+        ))
         .get();
   }
 
@@ -57,10 +62,9 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Get check-ins since a given timestamp (for sync push).
-  Future<List<EnergyCheckIn>> getModifiedSince(DateTime since) =>
-      (select(energyCheckIns)
-            ..where((e) => e.updatedAt.isBiggerOrEqualValue(since)))
-          .get();
+  Future<List<EnergyCheckIn>> getModifiedSince(DateTime since) => (select(
+    energyCheckIns,
+  )..where((e) => e.updatedAt.isBiggerOrEqualValue(since))).get();
 
   /// Get the latest energy check-in
   Future<EnergyCheckIn?> getLatest() =>
@@ -74,12 +78,13 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
   Future<EnergyCheckIn?> getForBucket(TimeOfDayColumn bucket, DateTime date) {
     final start = DateTime(date.year, date.month, date.day);
     final end = start.add(const Duration(days: 1));
-    return (select(energyCheckIns)
-          ..where((e) =>
+    return (select(energyCheckIns)..where(
+          (e) =>
               e.date.isBiggerOrEqualValue(start) &
               e.date.isSmallerThanValue(end) &
               e.timeOfDay.equalsValue(bucket) &
-              e.deletedAt.isNull()))
+              e.deletedAt.isNull(),
+        ))
         .getSingleOrNull();
   }
 
@@ -90,23 +95,26 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
       final existing = await getForBucket(bucket, now);
       if (existing != null) {
         final id = existing.id;
-        await (update(energyCheckIns)..where((e) => e.id.equals(id)))
-            .write(EnergyCheckInsCompanion(
-          value: Value(value),
-          date: Value(now),
-          updatedAt: Value(now),
-        ));
+        await (update(energyCheckIns)..where((e) => e.id.equals(id))).write(
+          EnergyCheckInsCompanion(
+            value: Value(value),
+            date: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
         await _recordOutboxUpsert(id);
       } else {
         final id = _uuid.v4();
-        await into(energyCheckIns).insert(EnergyCheckInsCompanion(
-          id: Value(id),
-          timeOfDay: Value(bucket),
-          value: Value(value),
-          date: Value(now),
-          createdAt: Value(now),
-          updatedAt: Value(now),
-        ));
+        await into(energyCheckIns).insert(
+          EnergyCheckInsCompanion(
+            id: Value(id),
+            timeOfDay: Value(bucket),
+            value: Value(value),
+            date: Value(now),
+            createdAt: Value(now),
+            updatedAt: Value(now),
+          ),
+        );
         await _recordOutboxUpsert(id);
       }
     });
@@ -114,37 +122,41 @@ class EnergyCheckInsDao extends DatabaseAccessor<AppDatabase>
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertCheckInFromSync(EnergyCheckInsCompanion entry) => into(energyCheckIns).insert(entry);
-  Future<void> updateCheckInFromSync(EnergyCheckInsCompanion entry) =>
-      (update(energyCheckIns)..where((e) => e.id.equals(entry.id.value))).write(entry);
+  Future<void> insertCheckInFromSync(EnergyCheckInsCompanion entry) =>
+      into(energyCheckIns).insert(entry);
+  Future<void> updateCheckInFromSync(EnergyCheckInsCompanion entry) => (update(
+    energyCheckIns,
+  )..where((e) => e.id.equals(entry.id.value))).write(entry);
 
   /// Watch check-ins today (reactive stream)
   Stream<List<EnergyCheckIn>> watchToday() {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    return (select(energyCheckIns)
-          ..where((e) =>
+    return (select(energyCheckIns)..where(
+          (e) =>
               e.date.isBiggerOrEqualValue(start) &
-              e.date.isSmallerThanValue(end)))
+              e.date.isSmallerThanValue(end),
+        ))
         .watch();
   }
 
   /// Get check-ins in date range
   Future<List<EnergyCheckIn>> getCheckInsInRange(DateTime start, DateTime end) {
-    return (select(energyCheckIns)
-          ..where((e) =>
+    return (select(energyCheckIns)..where(
+          (e) =>
               e.date.isBiggerOrEqualValue(start) &
-              e.date.isSmallerThanValue(end)))
+              e.date.isSmallerThanValue(end),
+        ))
         .get();
   }
 
   /// Average check-in value per bucket over last N days
   Future<Map<TimeOfDayColumn, double>> averageByBucket(int days) async {
     final start = DateTime.now().subtract(Duration(days: days));
-    final checkins = await (select(energyCheckIns)
-          ..where((e) => e.date.isBiggerOrEqualValue(start)))
-        .get();
+    final checkins = await (select(
+      energyCheckIns,
+    )..where((e) => e.date.isBiggerOrEqualValue(start))).get();
 
     final Map<TimeOfDayColumn, List<int>> values = {
       TimeOfDayColumn.morning: [],

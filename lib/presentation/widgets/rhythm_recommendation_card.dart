@@ -17,10 +17,7 @@ import 'flow_surface.dart';
 class RhythmRecommendationCard extends ConsumerWidget {
   final RhythmRecommendation recommendation;
 
-  const RhythmRecommendationCard({
-    super.key,
-    required this.recommendation,
-  });
+  const RhythmRecommendationCard({super.key, required this.recommendation});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,10 +59,12 @@ class RhythmRecommendationCard extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             recommendation.actionLabel,
-            style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
-          
+
           // Evidence chips
           Wrap(
             spacing: AppSpacing.sm,
@@ -78,18 +77,22 @@ class RhythmRecommendationCard extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.background2,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusPill),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.04),
+                  ),
                 ),
                 child: Text(
                   ev,
-                  style: AppTypography.caption.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               );
             }).toList(),
           ),
-          
+
           const SizedBox(height: AppSpacing.lg),
-          
+
           // Action Buttons
           Row(
             children: [
@@ -100,9 +103,13 @@ class RhythmRecommendationCard extends ConsumerWidget {
                     backgroundColor: AppColors.emerald.withValues(alpha: 0.12),
                     foregroundColor: AppColors.emerald,
                     elevation: 0,
-                    side: BorderSide(color: AppColors.emerald.withValues(alpha: 0.2)),
+                    side: BorderSide(
+                      color: AppColors.emerald.withValues(alpha: 0.2),
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
+                      borderRadius: BorderRadius.circular(
+                        AppSpacing.radiusCard,
+                      ),
                     ),
                   ),
                   child: const Text('Accept Recommendation'),
@@ -149,10 +156,12 @@ class RhythmRecommendationCard extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Convert this insight into an actionable plan.',
-              style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            
+
             // 1. Schedule Next Window
             _buildAcceptTile(
               emoji: '📅',
@@ -164,13 +173,15 @@ class RhythmRecommendationCard extends ConsumerWidget {
                 await _scheduleFocusWindow(ref);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Focus window successfully scheduled!')),
+                    const SnackBar(
+                      content: Text('Focus window successfully scheduled!'),
+                    ),
                   );
                 }
               },
             ),
             const SizedBox(height: AppSpacing.md),
-            
+
             // 2. Start now
             _buildAcceptTile(
               emoji: '🚀',
@@ -178,15 +189,18 @@ class RhythmRecommendationCard extends ConsumerWidget {
               desc: 'Launch a 45-minute deep focus session immediately',
               onTap: () {
                 Navigator.pop(ctx);
-                context.go('/focus', extra: {
-                  'durationMinutes': 45,
-                  'sessionLabel': 'Rhythm Deep Focus',
-                  'autoStart': true,
-                });
+                context.go(
+                  '/focus',
+                  extra: {
+                    'durationMinutes': 45,
+                    'sessionLabel': 'Rhythm Deep Focus',
+                    'autoStart': true,
+                  },
+                );
               },
             ),
             const SizedBox(height: AppSpacing.md),
-            
+
             // 3. Pick hardest MIT
             _buildAcceptTile(
               emoji: '🎯',
@@ -265,26 +279,48 @@ class RhythmRecommendationCard extends ConsumerWidget {
         targetDate = targetDate.add(const Duration(days: 1));
       }
     }
-    final dateOnly = DateTime(targetDate.year, targetDate.month, targetDate.day);
-    
-    final plan = await db.dailyPlansDao.getByDateRange(dateOnly, dateOnly.add(const Duration(days: 1)));
+    final dateOnly = DateTime(
+      targetDate.year,
+      targetDate.month,
+      targetDate.day,
+    );
+
+    final plan = await db.dailyPlansDao.getByDateRange(
+      dateOnly,
+      dateOnly.add(const Duration(days: 1)),
+    );
     if (plan == null) {
-      await db.dailyPlansDao.insertPlan(DailyPlansCompanion(
-        id: Value(const Uuid().v4()),
-        date: Value(dateOnly),
-        intentionNote: Value('Scheduled Focus Window: ${recommendation.headline.split("land ").last}'),
-      ));
+      await db.dailyPlansDao.insertPlan(
+        DailyPlansCompanion(
+          id: Value(const Uuid().v4()),
+          date: Value(dateOnly),
+          intentionNote: Value(
+            'Scheduled Focus Window: ${recommendation.headline.split("land ").last}',
+          ),
+        ),
+      );
     } else {
-      await db.dailyPlansDao.updatePlan(DailyPlansCompanion(
-        id: Value(plan.id),
-        date: Value(plan.date),
-        intentionNote: Value('${plan.intentionNote ?? ""}\nScheduled Focus: ${recommendation.headline.split("land ").last}'.trim()),
-      ));
+      await db.dailyPlansDao.updatePlan(
+        DailyPlansCompanion(
+          id: Value(plan.id),
+          date: Value(plan.date),
+          intentionNote: Value(
+            '${plan.intentionNote ?? ""}\nScheduled Focus: ${recommendation.headline.split("land ").last}'
+                .trim(),
+          ),
+        ),
+      );
     }
-    
+
     // Save to SharedPreferences for notification / Home CTA checks
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('flowos_suggested_focus_start', recommendation.windowStartHour);
-    await prefs.setInt('flowos_suggested_focus_end', recommendation.windowEndHour);
+    await prefs.setInt(
+      'flowos_suggested_focus_start',
+      recommendation.windowStartHour,
+    );
+    await prefs.setInt(
+      'flowos_suggested_focus_end',
+      recommendation.windowEndHour,
+    );
   }
 }

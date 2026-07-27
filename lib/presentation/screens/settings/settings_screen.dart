@@ -15,10 +15,8 @@ import '../../../features/settings/providers/settings_providers.dart';
 import '../../../features/export/services/data_export_service.dart';
 import '../../../features/sync/providers/sync_providers.dart';
 import '../../../features/dashboard/providers/dashboard_providers.dart';
-import '../../../data/local/database/app_database.dart';
 import '../../../features/focus/widgets/focus_protection_selector.dart';
 import '../../../features/focus/models/focus_protection.dart';
-import '../../../features/onboarding/providers/onboarding_providers.dart';
 import '../../../features/attention/repository/attention_data_repository.dart';
 import '../../../features/attention/widgets/accessibility_disclosure_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +31,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBindingObserver {
+class _SettingsScreenState extends ConsumerState<SettingsScreen>
+    with WidgetsBindingObserver {
   bool _isAccessibilityEnabled = false;
   bool _isInterruptionCollectionEnabled = false;
 
@@ -61,7 +60,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
 
   Future<void> _checkAccessibility() async {
     try {
-      final states = await ref.read(deviceAttentionPlatformProvider).getPermissionStates();
+      final states = await ref
+          .read(deviceAttentionPlatformProvider)
+          .getPermissionStates();
       if (mounted) {
         setState(() {
           _isAccessibilityEnabled = states.accessibility;
@@ -74,7 +75,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _isInterruptionCollectionEnabled = prefs.getBool('flowos_interruption_collection_enabled') ?? false;
+        _isInterruptionCollectionEnabled =
+            prefs.getBool('flowos_interruption_collection_enabled') ?? false;
       });
     }
   }
@@ -102,12 +104,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             children: [
               Text(
                 'FlowOS records only the app that posted a notification and a daily count. It never reads notification text, names, senders, or content. This data stays on your device.',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
                 'By enabling this, you consent to locally count incoming notification events.',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -116,7 +122,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
               onPressed: () => Navigator.pop(ctx, false),
               child: Text(
                 'Cancel',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
               ),
             ),
             TextButton(
@@ -137,7 +145,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('flowos_interruption_collection_enabled', true);
         if (prefs.getInt('flowos_notification_observed_from') == null) {
-          await prefs.setInt('flowos_notification_observed_from', DateTime.now().millisecondsSinceEpoch);
+          await prefs.setInt(
+            'flowos_notification_observed_from',
+            DateTime.now().millisecondsSinceEpoch,
+          );
         }
         setState(() {
           _isInterruptionCollectionEnabled = true;
@@ -170,7 +181,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
         ),
         content: Text(
           'This will permanently delete all daily notification logs, set unlocks to null, and temporarily disable future logs collection. This cannot be undone.',
-          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
@@ -192,7 +205,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
     );
 
     if (confirm == true) {
-      await ref.read(attentionDataRepositoryProvider).deleteInterruptionHistory();
+      await ref
+          .read(attentionDataRepositoryProvider)
+          .deleteInterruptionHistory();
       setState(() {
         _isInterruptionCollectionEnabled = false;
       });
@@ -309,7 +324,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
           ),
           _actionTile(
             title: 'System Permissions & Privacy',
-            subtitle: 'Manage usage access, accessibility blocker, and notification status',
+            subtitle:
+                'Manage usage access, accessibility blocker, and notification status',
             icon: Icons.lock_outline_rounded,
             onTap: () => context.push('/permissions'),
           ),
@@ -333,7 +349,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
           ),
           _actionTile(
             title: 'Shape my focus',
-            subtitle: 'Customize goals, distractions, and protected focus hours',
+            subtitle:
+                'Customize goals, distractions, and protected focus hours',
             icon: Icons.tune_rounded,
             onTap: () => _showShapeFocusSheet(context),
           ),
@@ -369,14 +386,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
                         result.isPaused
                             ? 'Sync temporarily paused while we improve reliability.'
                             : (result.hasErrors
-                                ? 'Sync completed with errors.'
-                                : 'Sync successful!'),
+                                  ? 'Sync completed with errors.'
+                                  : 'Sync successful!'),
                       ),
                       backgroundColor: result.isPaused
                           ? AppColors.warningAmber
                           : (result.hasErrors
-                              ? AppColors.dangerCoral
-                              : AppColors.emerald),
+                                ? AppColors.dangerCoral
+                                : AppColors.emerald),
                     ),
                   );
                 }
@@ -795,7 +812,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
             onPressed: () async {
               Navigator.pop(ctx);
               final syncEngine = ref.read(syncEngineProvider);
-              await ref.read(authServiceProvider).signOut(syncEngine: syncEngine);
+              await ref
+                  .read(authServiceProvider)
+                  .signOut(syncEngine: syncEngine);
               if (mounted) context.go('/auth');
             },
             child: Text(
@@ -831,7 +850,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(attentionDataRepositoryProvider).resetAllLocalData();
+              await ref
+                  .read(attentionDataRepositoryProvider)
+                  .resetAllLocalData();
 
               final isLoggedIn = ref.read(isLoggedInProvider);
               if (isLoggedIn) {
@@ -983,13 +1004,17 @@ Data Storage, Control & Revocation
 
   void _showPairingSheet(BuildContext context) {
     final bool isConfigured = SupabaseConfig.isConfigured;
-    final user = isConfigured ? Supabase.instance.client.auth.currentUser : null;
+    final user = isConfigured
+        ? Supabase.instance.client.auth.currentUser
+        : null;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.background2,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusCard)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusCard),
+        ),
       ),
       builder: (ctx) {
         if (!isConfigured || user == null) {
@@ -1000,13 +1025,17 @@ Data Storage, Control & Revocation
               children: [
                 Text(
                   'Account Pair Required',
-                  style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'To connect your browser extension and sync active focus state, you must be signed in to your FlowOS account.',
                   textAlign: TextAlign.center,
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 ElevatedButton(
@@ -1048,7 +1077,9 @@ Data Storage, Control & Revocation
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Copy this pairing token and paste it into the FlowOS Chrome Extension Settings under "Pair with FlowOS Mobile App".',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               Container(
@@ -1056,7 +1087,9 @@ Data Storage, Control & Revocation
                 decoration: BoxDecoration(
                   color: AppColors.background0,
                   borderRadius: BorderRadius.circular(AppSpacing.radiusCard),
-                  border: Border.all(color: AppColors.textTertiary.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: AppColors.textTertiary.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: SelectableText(
                   pairingToken,
@@ -1099,7 +1132,9 @@ Data Storage, Control & Revocation
       backgroundColor: AppColors.background2,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusCard)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSpacing.radiusCard),
+        ),
       ),
       builder: (ctx) => const ShapeFocusSheet(),
     );

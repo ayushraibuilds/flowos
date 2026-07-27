@@ -39,7 +39,11 @@ class DailyScoreSnapshotService {
   /// If Usage Access is granted later, yesterday's score can improve from incomplete to complete.
   Future<void> finalizeYesterdayScore() async {
     final now = DateTime.now();
-    final yesterday = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+    final yesterday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 1));
     await snapshotDay(yesterday);
   }
 
@@ -56,30 +60,40 @@ class DailyScoreSnapshotService {
     }
 
     // Load inputs for the given day
-    final sessions = await _db.focusSessionsDao.getByDateRange(midnightDate, nextDay);
+    final sessions = await _db.focusSessionsDao.getByDateRange(
+      midnightDate,
+      nextDay,
+    );
     final focusMinutes = sessions
         .where((s) => s.completedAt != null)
         .fold<int>(0, (sum, s) => sum + s.actualMinutes);
 
-    final mits = await (_db.select(_db.tasks)
-          ..where((t) =>
-              t.isMIT.equals(true) &
-              t.isCompleted.equals(true) &
-              t.completedAt.isBiggerOrEqualValue(midnightDate) &
-              t.completedAt.isSmallerThanValue(nextDay)))
-        .get();
+    final mits =
+        await (_db.select(_db.tasks)..where(
+              (t) =>
+                  t.isMIT.equals(true) &
+                  t.isCompleted.equals(true) &
+                  t.completedAt.isBiggerOrEqualValue(midnightDate) &
+                  t.completedAt.isSmallerThanValue(nextDay),
+            ))
+            .get();
     final mitsCompleted = mits.length;
 
-    final scrollLogs = await (_db.select(_db.scrollLogs)
-          ..where((l) =>
-              l.timestamp.isBiggerOrEqualValue(midnightDate) &
-              l.timestamp.isSmallerThanValue(nextDay)))
-        .get();
+    final scrollLogs =
+        await (_db.select(_db.scrollLogs)..where(
+              (l) =>
+                  l.timestamp.isBiggerOrEqualValue(midnightDate) &
+                  l.timestamp.isSmallerThanValue(nextDay),
+            ))
+            .get();
     final recoveryActions = scrollLogs
         .where((l) => !l.appName.contains('[Auto]') && l.recoveryActionTaken)
         .length;
 
-    final energyLogs = await _db.energyCheckInsDao.getCheckInsInRange(midnightDate, nextDay);
+    final energyLogs = await _db.energyCheckInsDao.getCheckInsInRange(
+      midnightDate,
+      nextDay,
+    );
     final energyCheckIns = energyLogs.length;
 
     final plan = await _db.dailyPlansDao.getByDateRange(midnightDate, nextDay);
@@ -92,18 +106,21 @@ class DailyScoreSnapshotService {
       budget = plan.scrollBudgetMinutes;
     } else {
       final today = DateTime.now();
-      final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
+      final isToday =
+          date.year == today.year &&
+          date.month == today.month &&
+          date.day == today.day;
       if (isToday) {
         budget = _ref.read(settingsProvider).scrollBudget;
       } else {
         // Do not calculate reclaimable or score if budget is not set for historic days
-        budget = 0; 
+        budget = 0;
       }
     }
 
     // Retrieve attention coverage
     final attentionDay = await _attentionRepo.getAttentionDay(date);
-    
+
     // Calculate new V2 score
     final result = DailyScoreCalculator.calculate(
       focusMinutes: focusMinutes,
@@ -140,10 +157,6 @@ class DailyScoreSnapshotService {
     _changeSubscription?.cancel();
 
     // Watchers for focus sessions, tasks, scroll logs, daily plans, device day metrics, energy check-ins
-    final today = DateTime.now();
-    final midnightToday = DateTime(today.year, today.month, today.day);
-    final nextDay = midnightToday.add(const Duration(days: 1));
-
     final streams = [
       _db.select(_db.focusSessions).watch(),
       _db.select(_db.tasks).watch(),
@@ -178,7 +191,9 @@ class DailyScoreSnapshotService {
 }
 
 /// Provider for DailyScoreSnapshotService
-final dailyScoreSnapshotServiceProvider = Provider<DailyScoreSnapshotService>((ref) {
+final dailyScoreSnapshotServiceProvider = Provider<DailyScoreSnapshotService>((
+  ref,
+) {
   final db = ref.watch(databaseProvider);
   final attentionRepo = ref.watch(attentionDataRepositoryProvider);
   final service = DailyScoreSnapshotService(db, attentionRepo, ref);

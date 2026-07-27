@@ -26,7 +26,9 @@ Future<void> main() async {
   // Catch framework-level errors that would otherwise cause silent release crashes
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    debugPrint('💥 Flutter framework error: ${details.exception}\n${details.stack}');
+    debugPrint(
+      '💥 Flutter framework error: ${details.exception}\n${details.stack}',
+    );
     if (Sentry.isEnabled) {
       Sentry.captureException(details.exception, stackTrace: details.stack);
     }
@@ -74,39 +76,30 @@ Future<void> main() async {
   onboardingComplete = prefs.getBool('flowos_onboarding_complete') ?? false;
 
   // Set system UI style for dark theme
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF0A0E14), // AppColors.background0
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Color(0xFF0A0E14), // AppColors.background0
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
 
   const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
   if (sentryDsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = sentryDsn;
-        options.tracesSampleRate = 0.2;
-        options.environment = const String.fromEnvironment(
-          'SENTRY_ENV',
-          defaultValue: 'development',
-        );
-      },
-      appRunner: () => runApp(
-        const ProviderScope(
-          child: FlowOSApp(),
-        ),
-      ),
-    );
+    await SentryFlutter.init((options) {
+      options.dsn = sentryDsn;
+      options.tracesSampleRate = 0.2;
+      options.environment = const String.fromEnvironment(
+        'SENTRY_ENV',
+        defaultValue: 'development',
+      );
+    }, appRunner: () => runApp(const ProviderScope(child: FlowOSApp())));
   } else {
     debugPrint('⚠️ Sentry DSN not configured — crash reporting disabled.');
     debugPrint('   Run with: flutter run --dart-define=SENTRY_DSN=https://...');
-    runApp(
-      const ProviderScope(
-        child: FlowOSApp(),
-      ),
-    );
+    runApp(const ProviderScope(child: FlowOSApp()));
   }
 }
 
@@ -117,7 +110,8 @@ class FlowOSApp extends ConsumerStatefulWidget {
   ConsumerState<FlowOSApp> createState() => _FlowOSAppState();
 }
 
-class _FlowOSAppState extends ConsumerState<FlowOSApp> with WidgetsBindingObserver {
+class _FlowOSAppState extends ConsumerState<FlowOSApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();

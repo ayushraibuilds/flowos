@@ -47,7 +47,11 @@ class StreakService {
       await prefs.setInt(_keyStreak, 1);
     } else {
       final lastDateLocal = DateTime.parse(lastActive);
-      final lastDateUtc = DateTime.utc(lastDateLocal.year, lastDateLocal.month, lastDateLocal.day);
+      final lastDateUtc = DateTime.utc(
+        lastDateLocal.year,
+        lastDateLocal.month,
+        lastDateLocal.day,
+      );
       final now = DateTime.now();
       final todayUtc = DateTime.utc(now.year, now.month, now.day);
       final daysSince = todayUtc.difference(lastDateUtc).inDays;
@@ -83,7 +87,11 @@ class StreakService {
     if (lastActive == null) return;
 
     final lastDateLocal = DateTime.parse(lastActive);
-    final lastDateUtc = DateTime.utc(lastDateLocal.year, lastDateLocal.month, lastDateLocal.day);
+    final lastDateUtc = DateTime.utc(
+      lastDateLocal.year,
+      lastDateLocal.month,
+      lastDateLocal.day,
+    );
     final now = DateTime.now();
     final todayUtc = DateTime.utc(now.year, now.month, now.day);
     final daysSince = todayUtc.difference(lastDateUtc).inDays;

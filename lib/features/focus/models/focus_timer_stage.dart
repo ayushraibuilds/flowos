@@ -11,7 +11,7 @@ class FocusTimerState {
   final SessionTypeColumn sessionType;
   final FocusTimerPhase phase;
   final int totalSeconds;
-  
+
   // Time keeping fields
   final int elapsedSeconds;
   final int pauseCount;
@@ -19,7 +19,7 @@ class FocusTimerState {
   final DateTime startedAtUtc;
   final DateTime? pausedAtUtc;
   final DateTime? expectedEndTimeUtc;
-  
+
   // Flowtime specialized time keeping fields
   final int accumulatedRunningSeconds;
   final DateTime? lastResumedAtUtc;
@@ -90,7 +90,8 @@ class FocusTimerState {
       startedAtUtc: startedAtUtc ?? this.startedAtUtc,
       pausedAtUtc: pausedAtUtc ?? this.pausedAtUtc,
       expectedEndTimeUtc: expectedEndTimeUtc ?? this.expectedEndTimeUtc,
-      accumulatedRunningSeconds: accumulatedRunningSeconds ?? this.accumulatedRunningSeconds,
+      accumulatedRunningSeconds:
+          accumulatedRunningSeconds ?? this.accumulatedRunningSeconds,
       lastResumedAtUtc: lastResumedAtUtc ?? this.lastResumedAtUtc,
       selectedSound: selectedSound ?? this.selectedSound,
       gardenSeedKind: gardenSeedKind ?? this.gardenSeedKind,

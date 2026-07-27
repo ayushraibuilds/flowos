@@ -103,7 +103,9 @@ class _BreathingHelperState extends State<BreathingHelper>
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Calm your nervous system and restore focus',
-                style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -120,11 +122,15 @@ class _BreathingHelperState extends State<BreathingHelper>
                         height: 120 * scale,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.emerald.withValues(alpha: glowOpacity),
+                          color: AppColors.emerald.withValues(
+                            alpha: glowOpacity,
+                          ),
                           boxShadow: [
                             if (glowOpacity > 0)
                               BoxShadow(
-                                color: AppColors.emerald.withValues(alpha: glowOpacity),
+                                color: AppColors.emerald.withValues(
+                                  alpha: glowOpacity,
+                                ),
                                 blurRadius: 20 * scale,
                                 spreadRadius: 5 * scale,
                               ),

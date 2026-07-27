@@ -60,14 +60,16 @@ class DeviceAttentionPlatform {
       );
     }
     try {
-      final Map<dynamic, dynamic>? res =
-          await _channel.invokeMethod('getPermissionStates');
+      final Map<dynamic, dynamic>? res = await _channel.invokeMethod(
+        'getPermissionStates',
+      );
       if (res != null) {
         return PermissionStates(
           usageAccess: res['usageAccess'] as bool? ?? false,
           accessibility: res['accessibility'] as bool? ?? false,
           notificationAccess: res['notificationAccess'] as bool? ?? false,
-          batteryOptimizationIgnored: res['batteryOptimizationIgnored'] as bool? ?? true,
+          batteryOptimizationIgnored:
+              res['batteryOptimizationIgnored'] as bool? ?? true,
           platformSupport: res['platformSupport'] as String? ?? 'android',
         );
       }
@@ -112,7 +114,9 @@ class DeviceAttentionPlatform {
   Future<List<Map<String, String>>> getLaunchableApps() async {
     if (!Platform.isAndroid) return [];
     try {
-      final List<dynamic>? res = await _channel.invokeMethod('getLaunchableApps');
+      final List<dynamic>? res = await _channel.invokeMethod(
+        'getLaunchableApps',
+      );
       if (res != null) {
         return res.map((item) {
           final m = Map<dynamic, dynamic>.from(item);
@@ -140,8 +144,9 @@ class DeviceAttentionPlatform {
   Future<Map<String, dynamic>?> claimPendingBlockedAppTrigger() async {
     if (!Platform.isAndroid) return null;
     try {
-      final Map<dynamic, dynamic>? res =
-          await _channel.invokeMethod('claimPendingBlockedAppTrigger');
+      final Map<dynamic, dynamic>? res = await _channel.invokeMethod(
+        'claimPendingBlockedAppTrigger',
+      );
       if (res != null) {
         return Map<String, dynamic>.from(res);
       }
@@ -152,7 +157,9 @@ class DeviceAttentionPlatform {
   Future<PendingNudge?> claimPendingNudge() async {
     if (!Platform.isAndroid) return null;
     try {
-      final Map<dynamic, dynamic>? res = await _channel.invokeMethod('claimPendingNudge');
+      final Map<dynamic, dynamic>? res = await _channel.invokeMethod(
+        'claimPendingNudge',
+      );
       if (res != null) {
         return PendingNudge.fromJson(Map<String, dynamic>.from(res));
       }
@@ -163,15 +170,18 @@ class DeviceAttentionPlatform {
   Future<void> clearNudgesForSession(String sessionId) async {
     if (!Platform.isAndroid) return;
     try {
-      await _channel.invokeMethod('clearNudgesForSession', {'sessionId': sessionId});
+      await _channel.invokeMethod('clearNudgesForSession', {
+        'sessionId': sessionId,
+      });
     } catch (_) {}
   }
 
   Future<List<Map<String, String>>> getDefaultEssentialPackages() async {
     if (!Platform.isAndroid) return [];
     try {
-      final List<dynamic>? res =
-          await _channel.invokeMethod('getDefaultEssentialPackages');
+      final List<dynamic>? res = await _channel.invokeMethod(
+        'getDefaultEssentialPackages',
+      );
       if (res != null) {
         return res.map((item) {
           final m = Map<dynamic, dynamic>.from(item);
@@ -185,7 +195,10 @@ class DeviceAttentionPlatform {
     return [];
   }
 
-  Future<List<Map<String, dynamic>>> getDailyUsage(DateTime start, DateTime end) async {
+  Future<List<Map<String, dynamic>>> getDailyUsage(
+    DateTime start,
+    DateTime end,
+  ) async {
     if (!Platform.isAndroid) return [];
     try {
       final List<dynamic>? res = await _channel.invokeMethod('getDailyUsage', {
@@ -199,13 +212,17 @@ class DeviceAttentionPlatform {
     return [];
   }
 
-  Future<List<Map<String, dynamic>>> getDailyUnlockEvents(DateTime start, DateTime end) async {
+  Future<List<Map<String, dynamic>>> getDailyUnlockEvents(
+    DateTime start,
+    DateTime end,
+  ) async {
     if (!Platform.isAndroid) return [];
     try {
-      final List<dynamic>? res = await _channel.invokeMethod('getDailyUnlockEvents', {
-        'startMs': start.millisecondsSinceEpoch,
-        'endMs': end.millisecondsSinceEpoch,
-      });
+      final List<dynamic>? res = await _channel
+          .invokeMethod('getDailyUnlockEvents', {
+            'startMs': start.millisecondsSinceEpoch,
+            'endMs': end.millisecondsSinceEpoch,
+          });
       if (res != null) {
         return res.map((item) => Map<String, dynamic>.from(item)).toList();
       }
@@ -228,25 +245,37 @@ class AttentionDataRepository {
       for (int i = 0; i < days; i++) {
         final d = DateTime.now().subtract(Duration(days: i));
         final date = DateTime(d.year, d.month, d.day);
-        final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-        await _db.deviceDayMetricsDao.upsertMetric(DeviceDayMetricsCompanion(
-          id: Value('${dateStr}_android'),
-          day: Value(date),
-          platform: const Value('android'),
-          coverageState: const Value('notConnected'),
-          usageSyncedAt: Value(DateTime.now()),
-        ));
+        final dateStr =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        await _db.deviceDayMetricsDao.upsertMetric(
+          DeviceDayMetricsCompanion(
+            id: Value('${dateStr}_android'),
+            day: Value(date),
+            platform: const Value('android'),
+            coverageState: const Value('notConnected'),
+            usageSyncedAt: Value(DateTime.now()),
+          ),
+        );
       }
       return;
     }
 
     final now = DateTime.now();
-    final start = DateTime(now.year, now.month, now.day).subtract(Duration(days: days - 1));
-    final end = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final start = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: days - 1));
+    final end = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(const Duration(days: 1));
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final deletedTimestamp = prefs.getInt('flowos_unlocks_deleted_timestamp') ?? 0;
+      final deletedTimestamp =
+          prefs.getInt('flowos_unlocks_deleted_timestamp') ?? 0;
       DateTime unlockStart = start;
       if (deletedTimestamp > start.millisecondsSinceEpoch) {
         unlockStart = DateTime.fromMillisecondsSinceEpoch(deletedTimestamp);
@@ -288,43 +317,55 @@ class AttentionDataRepository {
         final isDistracting = watchlist.contains(packageName);
         final category = _inferCategory(packageName);
 
-        await _db.deviceUsageRecordsDao.upsertRecord(DeviceUsageRecordsCompanion(
-          id: Value('${dateStr}_$packageName'),
-          date: Value(DateTime.parse(dateStr)),
-          platform: const Value('android'),
-          packageName: Value(packageName),
-          label: Value(label),
-          minutes: Value(minutes),
-          source: const Value('android_usage'),
-          category: Value(category),
-          isDistracting: Value(isDistracting),
-        ));
+        await _db.deviceUsageRecordsDao.upsertRecord(
+          DeviceUsageRecordsCompanion(
+            id: Value('${dateStr}_$packageName'),
+            date: Value(DateTime.parse(dateStr)),
+            platform: const Value('android'),
+            packageName: Value(packageName),
+            label: Value(label),
+            minutes: Value(minutes),
+            source: const Value('android_usage'),
+            category: Value(category),
+            isDistracting: Value(isDistracting),
+          ),
+        );
       }
 
       final unlockMap = {
         for (final item in rawUnlocks)
-          item['date'] as String: item['count'] as int
+          item['date'] as String: item['count'] as int,
       };
 
       final observedFromMs = prefs.getInt('flowos_notification_observed_from');
-      final observedFrom = observedFromMs != null ? DateTime.fromMillisecondsSinceEpoch(observedFromMs) : null;
+      final observedFrom = observedFromMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(observedFromMs)
+          : null;
 
       for (int i = 0; i < days; i++) {
         final d = now.subtract(Duration(days: i));
         final date = DateTime(d.year, d.month, d.day);
-        final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        final dateStr =
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
         final unlocks = unlockMap[dateStr];
 
         // 1. Calculate notificationCoverage
         String notifCoverage = 'none';
         if (observedFrom != null) {
-          final obsDay = DateTime(observedFrom.year, observedFrom.month, observedFrom.day);
+          final obsDay = DateTime(
+            observedFrom.year,
+            observedFrom.month,
+            observedFrom.day,
+          );
           if (date.isBefore(obsDay)) {
             notifCoverage = 'none';
           } else if (date.isAtSameMomentAs(obsDay)) {
             notifCoverage = 'partial';
           } else {
-            final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+            final isToday =
+                date.year == now.year &&
+                date.month == now.month &&
+                date.day == now.day;
             notifCoverage = isToday ? 'collecting' : 'complete';
           }
         }
@@ -333,33 +374,43 @@ class AttentionDataRepository {
         String unlCoverage = 'none';
         if (states.usageAccess) {
           if (deletedTimestamp > 0) {
-            final delDate = DateTime.fromMillisecondsSinceEpoch(deletedTimestamp);
+            final delDate = DateTime.fromMillisecondsSinceEpoch(
+              deletedTimestamp,
+            );
             final delDay = DateTime(delDate.year, delDate.month, delDate.day);
             if (date.isBefore(delDay)) {
               unlCoverage = 'none';
             } else if (date.isAtSameMomentAs(delDay)) {
               unlCoverage = 'partial';
             } else {
-              final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+              final isToday =
+                  date.year == now.year &&
+                  date.month == now.month &&
+                  date.day == now.day;
               unlCoverage = isToday ? 'collecting' : 'complete';
             }
           } else {
-            final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+            final isToday =
+                date.year == now.year &&
+                date.month == now.month &&
+                date.day == now.day;
             unlCoverage = isToday ? 'collecting' : 'complete';
           }
         }
 
-        await _db.deviceDayMetricsDao.upsertMetric(DeviceDayMetricsCompanion(
-          id: Value('${dateStr}_android'),
-          day: Value(date),
-          platform: const Value('android'),
-          unlockCount: Value(unlocks),
-          coverageState: const Value('complete'),
-          usageSyncedAt: Value(DateTime.now()),
-          notificationObservedFrom: Value(observedFrom),
-          unlockCoverage: Value(unlCoverage),
-          notificationCoverage: Value(notifCoverage),
-        ));
+        await _db.deviceDayMetricsDao.upsertMetric(
+          DeviceDayMetricsCompanion(
+            id: Value('${dateStr}_android'),
+            day: Value(date),
+            platform: const Value('android'),
+            unlockCount: Value(unlocks),
+            coverageState: const Value('complete'),
+            usageSyncedAt: Value(DateTime.now()),
+            notificationObservedFrom: Value(observedFrom),
+            unlockCoverage: Value(unlCoverage),
+            notificationCoverage: Value(notifCoverage),
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -380,7 +431,10 @@ class AttentionDataRepository {
       );
     }
 
-    final metric = await _db.deviceDayMetricsDao.getForDay(targetDate, 'android');
+    final metric = await _db.deviceDayMetricsDao.getForDay(
+      targetDate,
+      'android',
+    );
     if (metric == null) {
       return AttentionDay(
         day: targetDate,
@@ -392,7 +446,10 @@ class AttentionDataRepository {
       );
     }
 
-    final nativeList = await _db.deviceUsageRecordsDao.getForRange(targetDate, targetDate);
+    final nativeList = await _db.deviceUsageRecordsDao.getForRange(
+      targetDate,
+      targetDate,
+    );
     final nativeDistracting = nativeList
         .where((r) => r.isDistracting == true && r.source == 'android_usage')
         .fold<int>(0, (sum, r) => sum + r.minutes);
@@ -406,7 +463,8 @@ class AttentionDataRepository {
 
     final effectiveDistracting = switch (coverage) {
       DataCoverage.complete => nativeDistracting,
-      DataCoverage.partial => nativeDistracting > manualMinutes ? nativeDistracting : manualMinutes,
+      DataCoverage.partial =>
+        nativeDistracting > manualMinutes ? nativeDistracting : manualMinutes,
       _ => manualMinutes,
     };
 
@@ -424,7 +482,7 @@ class AttentionDataRepository {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final controller = StreamController<AttentionDay>();
-    
+
     StreamSubscription? sub1;
     StreamSubscription? sub2;
     StreamSubscription? sub3;
@@ -438,9 +496,9 @@ class AttentionDataRepository {
       } catch (_) {}
     }
 
-    sub1 = (_db.select(_db.deviceDayMetrics)..where((t) => t.day.equals(today)))
-        .watch()
-        .listen((_) => update());
+    sub1 = (_db.select(
+      _db.deviceDayMetrics,
+    )..where((t) => t.day.equals(today))).watch().listen((_) => update());
     sub2 = _db.deviceUsageRecordsDao.watchToday().listen((_) => update());
     sub3 = _db.scrollLogsDao.watchDailyTotal().listen((_) => update());
 
@@ -456,17 +514,19 @@ class AttentionDataRepository {
 
   Future<int> _getManualScrollMinutes(DateTime targetDate) async {
     final start = DateTime(targetDate.year, targetDate.month, targetDate.day);
-    final logs = await (_db.select(_db.scrollLogs)
-          ..where((l) =>
-              l.timestamp.isBiggerOrEqualValue(start) &
-              l.timestamp.isSmallerThanValue(start.add(const Duration(days: 1))) &
-              // manual only: exclude any historical logs containing "[Auto]" or " [Auto]"
-              l.appName.like('% [Auto]').not()))
-        .get();
+    final logs =
+        await (_db.select(_db.scrollLogs)..where(
+              (l) =>
+                  l.timestamp.isBiggerOrEqualValue(start) &
+                  l.timestamp.isSmallerThanValue(
+                    start.add(const Duration(days: 1)),
+                  ) &
+                  // manual only: exclude any historical logs containing "[Auto]" or " [Auto]"
+                  l.appName.like('% [Auto]').not(),
+            ))
+            .get();
     return logs.fold<int>(0, (sum, l) => sum + l.durationMinutes);
   }
-
-
 
   String? _inferCategory(String packageName) {
     if (packageName.contains('instagram') ||
@@ -493,25 +553,33 @@ class AttentionDataRepository {
     // 2. Set current day's unlockCount to null, and coverage to partial
     final today = DateTime.now();
     final date = DateTime(today.year, today.month, today.day);
-    final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    
-    await _db.deviceDayMetricsDao.upsertMetric(DeviceDayMetricsCompanion(
-      id: Value('${dateStr}_android'),
-      day: Value(date),
-      platform: const Value('android'),
-      unlockCount: const Value(null),
-      unlockCoverage: const Value('partial'),
-      notificationCoverage: const Value('partial'),
-      usageSyncedAt: Value(DateTime.now()),
-    ));
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    await _db.deviceDayMetricsDao.upsertMetric(
+      DeviceDayMetricsCompanion(
+        id: Value('${dateStr}_android'),
+        day: Value(date),
+        platform: const Value('android'),
+        unlockCount: const Value(null),
+        unlockCoverage: const Value('partial'),
+        notificationCoverage: const Value('partial'),
+        usageSyncedAt: Value(DateTime.now()),
+      ),
+    );
 
     // 3. Set a SharedPreferences timestamp to prevent re-importing old keyguard events
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('flowos_unlocks_deleted_timestamp', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      'flowos_unlocks_deleted_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
 
     // 4. Wipe native pending notification tracker map
     if (Platform.isAndroid) {
-      await DeviceAttentionPlatform._channel.invokeMethod('wipeNotificationTracker');
+      await DeviceAttentionPlatform._channel.invokeMethod(
+        'wipeNotificationTracker',
+      );
     }
   }
 
@@ -521,7 +589,9 @@ class AttentionDataRepository {
 
     // 2. Wipe native notification tracker batches
     if (Platform.isAndroid) {
-      await DeviceAttentionPlatform._channel.invokeMethod('wipeNotificationTracker');
+      await DeviceAttentionPlatform._channel.invokeMethod(
+        'wipeNotificationTracker',
+      );
     }
 
     // 3. Clear SharedPreferences configs
@@ -534,11 +604,15 @@ class AttentionDataRepository {
   }
 }
 
-final deviceAttentionPlatformProvider = Provider<DeviceAttentionPlatform>((ref) {
+final deviceAttentionPlatformProvider = Provider<DeviceAttentionPlatform>((
+  ref,
+) {
   return DeviceAttentionPlatform();
 });
 
-final attentionDataRepositoryProvider = Provider<AttentionDataRepository>((ref) {
+final attentionDataRepositoryProvider = Provider<AttentionDataRepository>((
+  ref,
+) {
   final db = ref.watch(databaseProvider);
   final platform = ref.watch(deviceAttentionPlatformProvider);
   return AttentionDataRepository(db, platform);

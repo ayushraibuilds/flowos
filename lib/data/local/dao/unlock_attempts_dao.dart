@@ -20,14 +20,18 @@ class UnlockAttemptsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _recordOutboxUpsert(String id) async {
     final attempt = await getById(id);
     if (attempt != null) {
-      await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
-        id: Value(_uuid.v4()),
-        ownerId: Value(db.activeOwnerId),
-        entityTable: const Value('unlock_attempts'),
-        entityId: Value(id),
-        operation: const Value('upsert'),
-        serializedData: Value(jsonEncode(attempt.toJson())),
-      ));
+      await db
+          .into(db.syncOutbox)
+          .insert(
+            SyncOutboxCompanion(
+              id: Value(_uuid.v4()),
+              ownerId: Value(db.activeOwnerId),
+              entityTable: const Value('unlock_attempts'),
+              entityId: Value(id),
+              operation: const Value('upsert'),
+              serializedData: Value(jsonEncode(attempt.toJson())),
+            ),
+          );
     }
   }
 
@@ -41,12 +45,13 @@ class UnlockAttemptsDao extends DatabaseAccessor<AppDatabase>
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 
-  Future<void> insertAttemptFromSync(UnlockAttemptsCompanion entry) => into(unlockAttempts).insert(entry);
+  Future<void> insertAttemptFromSync(UnlockAttemptsCompanion entry) =>
+      into(unlockAttempts).insert(entry);
 
   /// Get attempts sorted by timestamp descending
-  Future<List<UnlockAttempt>> getAllAttempts() =>
-      (select(unlockAttempts)..orderBy([(r) => OrderingTerm.desc(r.timestamp)]))
-          .get();
+  Future<List<UnlockAttempt>> getAllAttempts() => (select(
+    unlockAttempts,
+  )..orderBy([(r) => OrderingTerm.desc(r.timestamp)])).get();
 
   /// Get attempts modified/created since last sync
   Future<List<UnlockAttempt>> getModifiedSince(DateTime since) =>
