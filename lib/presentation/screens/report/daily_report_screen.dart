@@ -12,6 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/xp_constants.dart';
+import '../../../features/ai/providers/ai_providers.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
@@ -131,7 +132,7 @@ class _DailyReportScreenState extends ConsumerState<DailyReportScreen>
     _grade = scoreResult.grade ?? '—';
 
     // Try AI insight with real data
-    final aiService = AiService();
+    final aiService = ref.read(aiServiceProvider);
     final aiInsight = await aiService.generateDailyReport(dailyData: {
       'date': DateTime.now().toIso8601String().split('T')[0],
       'daily_score': _dailyScore,

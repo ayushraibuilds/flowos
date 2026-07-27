@@ -34,16 +34,16 @@ class SyncEngine {
 
   Future<Map<String, String>?> _getCursor(String table) async {
     final prefs = await SharedPreferences.getInstance();
-    final updatedAt = prefs.getString('flowos_sync_cursor_v2_${table}_updated_at');
-    final id = prefs.getString('flowos_sync_cursor_v2_${table}_id');
+    final updatedAt = prefs.getString('flowos_sync_cursor_v2_${_userId}_${table}_updated_at');
+    final id = prefs.getString('flowos_sync_cursor_v2_${_userId}_${table}_id');
     if (updatedAt == null || id == null) return null;
     return {'updated_at': updatedAt, 'id': id};
   }
 
   Future<void> _setCursor(String table, String updatedAt, String id) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('flowos_sync_cursor_v2_${table}_updated_at', updatedAt);
-    await prefs.setString('flowos_sync_cursor_v2_${table}_id', id);
+    await prefs.setString('flowos_sync_cursor_v2_${_userId}_${table}_updated_at', updatedAt);
+    await prefs.setString('flowos_sync_cursor_v2_${_userId}_${table}_id', id);
   }
 
   // ─── Full Sync ─────────────────────────────────────────────────────
@@ -270,12 +270,35 @@ class SyncEngine {
     return false;
   }
 
+  Future<void> claimLocalDataIfNeeded(String targetUserId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final claimedBy = prefs.getString('flowos_account_claimed_by');
+    if (claimedBy == null) {
+      await _db.syncOutboxDao.claimLocalOutbox(targetUserId);
+      await prefs.setString('flowos_account_claimed_by', targetUserId);
+    }
+  }
+
+  void cancelSync() {
+    _debounceTimer?.cancel();
+    _isSyncing = false;
+    _syncRequested = false;
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // PUSH (Local → Server)
   // ═══════════════════════════════════════════════════════════════
 
   Future<int> _pushOutbox() async {
-    final unsynced = await _db.syncOutboxDao.getUnsynced();
+    final currentUserId = _userId;
+    _db.setActiveOwnerId(currentUserId);
+    await claimLocalDataIfNeeded(currentUserId);
+
+    if (await _db.syncOutboxDao.hasUnsyncedForOtherOwner(currentUserId)) {
+      debugPrint('⚠️ Sync engine: Unsynced outbox operations for another identity exist. Isolating push to $currentUserId.');
+    }
+
+    final unsynced = await _db.syncOutboxDao.getUnsyncedForOwner(currentUserId);
     if (unsynced.isEmpty) return 0;
 
     int pushedCount = 0;
@@ -294,7 +317,7 @@ class SyncEngine {
       final successOps = <SyncOutboxData>[];
 
       for (final op in ops) {
-        final cloudRow = _mapOutboxToCloud(op, _userId);
+        final cloudRow = _mapOutboxToCloud(op, currentUserId);
         if (cloudRow != null) {
           rowsToPush.add(cloudRow);
           successOps.add(op);

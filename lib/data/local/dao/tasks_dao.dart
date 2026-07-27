@@ -61,6 +61,7 @@ class TasksDao extends DatabaseAccessor<AppDatabase> with _$TasksDaoMixin {
     if (task != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('tasks'),
         entityId: Value(id),
         operation: const Value('upsert'),

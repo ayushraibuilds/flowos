@@ -781,7 +781,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
           style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
-          'Your local data will be preserved. You can sign in again anytime.',
+          'Your account data will remain securely saved for your account. You can sign in again anytime.',
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -794,7 +794,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with WidgetsBin
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(authServiceProvider).signOut();
+              final syncEngine = ref.read(syncEngineProvider);
+              await ref.read(authServiceProvider).signOut(syncEngine: syncEngine);
               if (mounted) context.go('/auth');
             },
             child: Text(

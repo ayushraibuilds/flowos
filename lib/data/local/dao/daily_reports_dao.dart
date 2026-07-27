@@ -22,6 +22,7 @@ class DailyReportsDao extends DatabaseAccessor<AppDatabase>
     if (report != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('daily_reports'),
         entityId: Value(id),
         operation: const Value('upsert'),

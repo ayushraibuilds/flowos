@@ -10510,6 +10510,18 @@ class $SyncOutboxTable extends SyncOutbox
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _ownerIdMeta = const VerificationMeta(
+    'ownerId',
+  );
+  @override
+  late final GeneratedColumn<String> ownerId = GeneratedColumn<String>(
+    'owner_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -10519,6 +10531,7 @@ class $SyncOutboxTable extends SyncOutbox
     serializedData,
     createdAt,
     isSynced,
+    ownerId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10587,6 +10600,12 @@ class $SyncOutboxTable extends SyncOutbox
         isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta),
       );
     }
+    if (data.containsKey('owner_id')) {
+      context.handle(
+        _ownerIdMeta,
+        ownerId.isAcceptableOrUnknown(data['owner_id']!, _ownerIdMeta),
+      );
+    }
     return context;
   }
 
@@ -10624,6 +10643,10 @@ class $SyncOutboxTable extends SyncOutbox
         DriftSqlType.bool,
         data['${effectivePrefix}is_synced'],
       )!,
+      ownerId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_id'],
+      )!,
     );
   }
 
@@ -10641,6 +10664,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
   final String serializedData;
   final DateTime createdAt;
   final bool isSynced;
+  final String ownerId;
   const SyncOutboxData({
     required this.id,
     required this.entityTable,
@@ -10649,6 +10673,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
     required this.serializedData,
     required this.createdAt,
     required this.isSynced,
+    required this.ownerId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10660,6 +10685,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
     map['serialized_data'] = Variable<String>(serializedData);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_synced'] = Variable<bool>(isSynced);
+    map['owner_id'] = Variable<String>(ownerId);
     return map;
   }
 
@@ -10672,6 +10698,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
       serializedData: Value(serializedData),
       createdAt: Value(createdAt),
       isSynced: Value(isSynced),
+      ownerId: Value(ownerId),
     );
   }
 
@@ -10688,6 +10715,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
       serializedData: serializer.fromJson<String>(json['serializedData']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
+      ownerId: serializer.fromJson<String>(json['ownerId']),
     );
   }
   @override
@@ -10701,6 +10729,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
       'serializedData': serializer.toJson<String>(serializedData),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isSynced': serializer.toJson<bool>(isSynced),
+      'ownerId': serializer.toJson<String>(ownerId),
     };
   }
 
@@ -10712,6 +10741,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
     String? serializedData,
     DateTime? createdAt,
     bool? isSynced,
+    String? ownerId,
   }) => SyncOutboxData(
     id: id ?? this.id,
     entityTable: entityTable ?? this.entityTable,
@@ -10720,6 +10750,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
     serializedData: serializedData ?? this.serializedData,
     createdAt: createdAt ?? this.createdAt,
     isSynced: isSynced ?? this.isSynced,
+    ownerId: ownerId ?? this.ownerId,
   );
   SyncOutboxData copyWithCompanion(SyncOutboxCompanion data) {
     return SyncOutboxData(
@@ -10734,6 +10765,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
           : this.serializedData,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      ownerId: data.ownerId.present ? data.ownerId.value : this.ownerId,
     );
   }
 
@@ -10746,7 +10778,8 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
           ..write('operation: $operation, ')
           ..write('serializedData: $serializedData, ')
           ..write('createdAt: $createdAt, ')
-          ..write('isSynced: $isSynced')
+          ..write('isSynced: $isSynced, ')
+          ..write('ownerId: $ownerId')
           ..write(')'))
         .toString();
   }
@@ -10760,6 +10793,7 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
     serializedData,
     createdAt,
     isSynced,
+    ownerId,
   );
   @override
   bool operator ==(Object other) =>
@@ -10771,7 +10805,8 @@ class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
           other.operation == this.operation &&
           other.serializedData == this.serializedData &&
           other.createdAt == this.createdAt &&
-          other.isSynced == this.isSynced);
+          other.isSynced == this.isSynced &&
+          other.ownerId == this.ownerId);
 }
 
 class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
@@ -10782,6 +10817,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
   final Value<String> serializedData;
   final Value<DateTime> createdAt;
   final Value<bool> isSynced;
+  final Value<String> ownerId;
   final Value<int> rowid;
   const SyncOutboxCompanion({
     this.id = const Value.absent(),
@@ -10791,6 +10827,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
     this.serializedData = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SyncOutboxCompanion.insert({
@@ -10801,6 +10838,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
     required String serializedData,
     this.createdAt = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.ownerId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        entityTable = Value(entityTable),
@@ -10815,6 +10853,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
     Expression<String>? serializedData,
     Expression<DateTime>? createdAt,
     Expression<bool>? isSynced,
+    Expression<String>? ownerId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -10825,6 +10864,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
       if (serializedData != null) 'serialized_data': serializedData,
       if (createdAt != null) 'created_at': createdAt,
       if (isSynced != null) 'is_synced': isSynced,
+      if (ownerId != null) 'owner_id': ownerId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10837,6 +10877,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
     Value<String>? serializedData,
     Value<DateTime>? createdAt,
     Value<bool>? isSynced,
+    Value<String>? ownerId,
     Value<int>? rowid,
   }) {
     return SyncOutboxCompanion(
@@ -10847,6 +10888,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
       serializedData: serializedData ?? this.serializedData,
       createdAt: createdAt ?? this.createdAt,
       isSynced: isSynced ?? this.isSynced,
+      ownerId: ownerId ?? this.ownerId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10875,6 +10917,9 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
     if (isSynced.present) {
       map['is_synced'] = Variable<bool>(isSynced.value);
     }
+    if (ownerId.present) {
+      map['owner_id'] = Variable<String>(ownerId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10891,6 +10936,7 @@ class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
           ..write('serializedData: $serializedData, ')
           ..write('createdAt: $createdAt, ')
           ..write('isSynced: $isSynced, ')
+          ..write('ownerId: $ownerId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -16115,6 +16161,7 @@ typedef $$SyncOutboxTableCreateCompanionBuilder =
       required String serializedData,
       Value<DateTime> createdAt,
       Value<bool> isSynced,
+      Value<String> ownerId,
       Value<int> rowid,
     });
 typedef $$SyncOutboxTableUpdateCompanionBuilder =
@@ -16126,6 +16173,7 @@ typedef $$SyncOutboxTableUpdateCompanionBuilder =
       Value<String> serializedData,
       Value<DateTime> createdAt,
       Value<bool> isSynced,
+      Value<String> ownerId,
       Value<int> rowid,
     });
 
@@ -16170,6 +16218,11 @@ class $$SyncOutboxTableFilterComposer
 
   ColumnFilters<bool> get isSynced => $composableBuilder(
     column: $table.isSynced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -16217,6 +16270,11 @@ class $$SyncOutboxTableOrderingComposer
     column: $table.isSynced,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get ownerId => $composableBuilder(
+    column: $table.ownerId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SyncOutboxTableAnnotationComposer
@@ -16252,6 +16310,9 @@ class $$SyncOutboxTableAnnotationComposer
 
   GeneratedColumn<bool> get isSynced =>
       $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerId =>
+      $composableBuilder(column: $table.ownerId, builder: (column) => column);
 }
 
 class $$SyncOutboxTableTableManager
@@ -16292,6 +16353,7 @@ class $$SyncOutboxTableTableManager
                 Value<String> serializedData = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncOutboxCompanion(
                 id: id,
@@ -16301,6 +16363,7 @@ class $$SyncOutboxTableTableManager
                 serializedData: serializedData,
                 createdAt: createdAt,
                 isSynced: isSynced,
+                ownerId: ownerId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -16312,6 +16375,7 @@ class $$SyncOutboxTableTableManager
                 required String serializedData,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
+                Value<String> ownerId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SyncOutboxCompanion.insert(
                 id: id,
@@ -16321,6 +16385,7 @@ class $$SyncOutboxTableTableManager
                 serializedData: serializedData,
                 createdAt: createdAt,
                 isSynced: isSynced,
+                ownerId: ownerId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

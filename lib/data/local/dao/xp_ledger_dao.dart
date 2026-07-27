@@ -22,6 +22,7 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
     if (entry != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('xp_ledger'),
         entityId: Value(id),
         operation: const Value('upsert'),
@@ -37,6 +38,17 @@ class XpLedgerDao extends DatabaseAccessor<AppDatabase>
       await _recordOutboxUpsert(entry.id.value);
     });
   }
+
+  /// Find an entry by action type and source entity ID (for idempotency checks)
+  Future<XpLedgerEntry?> getBySourceEntity(
+    XpActionTypeColumn actionType,
+    String sourceEntityId,
+  ) =>
+      (select(xpLedgerEntries)
+            ..where((e) =>
+                e.actionType.equalsValue(actionType) &
+                e.sourceEntityId.equals(sourceEntityId)))
+          .getSingleOrNull();
 
   // ─── Sync Bypass ───────────────────────────────────────────────
 

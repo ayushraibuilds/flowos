@@ -19,6 +19,7 @@ class DailyPlansDao extends DatabaseAccessor<AppDatabase>
     if (plan != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('daily_plans'),
         entityId: Value(id),
         operation: const Value('upsert'),

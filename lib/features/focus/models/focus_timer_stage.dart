@@ -1,4 +1,6 @@
 import 'package:flowos/data/local/tables/focus_sessions_table.dart';
+import '../models/effective_policy.dart';
+import '../services/focus_session_service.dart';
 
 enum FocusTimerPhase { idle, running, paused, completing, completed, stopped }
 
@@ -27,6 +29,9 @@ class FocusTimerState {
   final int gardenVariant;
   final String gardenSeedEmoji;
 
+  final ProtectionMode protectionMode;
+  final FocusSessionResult? completionResult;
+
   const FocusTimerState({
     required this.sessionId,
     this.taskId,
@@ -46,6 +51,8 @@ class FocusTimerState {
     required this.gardenSeedKind,
     required this.gardenVariant,
     required this.gardenSeedEmoji,
+    this.protectionMode = ProtectionMode.guard,
+    this.completionResult,
   });
 
   FocusTimerState copyWith({
@@ -67,6 +74,8 @@ class FocusTimerState {
     String? gardenSeedKind,
     int? gardenVariant,
     String? gardenSeedEmoji,
+    ProtectionMode? protectionMode,
+    FocusSessionResult? completionResult,
   }) {
     return FocusTimerState(
       sessionId: sessionId ?? this.sessionId,
@@ -87,6 +96,8 @@ class FocusTimerState {
       gardenSeedKind: gardenSeedKind ?? this.gardenSeedKind,
       gardenVariant: gardenVariant ?? this.gardenVariant,
       gardenSeedEmoji: gardenSeedEmoji ?? this.gardenSeedEmoji,
+      protectionMode: protectionMode ?? this.protectionMode,
+      completionResult: completionResult ?? this.completionResult,
     );
   }
 }

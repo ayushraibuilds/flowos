@@ -19,6 +19,7 @@ class FocusSessionsDao extends DatabaseAccessor<AppDatabase>
     if (session != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('focus_sessions'),
         entityId: Value(id),
         operation: const Value('upsert'),

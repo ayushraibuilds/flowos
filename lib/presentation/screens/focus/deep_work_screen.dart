@@ -157,12 +157,14 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
   }
 
   Future<void> _startTimer() async {
+    final mode = ref.read(settingsProvider).focusProtection.toProtectionMode();
     final success = await ref.read(focusTimerNotifierProvider.notifier).startSession(
       type: SessionTypeColumn.deepWork,
       durationMinutes: 90,
       taskId: widget.taskId,
       taskTitle: widget.taskTitle,
       selectedSound: _selectedSound,
+      protectionMode: mode,
     );
 
     if (!success) {
@@ -255,7 +257,8 @@ class _DeepWorkScreenState extends ConsumerState<DeepWorkScreen>
       final elapsed = active.elapsedSeconds;
       final actualMin = (elapsed / 60).round();
 
-      final result = await ref.read(focusTimerNotifierProvider.notifier).completeSession();
+      final result = active.completionResult ??
+          await ref.read(focusTimerNotifierProvider.notifier).completeSession();
       await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
       
       final quality = FocusQualityCalculator.calculate(

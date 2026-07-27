@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' hide Column;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../features/ai/providers/ai_providers.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/xp/models/daily_score_calculator.dart';
 import '../../../data/local/database/app_database.dart';
@@ -176,7 +177,7 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       'prompt_version': 1,
     };
 
-    final aiService = AiService();
+    final aiService = ref.read(aiServiceProvider);
     final review = await aiService.generateWeeklyReview(weekData: _weekData);
     final incompleteTasks = await db.tasksDao.getIncomplete();
     final profile = ref.read(userProfileProvider);

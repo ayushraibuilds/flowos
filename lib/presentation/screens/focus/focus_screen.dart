@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/local/tables/focus_sessions_table.dart';
-import '../../../features/focus/services/focus_session_service.dart';
 import '../../../features/focus/providers/focus_timer_provider.dart';
 import '../../../features/focus/models/focus_timer_stage.dart';
 import '../../../features/focus/models/focus_protection.dart';
@@ -208,6 +207,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
               ? SessionTypeColumn.deepWork
               : SessionTypeColumn.custom);
 
+    final mode = ref.read(settingsProvider).focusProtection.toProtectionMode();
+
     final success = await ref
         .read(focusTimerNotifierProvider.notifier)
         .startSession(
@@ -218,6 +219,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
               : null, // keep taskId nullable unless mapped
           taskTitle: widget.sessionLabel,
           selectedSound: _selectedSound,
+          protectionMode: mode,
         );
 
     if (!success) {
@@ -314,9 +316,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       final elapsed = active.elapsedSeconds;
       final actualMin = (elapsed / 60).round();
 
-      final result = await ref
-          .read(focusTimerNotifierProvider.notifier)
-          .completeSession();
+      final result = active.completionResult ??
+          await ref.read(focusTimerNotifierProvider.notifier).completeSession();
       await ref.read(focusTimerNotifierProvider.notifier).clearActiveSession();
 
       final quality = (active.pauseCount + active.backgroundCount) == 0

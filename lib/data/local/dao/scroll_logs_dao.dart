@@ -22,6 +22,7 @@ class ScrollLogsDao extends DatabaseAccessor<AppDatabase>
     if (log != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('scroll_logs'),
         entityId: Value(id),
         operation: const Value('upsert'),

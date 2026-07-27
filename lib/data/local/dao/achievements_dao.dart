@@ -19,6 +19,7 @@ class AchievementsDao extends DatabaseAccessor<AppDatabase>
     if (achievement != null) {
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('achievements'),
         entityId: Value(id),
         operation: const Value('upsert'),

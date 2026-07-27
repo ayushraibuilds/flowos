@@ -13,6 +13,9 @@ import '../services/policy_writer.dart';
 import '../models/effective_policy.dart';
 import '../../sync/providers/sync_providers.dart';
 
+import '../models/focus_protection.dart';
+import '../../settings/providers/settings_providers.dart';
+
 /// Notifier managing unified Focus and Deep Work timer state machine.
 class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
   final Ref _ref;
@@ -37,6 +40,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
   static const _prefSeedKind = 'flowos_active_seed_kind';
   static const _prefSeedVariant = 'flowos_active_seed_variant';
   static const _prefSeedEmoji = 'flowos_active_seed_emoji';
+  static const _prefProtectionMode = 'flowos_active_protection_mode';
 
   FocusTimerNotifier(this._ref) : super(null) {
     _rehydrate();
@@ -99,6 +103,14 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     final seedVariant = prefs.getInt(_prefSeedVariant) ?? 0;
     final seedEmoji = prefs.getString(_prefSeedEmoji) ?? '🌸';
 
+    final protectionModeStr = prefs.getString(_prefProtectionMode);
+    final protectionMode = protectionModeStr != null
+        ? ProtectionMode.values.firstWhere(
+            (e) => e.name == protectionModeStr,
+            orElse: () => ProtectionMode.guard,
+          )
+        : ProtectionMode.guard;
+
     var restored = FocusTimerState(
       sessionId: sessionId,
       taskId: taskId,
@@ -118,6 +130,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       gardenSeedKind: seedKind,
       gardenVariant: seedVariant,
       gardenSeedEmoji: seedEmoji,
+      protectionMode: protectionMode,
     );
 
     final now = DateTime.now().toUtc();
@@ -147,7 +160,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       if (now.isAfter(expectedEndTimeUtc)) {
         debugPrint('⏳ FocusTimer: Countdown completed naturally while closed. Finalizing.');
         final service = _ref.read(focusSessionServiceProvider);
-        await service.completeSession(
+        final result = await service.completeSession(
           sessionId: sessionId,
           elapsedSeconds: totalSeconds,
           pauseCount: pauseCount,
@@ -157,6 +170,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
         restored = restored.copyWith(
           phase: FocusTimerPhase.completed,
           elapsedSeconds: totalSeconds,
+          completionResult: result,
         );
         state = restored;
         await _saveToPrefs(restored);
@@ -235,17 +249,21 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     String? taskId,
     String? taskTitle,
     String selectedSound = 'none',
+    ProtectionMode? protectionMode,
   }) async {
     if (state != null && state!.phase != FocusTimerPhase.idle && state!.phase != FocusTimerPhase.stopped && state!.phase != FocusTimerPhase.completed) {
       debugPrint('⚠️ FocusTimer: Rejecting start request. A session is already active.');
       return false;
     }
 
+    final mode = protectionMode ?? _ref.read(settingsProvider).focusProtection.toProtectionMode();
+
     final service = _ref.read(focusSessionServiceProvider);
     final sessionId = await service.startSession(
       type: type,
       durationMinutes: durationMinutes,
       taskId: taskId,
+      protectionMode: mode,
     );
 
     // Re-load the database record to get the exact generated seed Kind and Variant
@@ -278,6 +296,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       gardenSeedKind: seedKind,
       gardenVariant: seedVariant,
       gardenSeedEmoji: seedEmoji,
+      protectionMode: mode,
     );
 
     state = newState;
@@ -352,22 +371,26 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await _saveToPrefs(updated);
     _startTickers();
 
-    // Re-activate Focus blocker policy
+    // Re-activate Focus blocker policy with start-time protectionMode and surviving scoped breaks
     try {
       final db = _ref.read(databaseProvider);
       final protectedApps = await db.protectedAppsDao.getFocusProtected();
       final packages = protectedApps.map((a) => a.appRef).toSet();
       
+      final writer = const SharedPrefsPolicyWriter();
+      final currentPolicies = await writer.getActivePolicies();
+      final existingBreaks = currentPolicies?.focus?.scopedBreaks ?? [];
+      final validBreaks = existingBreaks.where((b) => b.expiresAt.isAfter(DateTime.now())).toList();
+
       final policy = SourcePolicy(
         sessionId: current.sessionId,
         activeUntil: DateTime.now().add(const Duration(minutes: 3)),
         selectedPackages: packages,
-        protectionMode: ProtectionMode.guard,
+        protectionMode: current.protectionMode,
         source: PolicySource.focus,
-        scopedBreaks: [],
+        scopedBreaks: validBreaks,
       );
 
-      final writer = const SharedPrefsPolicyWriter();
       await writer.activatePolicy(policy);
     } catch (_) {}
 
@@ -414,6 +437,10 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
       return FocusSessionResult(xpEarned: 0, newlyUnlockedAchievements: []);
     }
 
+    if (current.phase == FocusTimerPhase.completed && current.completionResult != null) {
+      return current.completionResult!;
+    }
+
     _stopTickers();
 
     final service = _ref.read(focusSessionServiceProvider);
@@ -430,6 +457,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     final updated = current.copyWith(
       phase: FocusTimerPhase.completed,
       elapsedSeconds: isFlow ? current.elapsedSeconds : current.totalSeconds,
+      completionResult: result,
     );
     state = updated;
     await _saveToPrefs(updated);
@@ -543,6 +571,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await prefs.setString(_prefSeedKind, s.gardenSeedKind);
     await prefs.setInt(_prefSeedVariant, s.gardenVariant);
     await prefs.setString(_prefSeedEmoji, s.gardenSeedEmoji);
+    await prefs.setString(_prefProtectionMode, s.protectionMode.name);
   }
 
   Future<void> _clearPrefs() async {
@@ -565,6 +594,7 @@ class FocusTimerNotifier extends StateNotifier<FocusTimerState?> {
     await prefs.remove(_prefSeedKind);
     await prefs.remove(_prefSeedVariant);
     await prefs.remove(_prefSeedEmoji);
+    await prefs.remove(_prefProtectionMode);
   }
 
   @override

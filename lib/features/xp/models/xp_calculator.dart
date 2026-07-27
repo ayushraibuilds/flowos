@@ -31,6 +31,15 @@ class XpCalculator {
     required int streakDays,
     String? qualityScore,
   }) async {
+    // Enforce idempotency: check if XP for this session was already awarded
+    final existingEntry = await _ledgerDao.getBySourceEntity(
+      XpActionTypeColumn.focusComplete,
+      sessionId,
+    );
+    if (existingEntry != null) {
+      return existingEntry.pointsDelta;
+    }
+
     // Base XP by session type
     int baseXP = switch (sessionType) {
       SessionTypeColumn.pomodoro => XpConstants.pomodoroComplete,

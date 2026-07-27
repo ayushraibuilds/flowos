@@ -20,12 +20,9 @@ def _get_jwt_secret() -> str:
 
 def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    request: Request = None,
+    request: Request = None,  # type: ignore
 ) -> str:
     """FastAPI dependency to verify Supabase JWT and return authenticated user ID."""
-    if request is not None and hasattr(request, "state") and hasattr(request.state, "user_id") and request.state.user_id:
-        return request.state.user_id
-
     token = credentials.credentials
     jwt_secret = _get_jwt_secret()
 
@@ -38,7 +35,7 @@ def get_current_user_id(
             audience="authenticated"
         )
         
-        # Optional: verify issuer matches Supabase URL auth endpoint
+        # Verify issuer matches Supabase URL auth endpoint if SUPABASE_URL is configured
         supabase_url = os.getenv("SUPABASE_URL")
         if supabase_url:
             expected_iss = f"{supabase_url.rstrip('/')}/auth/v1"
@@ -46,8 +43,8 @@ def get_current_user_id(
                 raise jwt.InvalidIssuerError("Issuer mismatch")
                 
         user_id = payload.get("sub")
-        if not user_id:
-            raise jwt.InvalidTokenError("Subject (sub) claim missing")
+        if not user_id or not isinstance(user_id, str):
+            raise jwt.InvalidTokenError("Subject (sub) claim missing or invalid")
             
         return user_id
         
@@ -56,12 +53,17 @@ def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired."
         )
+    except jwt.InvalidAudienceError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token audience."
+        )
     except jwt.InvalidIssuerError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token issuer."
         )
-    except jwt.InvalidTokenError as e:
+    except jwt.PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid authentication token: {e}."

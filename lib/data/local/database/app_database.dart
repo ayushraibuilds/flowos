@@ -94,7 +94,13 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
+
+  String _activeOwnerId = 'local';
+  String get activeOwnerId => _activeOwnerId;
+  void setActiveOwnerId(String? ownerId) {
+    _activeOwnerId = (ownerId != null && ownerId.isNotEmpty) ? ownerId : 'local';
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -196,6 +202,9 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(energyCheckIns, energyCheckIns.deletedAt);
         await m.addColumn(achievements, achievements.updatedAt);
         await m.addColumn(achievements, achievements.deletedAt);
+      }
+      if (from < 10) {
+        await m.addColumn(syncOutbox, syncOutbox.ownerId);
       }
     },
   );

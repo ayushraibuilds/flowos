@@ -108,71 +108,91 @@ class FocusSessionService {
     required SessionTypeColumn type,
     bool isFlowtime = false,
   }) async {
-    // Deactivate accessibility blocker
-    try {
-      await _policyWriter.deactivatePolicy(PolicySource.focus);
-    } catch (e, st) {
-      debugPrint('FocusSessionService: Failed to deactivate policy on completeSession: $e\n$st');
-    }
+    return await _db.transaction(() async {
+      final existingSession = await _db.focusSessionsDao.getById(sessionId);
+      if (existingSession != null && existingSession.completedAt != null) {
+        final task = existingSession.taskId == null
+            ? null
+            : await _db.tasksDao.getById(existingSession.taskId!);
+        final gardenGrowth = GardenObject.fromFocusSession(
+          sessionId: existingSession.id,
+          sessionType: existingSession.sessionType,
+          actualMinutes: existingSession.actualMinutes,
+          taskTitle: task?.title,
+        );
 
-    final actualMin = (elapsedSeconds / 60).round();
-    final existingSession = await _db.focusSessionsDao.getById(sessionId);
-    final targetMin = existingSession?.durationMinutes ?? (isFlowtime ? actualMin : 25);
-    final taskId = existingSession?.taskId;
+        return FocusSessionResult(
+          xpEarned: existingSession.xpEarned,
+          newlyUnlockedAchievements: [],
+          gardenGrowth: gardenGrowth,
+        );
+      }
 
-    final quality = FocusQualityCalculator.calculate(
-      durationMinutes: targetMin,
-      actualMinutes: actualMin,
-      pauseCount: pauseCount,
-      backgroundCount: backgroundCount,
-    );
+      // Deactivate accessibility blocker
+      try {
+        await _policyWriter.deactivatePolicy(PolicySource.focus);
+      } catch (e, st) {
+        debugPrint('FocusSessionService: Failed to deactivate policy on completeSession: $e\n$st');
+      }
 
-    final streak = await StreakService.getStreak();
-    final xpCalc = XpCalculator(_db.xpLedgerDao);
-    final xp = await xpCalc.awardSessionXP(
-      sessionId: sessionId,
-      sessionType: isFlowtime ? SessionTypeColumn.custom : type,
-      durationMinutes: targetMin,
-      actualMinutes: actualMin,
-      taskId: taskId,
-      streakDays: streak,
-      qualityScore: quality,
-    );
+      final actualMin = (elapsedSeconds / 60).round();
+      final targetMin = existingSession?.durationMinutes ?? (isFlowtime ? actualMin : 25);
+      final taskId = existingSession?.taskId;
 
-    // 1. Update session in DB
-    await _db.focusSessionsDao.updateSession(
-      FocusSessionsCompanion(
-        id: Value(sessionId),
-        actualMinutes: Value(actualMin),
-        pauseCount: Value(pauseCount),
-        appBackgroundCount: Value(backgroundCount),
-        xpEarned: Value(xp),
-        qualityScore: Value(quality),
-        completedAt: Value(DateTime.now()),
-      ),
-    );
+      final quality = FocusQualityCalculator.calculate(
+        durationMinutes: targetMin,
+        actualMinutes: actualMin,
+        pauseCount: pauseCount,
+        backgroundCount: backgroundCount,
+      );
 
-    // 3. Record streak activity & check achievements
-    await StreakService.recordActivity();
-    final newlyUnlocked = await AchievementChecker.runCheck(_db);
-    final completedSession = await _db.focusSessionsDao.getById(sessionId);
-    final task = completedSession?.taskId == null
-        ? null
-        : await _db.tasksDao.getById(completedSession!.taskId!);
-    final gardenGrowth = completedSession == null
-        ? null
-        : GardenObject.fromFocusSession(
-            sessionId: completedSession.id,
-            sessionType: completedSession.sessionType,
-            actualMinutes: completedSession.actualMinutes,
-            taskTitle: task?.title,
-          );
+      final streak = await StreakService.getStreak();
+      final xpCalc = XpCalculator(_db.xpLedgerDao);
+      final xp = await xpCalc.awardSessionXP(
+        sessionId: sessionId,
+        sessionType: isFlowtime ? SessionTypeColumn.custom : type,
+        durationMinutes: targetMin,
+        actualMinutes: actualMin,
+        taskId: taskId,
+        streakDays: streak,
+        qualityScore: quality,
+      );
 
-    return FocusSessionResult(
-      xpEarned: xp,
-      newlyUnlockedAchievements: newlyUnlocked,
-      gardenGrowth: gardenGrowth,
-    );
+      // 1. Update session in DB
+      await _db.focusSessionsDao.updateSession(
+        FocusSessionsCompanion(
+          id: Value(sessionId),
+          actualMinutes: Value(actualMin),
+          pauseCount: Value(pauseCount),
+          appBackgroundCount: Value(backgroundCount),
+          xpEarned: Value(xp),
+          qualityScore: Value(quality),
+          completedAt: Value(DateTime.now()),
+        ),
+      );
+
+      // 3. Record streak activity & check achievements
+      await StreakService.recordActivity();
+      final newlyUnlocked = await AchievementChecker.runCheck(_db);
+      final completedSession = await _db.focusSessionsDao.getById(sessionId);
+      final task = completedSession?.taskId == null
+          ? null
+          : await _db.tasksDao.getById(completedSession!.taskId!);
+      final gardenGrowth = completedSession == null
+          ? null
+          : GardenObject.fromFocusSession(
+              sessionId: completedSession.id,
+              sessionType: completedSession.sessionType,
+              actualMinutes: completedSession.actualMinutes,
+              taskTitle: task?.title,
+            );
+
+      return FocusSessionResult(
+        xpEarned: xp,
+        newlyUnlockedAchievements: newlyUnlocked,
+        gardenGrowth: gardenGrowth,
+      );
+    });
   }
 
   /// Stop session (premature countdown timer cancel).
@@ -187,71 +207,81 @@ class FocusSessionService {
     required int backgroundCount,
     required SessionTypeColumn type,
   }) async {
-    // Deactivate accessibility blocker
-    try {
-      await _policyWriter.deactivatePolicy(PolicySource.focus);
-    } catch (e, st) {
-      debugPrint('FocusSessionService: Failed to deactivate policy on stopSession: $e\n$st');
-    }
+    return await _db.transaction(() async {
+      final existingSession = await _db.focusSessionsDao.getById(sessionId);
+      if (existingSession != null && existingSession.completedAt != null) {
+        return FocusSessionResult(
+          xpEarned: existingSession.xpEarned,
+          newlyUnlockedAchievements: [],
+        );
+      }
 
-    final actualMin = (elapsedSeconds / 60).round();
-    final pct = totalSeconds > 0 ? (elapsedSeconds / totalSeconds) : 0.0;
+      // Deactivate accessibility blocker
+      try {
+        await _policyWriter.deactivatePolicy(PolicySource.focus);
+      } catch (e, st) {
+        debugPrint('FocusSessionService: Failed to deactivate policy on stopSession: $e\n$st');
+      }
 
-    int xp = 0;
-    List<AchievementKey> newlyUnlocked = [];
+      final actualMin = (elapsedSeconds / 60).round();
+      final pct = totalSeconds > 0 ? (elapsedSeconds / totalSeconds) : 0.0;
 
-    if (pct >= 0.6 && actualMin >= 10) {
-      // Partial credit
-      final isDeepWork = type == SessionTypeColumn.deepWork;
-      final baseXP = isDeepWork
-          ? XpConstants.deepWorkComplete
-          : XpConstants.pomodoroComplete;
-      xp = (baseXP * pct * 0.5).round();
+      int xp = 0;
+      List<AchievementKey> newlyUnlocked = [];
 
-      await _db.focusSessionsDao.updateSession(
-        FocusSessionsCompanion(
-          id: Value(sessionId),
-          actualMinutes: Value(actualMin),
-          pauseCount: Value(pauseCount),
-          appBackgroundCount: Value(backgroundCount),
-          xpEarned: Value(xp),
-          qualityScore: const Value('D'),
-          completedAt: Value(DateTime.now()),
-        ),
-      );
+      if (pct >= 0.6 && actualMin >= 10) {
+        // Partial credit
+        final isDeepWork = type == SessionTypeColumn.deepWork;
+        final baseXP = isDeepWork
+            ? XpConstants.deepWorkComplete
+            : XpConstants.pomodoroComplete;
+        xp = (baseXP * pct * 0.5).round();
 
-      await _db.xpLedgerDao.appendEntry(
-        XpLedgerEntriesCompanion(
-          id: Value(_uuid.v4()),
-          actionType: const Value(XpActionTypeColumn.focusComplete),
-          pointsDelta: Value(xp),
-          sourceEntityId: Value(sessionId),
-          explanation: Value(
-            'Partial ${actualMin}m session (${(pct * 100).round()}% complete)',
+        await _db.focusSessionsDao.updateSession(
+          FocusSessionsCompanion(
+            id: Value(sessionId),
+            actualMinutes: Value(actualMin),
+            pauseCount: Value(pauseCount),
+            appBackgroundCount: Value(backgroundCount),
+            xpEarned: Value(xp),
+            qualityScore: const Value('D'),
+            completedAt: Value(DateTime.now()),
           ),
-        ),
-      );
+        );
 
-      await StreakService.recordActivity();
-      newlyUnlocked = await AchievementChecker.runCheck(_db);
-    } else if (sessionId.isNotEmpty) {
-      // Discard or record F
-      await _db.focusSessionsDao.updateSession(
-        FocusSessionsCompanion(
-          id: Value(sessionId),
-          actualMinutes: Value(actualMin),
-          pauseCount: Value(pauseCount),
-          appBackgroundCount: Value(backgroundCount),
-          qualityScore: const Value('F'),
-          completedAt: Value(DateTime.now()),
-        ),
-      );
-    }
+        await _db.xpLedgerDao.appendEntry(
+          XpLedgerEntriesCompanion(
+            id: Value(_uuid.v4()),
+            actionType: const Value(XpActionTypeColumn.focusComplete),
+            pointsDelta: Value(xp),
+            sourceEntityId: Value(sessionId),
+            explanation: Value(
+              'Partial ${actualMin}m session (${(pct * 100).round()}% complete)',
+            ),
+          ),
+        );
 
-    return FocusSessionResult(
-      xpEarned: xp,
-      newlyUnlockedAchievements: newlyUnlocked,
-    );
+        await StreakService.recordActivity();
+        newlyUnlocked = await AchievementChecker.runCheck(_db);
+      } else if (sessionId.isNotEmpty) {
+        // Discard or record F
+        await _db.focusSessionsDao.updateSession(
+          FocusSessionsCompanion(
+            id: Value(sessionId),
+            actualMinutes: Value(actualMin),
+            pauseCount: Value(pauseCount),
+            appBackgroundCount: Value(backgroundCount),
+            qualityScore: const Value('F'),
+            completedAt: Value(DateTime.now()),
+          ),
+        );
+      }
+
+      return FocusSessionResult(
+        xpEarned: xp,
+        newlyUnlockedAchievements: newlyUnlocked,
+      );
+    });
   }
 }
 

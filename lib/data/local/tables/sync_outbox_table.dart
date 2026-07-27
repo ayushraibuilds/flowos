@@ -11,6 +11,7 @@ class SyncOutbox extends Table {
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+  TextColumn get ownerId => text().withDefault(const Constant('local'))();
 
   @override
   Set<Column> get primaryKey => {id};

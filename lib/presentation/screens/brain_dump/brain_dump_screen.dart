@@ -7,8 +7,11 @@ import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../features/ai/providers/ai_providers.dart';
+import '../../../features/ai/models/ai_exception.dart';
 import '../../../features/ai/services/ai_service.dart';
 import '../../../features/ai/services/local_brain_dump_parser.dart';
+import '../../../features/auth/services/auth_service.dart';
 import '../../../data/local/database/app_database.dart';
 import '../../../data/local/tables/tasks_table.dart';
 
@@ -47,15 +50,25 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
     final latestCheckin = await db.energyCheckInsDao.getLatest();
     final energy = latestCheckin?.value ?? 3;
 
-    final aiService = AiService();
+    final aiService = ref.read(aiServiceProvider);
     var tasks = await aiService.processBrainDump(
       rawText: _textController.text.trim(),
       currentEnergy: energy,
     );
 
     bool wasOffline = false;
+    String feedbackMsg = 'AI unavailable. Used local heuristic sorting.';
+
     if (tasks == null) {
       wasOffline = true;
+      if (!ref.read(isLoggedInProvider)) {
+        feedbackMsg = 'Local Mode: Sign in to enable Cloud AI task sorting.';
+      } else if (aiService.lastError?.type == AiErrorType.quotaExceeded) {
+        feedbackMsg = 'AI rate limit reached. Used local heuristic sorting.';
+      } else if (aiService.lastError?.isNetworkIssue == true) {
+        feedbackMsg = 'Network offline. Used local heuristic sorting.';
+      }
+
       tasks = LocalBrainDumpParser.parse(
         rawText: _textController.text.trim(),
         currentEnergy: energy,
@@ -71,8 +84,8 @@ class _BrainDumpScreenState extends ConsumerState<BrainDumpScreen> {
     if (wasOffline) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('AI unavailable. Used local heuristic sorting.'),
+          SnackBar(
+            content: Text(feedbackMsg),
             backgroundColor: AppColors.warningAmber,
           ),
         );

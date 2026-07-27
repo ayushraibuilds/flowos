@@ -20,6 +20,7 @@ class DailyScoresDao extends DatabaseAccessor<AppDatabase>
       final dayStr = day.toIso8601String().substring(0, 10);
       await db.into(db.syncOutbox).insert(SyncOutboxCompanion(
         id: Value(_uuid.v4()),
+        ownerId: Value(db.activeOwnerId),
         entityTable: const Value('daily_scores'),
         entityId: Value(dayStr),
         operation: const Value('upsert'),

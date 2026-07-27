@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,12 +23,25 @@ import 'features/notifications/services/notification_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Catch framework-level errors that would otherwise cause silent release crashes
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('💥 Flutter framework error: ${details.exception}\n${details.stack}');
+    if (Sentry.isEnabled) {
+      Sentry.captureException(details.exception, stackTrace: details.stack);
+    }
+  };
+
   // Initialize and schedule notifications
-  await NotificationService.initialize();
-  await NotificationService.scheduleEnergyCheckIns();
-  await NotificationService.scheduleReportReminder();
-  await NotificationService.scheduleWeeklyReview();
-  await NotificationService.scheduleStreakWarning();
+  try {
+    await NotificationService.initialize();
+    await NotificationService.scheduleEnergyCheckIns();
+    await NotificationService.scheduleReportReminder();
+    await NotificationService.scheduleWeeklyReview();
+    await NotificationService.scheduleStreakWarning();
+  } catch (e, st) {
+    debugPrint('⚠️ Notification scheduling skipped: $e\n$st');
+  }
 
   // Initialize Supabase (skip if not configured — local-first mode)
   // Load SharedPreferences earlier

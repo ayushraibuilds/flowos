@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
+import '../../sync/services/sync_engine.dart';
 
 // ─── Supabase client provider ───────────────────────────────────
 
@@ -124,7 +125,8 @@ class AuthService {
 
   // ─── Sign Out ──────────────────────────────────────────────
 
-  Future<void> signOut() async {
+  Future<void> signOut({SyncEngine? syncEngine}) async {
+    syncEngine?.cancelSync();
     await _auth.signOut();
   }
 
