@@ -32,48 +32,71 @@ import '../../features/energy/widgets/energy_checkin_sheet.dart';
 import '../screens/rest/intentional_rest_screen.dart';
 import '../screens/settings/sleep_mode_screen.dart';
 
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/supabase_config.dart';
+import '../../features/auth/models/app_session_state.dart';
+import '../../features/auth/services/auth_service.dart';
 import '../../features/focus/widgets/focus_nudge_banner.dart';
 import '../../features/focus/providers/nudge_provider.dart';
 import '../../features/focus/services/protection_policy_service.dart';
 import '../../features/focus/models/effective_policy.dart';
 
-bool onboardingComplete = false;
+bool get onboardingComplete => _legacyOnboardingComplete;
+set onboardingComplete(bool value) {
+  _legacyOnboardingComplete = value;
+}
+
+bool _legacyOnboardingComplete = false;
 
 class RouterRefreshListenable extends ChangeNotifier {
+  StreamSubscription<AuthState>? _authSubscription;
+
   RouterRefreshListenable() {
     if (SupabaseConfig.isConfigured) {
-      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-        notifyListeners();
-      });
+      _authSubscription = Supabase.instance.client.auth.onAuthStateChange
+          .listen((data) {
+            notifyListeners();
+          });
     }
   }
 
   void notify() {
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
 }
 
 final routerRefreshListenable = RouterRefreshListenable();
 
-Future<void> completeOnboarding() async {
+Future<void> completeOnboarding([WidgetRef? ref]) async {
   onboardingComplete = true;
+  if (ref != null) {
+    ref.read(onboardingCompleteProvider.notifier).state = true;
+  }
   routerRefreshListenable.notify();
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('flowos_onboarding_complete', true);
 }
 
-String? appRouterRedirect(BuildContext context, GoRouterState state) {
-  final loc = state.matchedLocation;
-  final goingToOnboarding = loc == '/onboarding';
-  final goingToAuth = loc == '/auth';
-  final goingToDeviceSetup = loc == '/device-setup';
-  final goingToUpdateRhythm = loc == '/update-rhythm';
+/// Pure redirect logic evaluated against unified AppSessionState.
+String? calculateAppRedirect(
+  String matchedLocation, {
+  required AppSessionState session,
+}) {
+  final goingToOnboarding = matchedLocation == '/onboarding';
+  final goingToAuth = matchedLocation == '/auth';
+  final goingToDeviceSetup = matchedLocation == '/device-setup';
+  final goingToUpdateRhythm = matchedLocation == '/update-rhythm';
 
   // 1. If onboarding is not complete, force onboarding (allow auth page if they need it)
-  if (!onboardingComplete) {
+  if (!session.isOnboardingComplete) {
     if (!goingToOnboarding && !goingToAuth) {
       return '/onboarding';
     }
@@ -86,25 +109,42 @@ String? appRouterRedirect(BuildContext context, GoRouterState state) {
   }
 
   // Auth is optional:
-  // If logged in, redirect away from auth/onboarding to home.
+  // If logged in or in local-only mode, redirect away from auth/onboarding to home.
   // If not logged in, they are free to go to /auth voluntarily, but they are NOT forced.
   if (goingToOnboarding) {
     return '/home';
   }
 
   if (goingToAuth) {
-    if (SupabaseConfig.isConfigured) {
-      final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
-      if (isLoggedIn) {
-        return '/home';
-      }
-    } else {
+    if (session.isAuthenticated || session.isLocalOnly) {
       return '/home';
     }
     return null;
   }
 
   return null;
+}
+
+String? appRouterRedirect(BuildContext context, GoRouterState state) {
+  AppSessionState session;
+  try {
+    final container = ProviderScope.containerOf(context, listen: false);
+    session = container.read(appSessionProvider);
+  } catch (_) {
+    final isLoggedIn =
+        SupabaseConfig.isConfigured &&
+        Supabase.instance.client.auth.currentUser != null;
+    session = AppSessionState(
+      status: !SupabaseConfig.isConfigured
+          ? AppSessionStatus.localOnly
+          : (isLoggedIn
+                ? AppSessionStatus.authenticated
+                : AppSessionStatus.unauthenticated),
+      isOnboardingComplete: onboardingComplete,
+    );
+  }
+
+  return calculateAppRedirect(state.matchedLocation, session: session);
 }
 
 /// FlowOS navigation — GoRouter with shell for bottom nav.

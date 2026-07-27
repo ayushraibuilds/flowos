@@ -21,14 +21,20 @@ final lifetimeRecoveriesCountProvider = StreamProvider<int>((ref) {
   return db.xpLedgerDao.watchLifetimeRecoveriesCount();
 });
 
+/// Shared GardenService provider instance per database.
+final gardenServiceProvider = Provider<GardenService>((ref) {
+  final db = ref.watch(databaseProvider);
+  return GardenService(db);
+});
+
 /// Today's living plot, assembled from focus, recovery, energy, and attention data.
 final todayGardenProvider = StreamProvider<GardenDay>((ref) {
-  final db = ref.watch(databaseProvider);
-  return GardenService(db).watchToday();
+  final service = ref.watch(gardenServiceProvider);
+  return service.watchToday();
 });
 
 /// The current week becomes a small seasonal archive instead of a fragile streak.
 final gardenWeekProvider = StreamProvider<List<GardenDay>>((ref) {
-  final db = ref.watch(databaseProvider);
-  return GardenService(db).watchCurrentWeek();
+  final service = ref.watch(gardenServiceProvider);
+  return service.watchCurrentWeek();
 });

@@ -78,10 +78,23 @@ class GardenService {
     final budget = plan?.scrollBudgetMinutes ?? 30;
     final objects = <GardenObject>[];
 
+    // Batch task lookups: collect all non-null taskIds and query in 1 query
+    final taskIds = focusSessions
+        .map((s) => s.taskId)
+        .whereType<String>()
+        .toSet();
+    final Map<String, Task> taskMap = {};
+    if (taskIds.isNotEmpty) {
+      final tasks = await (_db.select(
+        _db.tasks,
+      )..where((t) => t.id.isIn(taskIds))).get();
+      for (final t in tasks) {
+        taskMap[t.id] = t;
+      }
+    }
+
     for (final session in focusSessions) {
-      final task = session.taskId == null
-          ? null
-          : await _db.tasksDao.getById(session.taskId!);
+      final task = session.taskId == null ? null : taskMap[session.taskId];
       if (session.gardenSeedKind != null) {
         objects.add(
           GardenObject.fromPersistedSeed(session, taskTitle: task?.title),
@@ -192,71 +205,72 @@ class GardenService {
     );
   }
 
+  Stream<GardenDay>? _sharedTodayStream;
+  Stream<List<GardenDay>>? _sharedWeekStream;
+
   Stream<GardenDay> watchToday() {
-    final controller = StreamController<GardenDay>();
-    StreamSubscription? sub;
-
-    void update() async {
-      try {
-        final day = await buildDay(DateTime.now());
-        if (!controller.isClosed) {
-          controller.add(day);
-        }
-      } catch (_) {}
-    }
-
-    sub = _db
-        .tableUpdates(
-          TableUpdateQuery.onAllTables({
-            _db.focusSessions,
-            _db.scrollLogs,
-            _db.energyCheckIns,
-            _db.dailyPlans,
-            _db.deviceUsageRecords,
-            _db.deviceDayMetrics,
-          }),
-        )
-        .listen((_) => update());
-
-    controller.onCancel = () {
-      sub?.cancel();
-    };
-
-    update();
-    return controller.stream;
+    return _sharedTodayStream ??=
+        _createCoalescedStream<GardenDay>(
+          () => buildDay(DateTime.now()),
+        ).asBroadcastStream(
+          onCancel: (sub) {
+            _sharedTodayStream = null;
+          },
+        );
   }
 
   Stream<List<GardenDay>> watchCurrentWeek() {
-    final controller = StreamController<List<GardenDay>>();
-    StreamSubscription? sub;
+    return _sharedWeekStream ??=
+        _createCoalescedStream<List<GardenDay>>(
+          () => buildCurrentWeek(),
+        ).asBroadcastStream(
+          onCancel: (sub) {
+            _sharedWeekStream = null;
+          },
+        );
+  }
 
-    void update() async {
-      try {
-        final week = await buildCurrentWeek();
-        if (!controller.isClosed) {
-          controller.add(week);
-        }
-      } catch (_) {}
+  Stream<T> _createCoalescedStream<T>(Future<T> Function() builder) {
+    late StreamController<T> controller;
+    StreamSubscription? tableSub;
+    Timer? debounceTimer;
+    int buildGen = 0;
+
+    void triggerBuild() {
+      debounceTimer?.cancel();
+      debounceTimer = Timer(const Duration(milliseconds: 50), () async {
+        final currentGen = ++buildGen;
+        try {
+          final result = await builder();
+          if (currentGen == buildGen && !controller.isClosed) {
+            controller.add(result);
+          }
+        } catch (_) {}
+      });
     }
 
-    sub = _db
-        .tableUpdates(
-          TableUpdateQuery.onAllTables({
-            _db.focusSessions,
-            _db.scrollLogs,
-            _db.energyCheckIns,
-            _db.dailyPlans,
-            _db.deviceUsageRecords,
-            _db.deviceDayMetrics,
-          }),
-        )
-        .listen((_) => update());
+    controller = StreamController<T>(
+      onListen: () {
+        tableSub = _db
+            .tableUpdates(
+              TableUpdateQuery.onAllTables({
+                _db.focusSessions,
+                _db.scrollLogs,
+                _db.energyCheckIns,
+                _db.dailyPlans,
+                _db.deviceUsageRecords,
+                _db.deviceDayMetrics,
+              }),
+            )
+            .listen((_) => triggerBuild());
+        triggerBuild(); // Initial build
+      },
+      onCancel: () {
+        debounceTimer?.cancel();
+        tableSub?.cancel();
+      },
+    );
 
-    controller.onCancel = () {
-      sub?.cancel();
-    };
-
-    update();
     return controller.stream;
   }
 

@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'features/auth/services/auth_service.dart';
 import 'features/focus/providers/nudge_provider.dart';
 
 import 'dart:io';
@@ -18,7 +19,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart';
 import 'features/themes/models/flow_theme.dart';
 import 'presentation/navigation/app_router.dart';
-import 'features/notifications/services/notification_service.dart';
+import 'core/bootstrap/app_startup_coordinator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,17 +34,6 @@ Future<void> main() async {
       Sentry.captureException(details.exception, stackTrace: details.stack);
     }
   };
-
-  // Initialize and schedule notifications
-  try {
-    await NotificationService.initialize();
-    await NotificationService.scheduleEnergyCheckIns();
-    await NotificationService.scheduleReportReminder();
-    await NotificationService.scheduleWeeklyReview();
-    await NotificationService.scheduleStreakWarning();
-  } catch (e, st) {
-    debugPrint('⚠️ Notification scheduling skipped: $e\n$st');
-  }
 
   // Initialize Supabase (skip if not configured — local-first mode)
   // Load SharedPreferences earlier
@@ -73,7 +63,10 @@ Future<void> main() async {
     debugPrint('   Run with: flutter run --dart-define-from-file=.env');
   }
 
-  onboardingComplete = prefs.getBool('flowos_onboarding_complete') ?? false;
+  final isDone = prefs.getBool('flowos_onboarding_complete') ?? false;
+  onboardingComplete = isDone;
+
+  final overrides = [onboardingCompleteProvider.overrideWith((ref) => isDone)];
 
   // Set system UI style for dark theme
   SystemChrome.setSystemUIOverlayStyle(
@@ -88,18 +81,22 @@ Future<void> main() async {
   const sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
 
   if (sentryDsn.isNotEmpty) {
-    await SentryFlutter.init((options) {
-      options.dsn = sentryDsn;
-      options.tracesSampleRate = 0.2;
-      options.environment = const String.fromEnvironment(
-        'SENTRY_ENV',
-        defaultValue: 'development',
-      );
-    }, appRunner: () => runApp(const ProviderScope(child: FlowOSApp())));
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = sentryDsn;
+        options.tracesSampleRate = 0.2;
+        options.environment = const String.fromEnvironment(
+          'SENTRY_ENV',
+          defaultValue: 'development',
+        );
+      },
+      appRunner: () =>
+          runApp(ProviderScope(overrides: overrides, child: const FlowOSApp())),
+    );
   } else {
     debugPrint('⚠️ Sentry DSN not configured — crash reporting disabled.');
     debugPrint('   Run with: flutter run --dart-define=SENTRY_DSN=https://...');
-    runApp(const ProviderScope(child: FlowOSApp()));
+    runApp(ProviderScope(overrides: overrides, child: const FlowOSApp()));
   }
 }
 
@@ -118,6 +115,7 @@ class _FlowOSAppState extends ConsumerState<FlowOSApp>
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(currentNudgeProvider.notifier).checkForNudge();
+      AppStartupCoordinator.runDeferredMaintenance();
     });
   }
 

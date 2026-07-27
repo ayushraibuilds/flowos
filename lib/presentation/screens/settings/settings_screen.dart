@@ -947,7 +947,7 @@ Data Storage, Control & Revocation
           style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
         ),
         content: Text(
-          'This will package all your tasks, focus sessions, XP ledger history, and local settings into a JSON backup file and open the system share sheet.\n\nThe export includes task titles and activity history. It does not include authentication tokens.',
+          'This will package your tasks, focus sessions, XP ledger, daily plans, reports, scores, attention metrics, and protection choices into a JSON export file.\n\n⚠️ Privacy Notice: This file contains sensitive activity history and attention metrics. Store it securely and do not share it publicly. It does not contain authentication tokens or passwords.',
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),

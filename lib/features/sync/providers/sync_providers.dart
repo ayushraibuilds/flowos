@@ -16,58 +16,118 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
 
 // ─── Sync Status ────────────────────────────────────────────────
 
-enum SyncStatus { idle, syncing, synced, error }
+enum SyncStatus { idle, syncing, synced, error, authError, offline }
 
 final syncStatusProvider = StateProvider<SyncStatus>((ref) => SyncStatus.idle);
 
 // ─── Sync Controller ────────────────────────────────────────────
 
-/// Manages sync lifecycle: triggers on auth changes and network reconnect.
+/// Manages sync lifecycle: triggers on auth changes, network reconnect, and manages backoff.
 final syncControllerProvider = Provider<SyncController>((ref) {
   final engine = ref.watch(syncEngineProvider);
   final status = ref.read(syncStatusProvider.notifier);
+
+  final controller = SyncController(engine: engine, statusNotifier: status);
 
   // Auto-sync on auth state change
   ref.listen(authStateProvider, (prev, next) {
     next.whenData((state) {
       if (state.event == AuthChangeEvent.signedIn) {
-        _triggerSync(engine, status);
+        controller.resetBackoff();
+        controller.sync();
+      } else if (state.event == AuthChangeEvent.signedOut) {
+        controller.cancel();
       }
     });
   });
 
-  return SyncController(engine: engine, statusNotifier: status);
+  ref.onDispose(() {
+    controller.dispose();
+  });
+
+  return controller;
 });
 
 class SyncController {
   final SyncEngine engine;
   final StateController<SyncStatus> statusNotifier;
 
+  int _retryCount = 0;
+  Timer? _retryTimer;
+  static const int maxRetries = 5;
+
   SyncController({required this.engine, required this.statusNotifier});
 
-  /// Manual full sync
+  int get retryCount => _retryCount;
+  bool get hasActiveRetryTimer => _retryTimer != null && _retryTimer!.isActive;
+
+  void resetBackoff() {
+    _retryCount = 0;
+    _retryTimer?.cancel();
+    _retryTimer = null;
+  }
+
+  void cancel() {
+    resetBackoff();
+    engine.cancelSync();
+    statusNotifier.state = SyncStatus.idle;
+  }
+
+  /// Manual or automated sync call
   Future<SyncResult> sync() async {
+    _retryTimer?.cancel();
+    _retryTimer = null;
     statusNotifier.state = SyncStatus.syncing;
+
     final result = await engine.fullSync();
-    statusNotifier.state = result.isPaused
-        ? SyncStatus.idle
-        : (result.hasErrors ? SyncStatus.error : SyncStatus.synced);
+
+    if (result.isCancelled) {
+      statusNotifier.state = SyncStatus.idle;
+      return result;
+    }
+
+    if (result.isAuthError) {
+      statusNotifier.state = SyncStatus.authError;
+      return result;
+    }
+
+    if (result.hasErrors) {
+      if (result.isRetryable && _retryCount < maxRetries) {
+        statusNotifier.state = SyncStatus.offline;
+        _scheduleRetry();
+      } else {
+        statusNotifier.state = SyncStatus.error;
+      }
+      return result;
+    }
+
+    _retryCount = 0;
+    statusNotifier.state = SyncStatus.synced;
     return result;
+  }
+
+  void _scheduleRetry() {
+    _retryTimer?.cancel();
+    final delaySeconds = 1 << _retryCount; // 1s, 2s, 4s, 8s, 16s
+    _retryCount++;
+    _retryTimer = Timer(Duration(seconds: delaySeconds), () {
+      sync();
+    });
+  }
+
+  /// Manual retry method
+  Future<SyncResult> retry() async {
+    resetBackoff();
+    return sync();
   }
 
   /// Schedule a push (debounced, called after local mutations)
   void schedulePush() {
     engine.schedulePush();
   }
-}
 
-Future<void> _triggerSync(
-  SyncEngine engine,
-  StateController<SyncStatus> status,
-) async {
-  status.state = SyncStatus.syncing;
-  final result = await engine.fullSync();
-  status.state = result.isPaused
-      ? SyncStatus.idle
-      : (result.hasErrors ? SyncStatus.error : SyncStatus.synced);
+  void dispose() {
+    resetBackoff();
+    engine.dispose();
+  }
 }

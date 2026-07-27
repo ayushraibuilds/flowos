@@ -45,7 +45,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final success = await authMethod();
 
     if (success) {
-      await completeOnboarding();
+      await completeOnboarding(ref);
     }
 
     if (mounted) {
@@ -82,7 +82,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         );
       }
 
-      await completeOnboarding();
+      await completeOnboarding(ref);
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) {
@@ -353,7 +353,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: AppSpacing.xxl),
               TextButton(
                 onPressed: () async {
-                  await completeOnboarding();
+                  await completeOnboarding(ref);
                   if (context.mounted) context.go('/home');
                 },
                 child: Text(

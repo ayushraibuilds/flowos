@@ -1,56 +1,124 @@
-import 'dart:convert';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:drift/drift.dart';
+import 'dart:io';
 import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+
 import 'package:flowos/data/local/database/app_database.dart';
-import 'package:flowos/data/local/tables/tasks_table.dart';
 import 'package:flowos/features/export/services/data_export_service.dart';
 
 void main() {
-  group('DataExportService', () {
-    late AppDatabase db;
-    late DataExportService service;
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    setUp(() {
-      db = AppDatabase.forTesting(DatabaseConnection(NativeDatabase.memory()));
-      service = DataExportService(db);
-    });
+  late AppDatabase db;
+  late DataExportService service;
 
-    tearDown(() async {
-      await db.close();
-    });
+  setUp(() {
+    db = AppDatabase.forTesting(NativeDatabase.memory());
+    service = DataExportService(db);
+  });
 
-    test('serializes all 8 tables and includes version & timestamps', () async {
-      // Add a mock task
-      await db.tasksDao.insertTask(
-        TasksCompanion(
-          id: const Value('test-task-123'),
-          title: const Value('Test Data Export Task'),
-          energyLevel: const Value(EnergyLevelColumn.deep),
-          category: const Value(TaskCategoryColumn.work),
-          isCompleted: const Value(false),
-        ),
-      );
+  tearDown(() async {
+    await db.close();
+  });
 
-      final jsonStr = await service.serializeData();
-      final Map<String, dynamic> data = json.decode(jsonStr);
+  group('TASK-015: Truthful Data Export & Backup Behavior Tests', () {
+    test(
+      'buildExportMap includes version 2, manifest, and all 14 user tables',
+      () async {
+        final exportMap = await service.buildExportMap();
 
-      expect(data['export_version'], 1);
-      expect(data.containsKey('exported_at'), true);
-      expect(data.containsKey('tasks'), true);
-      expect(data.containsKey('focus_sessions'), true);
-      expect(data.containsKey('xp_ledger'), true);
-      expect(data.containsKey('attention_costs'), true);
-      expect(data.containsKey('scroll_logs'), true);
-      expect(data.containsKey('energy_checkins'), true);
-      expect(data.containsKey('daily_plans'), true);
-      expect(data.containsKey('daily_reports'), true);
-      expect(data.containsKey('achievements'), true);
+        expect(exportMap['export_version'], equals(2));
+        expect(exportMap['exported_at'], isNotNull);
 
-      final List tasksList = data['tasks'];
-      expect(tasksList.length, 1);
-      expect(tasksList.first['title'], 'Test Data Export Task');
-      expect(tasksList.first['id'], 'test-task-123');
-    });
+        final manifest = exportMap['manifest'] as Map<String, dynamic>;
+        expect(manifest['app'], equals('FlowOS'));
+        expect(manifest['schema_version'], equals(10));
+        expect(
+          manifest['privacy_notice'],
+          contains('Contains sensitive task titles'),
+        );
+
+        final included = manifest['included_tables'] as List;
+        expect(included.length, equals(14));
+        expect(
+          included,
+          containsAll([
+            'tasks',
+            'focus_sessions',
+            'xp_ledger',
+            'scroll_logs',
+            'energy_checkins',
+            'daily_plans',
+            'daily_reports',
+            'achievements',
+            'daily_scores',
+            'unlock_attempts',
+            'device_usage_records',
+            'device_day_metrics',
+            'protected_apps',
+            'sleep_schedules',
+          ]),
+        );
+
+        final excluded = manifest['excluded_tables'] as Map<String, dynamic>;
+        expect(
+          excluded.keys,
+          containsAll([
+            'attention_costs',
+            'notification_daily_counts',
+            'processed_notification_batches',
+            'sync_outbox',
+          ]),
+        );
+      },
+    );
+
+    test(
+      'Temporary file generation and cleanup deletes old export files',
+      () async {
+        final tempDir = await Directory.systemTemp.createTemp(
+          'flowos_export_test',
+        );
+
+        final oldFile = File('${tempDir.path}/flowos_data_export_1000.json');
+        await oldFile.writeAsString('{"old": true}');
+        expect(oldFile.existsSync(), isTrue);
+
+        await service.cleanupOldExportFiles(tempDir);
+        expect(oldFile.existsSync(), isFalse);
+
+        await tempDir.delete(recursive: true);
+      },
+    );
+
+    test(
+      'Android backup XML rules exclude sensitive SQLite and session files',
+      () {
+        final extractionRules = File(
+          'android/app/src/main/res/xml/data_extraction_rules.xml',
+        );
+        expect(extractionRules.existsSync(), isTrue);
+        final extractionContent = extractionRules.readAsStringSync();
+        expect(
+          extractionContent,
+          contains('<exclude domain="database" path="flowos.sqlite" />'),
+        );
+        expect(
+          extractionContent,
+          contains(
+            '<exclude domain="sharedpref" path="flowos_active_session_id.xml" />',
+          ),
+        );
+
+        final fullBackup = File(
+          'android/app/src/main/res/xml/full_backup_content.xml',
+        );
+        expect(fullBackup.existsSync(), isTrue);
+        final backupContent = fullBackup.readAsStringSync();
+        expect(
+          backupContent,
+          contains('<exclude domain="database" path="flowos.sqlite" />'),
+        );
+      },
+    );
   });
 }

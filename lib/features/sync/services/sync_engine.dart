@@ -20,11 +20,40 @@ class SyncEngine {
   bool _isSyncing = false;
   bool _syncRequested = false;
   Timer? _debounceTimer;
+  int _syncGeneration = 0;
+  String? _activeUserId;
 
   SyncEngine(this._client, this._db);
 
   String get _userId => _client.auth.currentUser!.id;
   bool get isAuthenticated => _client.auth.currentUser != null;
+
+  // ─── Error Taxonomy ──────────────────────────────────────────────────
+
+  SyncErrorKind _classifyError(Object e) {
+    if (e is AuthException) return SyncErrorKind.auth;
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('401') ||
+        msg.contains('unauthorized') ||
+        msg.contains('jwt') ||
+        msg.contains('invalid_token')) {
+      return SyncErrorKind.auth;
+    }
+    if (msg.contains('socketexception') ||
+        msg.contains('timeoutexception') ||
+        msg.contains('clientexception') ||
+        msg.contains('connection') ||
+        msg.contains('network') ||
+        msg.contains('offline') ||
+        msg.contains('timeout') ||
+        msg.contains('500') ||
+        msg.contains('502') ||
+        msg.contains('503') ||
+        msg.contains('504')) {
+      return SyncErrorKind.retryable;
+    }
+    return SyncErrorKind.terminal;
+  }
 
   // ─── Watermark Cursors ───────────────────────────────────────────────
 
@@ -57,7 +86,13 @@ class SyncEngine {
         pulled: 0,
         errors: ['Supabase not configured or not authenticated'],
         isPaused: false,
+        errorKind: SyncErrorKind.auth,
       );
+    }
+
+    final currentUserId = _userId;
+    if (_activeUserId != null && _activeUserId != currentUserId) {
+      cancelSync();
     }
 
     if (_isSyncing) {
@@ -67,40 +102,90 @@ class SyncEngine {
 
     _isSyncing = true;
     _syncRequested = false;
+    _activeUserId = currentUserId;
+    final gen = ++_syncGeneration;
 
     int pushedCount = 0;
     int pulledCount = 0;
     final List<String> errors = [];
+    SyncErrorKind overallErrorKind = SyncErrorKind.none;
+    String? failedTable;
+
+    final tables = [
+      'tasks',
+      'focus_sessions',
+      'daily_plans',
+      'daily_reports',
+      'scroll_logs',
+      'energy_checkins',
+      'achievements',
+      'daily_scores',
+      'xp_ledger',
+      'unlock_attempts',
+    ];
 
     try {
       // 1. Pull changes table by table using cursors
-      pulledCount += await _pullTable('tasks');
-      pulledCount += await _pullTable('focus_sessions');
-      pulledCount += await _pullTable('daily_plans');
-      pulledCount += await _pullTable('daily_reports');
-      pulledCount += await _pullTable('scroll_logs');
-      pulledCount += await _pullTable('energy_checkins');
-      pulledCount += await _pullTable('achievements');
-      pulledCount += await _pullTable('daily_scores');
-      pulledCount += await _pullTable('xp_ledger');
-      pulledCount += await _pullTable('unlock_attempts');
+      for (final table in tables) {
+        if (_syncGeneration != gen) {
+          return SyncResult(
+            pushed: pushedCount,
+            pulled: pulledCount,
+            errors: ['Sync cancelled'],
+            isCancelled: true,
+          );
+        }
+
+        try {
+          pulledCount += await _pullTable(table, gen);
+        } catch (e) {
+          final kind = _classifyError(e);
+          errors.add('$table pull error: $e');
+          failedTable = table;
+          if (overallErrorKind == SyncErrorKind.none) {
+            overallErrorKind = kind;
+          }
+          if (kind == SyncErrorKind.auth) {
+            break;
+          }
+        }
+      }
 
       // 2. Push unacknowledged outbox operations
-      pushedCount += await _pushOutbox();
-    } catch (e) {
-      errors.add(e.toString());
-      debugPrint('Sync engine execution error: $e');
+      if (_syncGeneration == gen && overallErrorKind != SyncErrorKind.auth) {
+        try {
+          pushedCount += await _pushOutbox(gen);
+        } catch (e) {
+          final kind = _classifyError(e);
+          errors.add('Outbox push error: $e');
+          if (overallErrorKind == SyncErrorKind.none) {
+            overallErrorKind = kind;
+          }
+        }
+      }
     } finally {
       _isSyncing = false;
     }
 
-    if (_syncRequested) {
+    if (_syncGeneration != gen) {
+      return SyncResult(
+        pushed: pushedCount,
+        pulled: pulledCount,
+        errors: ['Sync cancelled'],
+        isCancelled: true,
+      );
+    }
+
+    if (_syncRequested && overallErrorKind == SyncErrorKind.none) {
       final nextResult = await fullSync();
       return SyncResult(
         pushed: pushedCount + nextResult.pushed,
         pulled: pulledCount + nextResult.pulled,
         errors: [...errors, ...nextResult.errors],
         isPaused: false,
+        isCancelled: nextResult.isCancelled,
+        errorKind: nextResult.errorKind,
+        failedTable: nextResult.failedTable ?? failedTable,
       );
     }
 
@@ -109,6 +194,8 @@ class SyncEngine {
       pulled: pulledCount,
       errors: errors,
       isPaused: false,
+      errorKind: overallErrorKind,
+      failedTable: failedTable,
     );
   }
 
@@ -123,11 +210,17 @@ class SyncEngine {
   // PULL (Server → Local)
   // ═══════════════════════════════════════════════════════════════
 
-  Future<int> _pullTable(String table) async {
+  // ═══════════════════════════════════════════════════════════════
+  // PULL (Server → Local)
+  // ═══════════════════════════════════════════════════════════════
+
+  Future<int> _pullTable(String table, int gen) async {
     int pulledCount = 0;
     bool hasMore = true;
 
     while (hasMore) {
+      if (_syncGeneration != gen) break;
+
       final cursor = await _getCursor(table);
       var query = _client.from(table).select();
 
@@ -153,16 +246,28 @@ class SyncEngine {
         break;
       }
 
+      String? pageMaxTime;
+      String? pageMaxId;
+
       for (final row in data) {
+        if (_syncGeneration != gen) break;
+
         final id = row['id'] as String;
         final serverTime = row[sortCol] as String;
 
         // Process row
         await _applyRowFromSync(table, row);
 
-        // Update cursor watermark
-        await _setCursor(table, serverTime, id);
+        pageMaxTime = serverTime;
+        pageMaxId = id;
         pulledCount++;
+      }
+
+      if (_syncGeneration != gen) break;
+
+      // Update cursor watermark ONLY after page successfully completes
+      if (pageMaxTime != null && pageMaxId != null) {
+        await _setCursor(table, pageMaxTime, pageMaxId);
       }
 
       if (data.length < 100) {
@@ -299,6 +404,7 @@ class SyncEngine {
 
   void cancelSync() {
     _debounceTimer?.cancel();
+    _syncGeneration++;
     _isSyncing = false;
     _syncRequested = false;
   }
@@ -307,7 +413,7 @@ class SyncEngine {
   // PUSH (Local → Server)
   // ═══════════════════════════════════════════════════════════════
 
-  Future<int> _pushOutbox() async {
+  Future<int> _pushOutbox(int gen) async {
     final currentUserId = _userId;
     _db.setActiveOwnerId(currentUserId);
     await claimLocalDataIfNeeded(currentUserId);
@@ -330,6 +436,8 @@ class SyncEngine {
     }
 
     for (final entry in grouped.entries) {
+      if (_syncGeneration != gen) break;
+
       final table = entry.key;
       final ops = entry.value;
 
@@ -337,27 +445,35 @@ class SyncEngine {
       final successOps = <SyncOutboxData>[];
 
       for (final op in ops) {
+        if (_syncGeneration != gen) break;
         final cloudRow = _mapOutboxToCloud(op, currentUserId);
         if (cloudRow != null) {
           rowsToPush.add(cloudRow);
           successOps.add(op);
+        } else {
+          // Terminal row mapping error — mark as synced to prevent infinite outbox retry loop
+          await _db.syncOutboxDao.markSynced(op.id);
         }
       }
 
-      if (rowsToPush.isNotEmpty) {
+      if (rowsToPush.isNotEmpty && _syncGeneration == gen) {
         // Upsert to Supabase
         await _client.from(table).upsert(rowsToPush, onConflict: 'id');
 
-        // Mark outbox operations as synced
-        for (final op in successOps) {
-          await _db.syncOutboxDao.markSynced(op.id);
+        if (_syncGeneration == gen) {
+          // Mark outbox operations as synced
+          for (final op in successOps) {
+            await _db.syncOutboxDao.markSynced(op.id);
+          }
+          pushedCount += rowsToPush.length;
         }
-        pushedCount += rowsToPush.length;
       }
     }
 
-    // Clean up synced outbox records to avoid table growth
-    await _db.syncOutboxDao.deleteSynced();
+    if (_syncGeneration == gen) {
+      // Clean up synced outbox records to avoid table growth
+      await _db.syncOutboxDao.deleteSynced();
+    }
 
     return pushedCount;
   }
@@ -418,15 +534,17 @@ class SyncEngine {
           return CloudMappers.unlockAttemptToCloud(u, userId);
       }
     } catch (e) {
-      debugPrint('Error mapping outbox to cloud: $e');
+      debugPrint('Terminal mapping error for outbox row ${op.id}: $e');
     }
     return null;
   }
 
   void dispose() {
-    _debounceTimer?.cancel();
+    cancelSync();
   }
 }
+
+enum SyncErrorKind { none, auth, retryable, terminal }
 
 /// Sync result representation
 class SyncResult {
@@ -434,14 +552,22 @@ class SyncResult {
   final int pulled;
   final List<String> errors;
   final bool isPaused;
+  final bool isCancelled;
+  final SyncErrorKind errorKind;
+  final String? failedTable;
 
   SyncResult({
     required this.pushed,
     required this.pulled,
     required this.errors,
     this.isPaused = false,
+    this.isCancelled = false,
+    this.errorKind = SyncErrorKind.none,
+    this.failedTable,
   });
 
   bool get hasErrors => errors.isNotEmpty;
-  bool get isClean => !hasErrors && (pushed > 0 || pulled > 0);
+  bool get isClean => !hasErrors && !isCancelled && (pushed > 0 || pulled > 0);
+  bool get isAuthError => errorKind == SyncErrorKind.auth;
+  bool get isRetryable => errorKind == SyncErrorKind.retryable;
 }

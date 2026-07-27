@@ -38,7 +38,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       protectedWindowConfigured: false,
     );
     await ref.read(userProfileProvider.notifier).updateProfile(updated);
-    await completeOnboarding();
+    await completeOnboarding(ref);
     if (mounted) {
       context.go('/home');
     }
@@ -54,7 +54,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       protectedWindowConfigured: false,
     );
     await ref.read(userProfileProvider.notifier).updateProfile(updated);
-    await completeOnboarding();
+    await completeOnboarding(ref);
     if (mounted) {
       context.go('/home');
     }

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/supabase_config.dart';
 import '../../sync/services/sync_engine.dart';
+import '../models/app_session_state.dart';
 
 // ─── Supabase client provider ───────────────────────────────────
 
@@ -15,6 +16,10 @@ final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
 });
 
+// ─── Onboarding state ───────────────────────────────────────────
+
+final onboardingCompleteProvider = StateProvider<bool>((ref) => false);
+
 // ─── Auth state ─────────────────────────────────────────────────
 
 /// Reactive auth state — emits on every login/logout/token refresh.
@@ -24,15 +29,62 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
   return Supabase.instance.client.auth.onAuthStateChange;
 });
 
-/// Current user (nullable)
+/// Current user (nullable) — reactively updates on authStateProvider stream changes.
 final currentUserProvider = Provider<User?>((ref) {
   if (!SupabaseConfig.isConfigured) return null;
-  return Supabase.instance.client.auth.currentUser;
+  final authAsync = ref.watch(authStateProvider);
+  return authAsync.when(
+    data: (authState) =>
+        authState.session?.user ?? Supabase.instance.client.auth.currentUser,
+    loading: () => Supabase.instance.client.auth.currentUser,
+    error: (_, __) => null,
+  );
 });
 
 /// Whether user is logged in
 final isLoggedInProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider) != null;
+});
+
+/// Centralized AppSessionState provider — combining auth stream and onboarding state.
+final appSessionProvider = Provider<AppSessionState>((ref) {
+  final isOnboardingDone = ref.watch(onboardingCompleteProvider);
+
+  if (!SupabaseConfig.isConfigured) {
+    return AppSessionState.localOnly(isOnboardingComplete: isOnboardingDone);
+  }
+
+  final authAsync = ref.watch(authStateProvider);
+  return authAsync.when(
+    data: (authState) {
+      final user =
+          authState.session?.user ?? Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        return AppSessionState.authenticated(
+          user: user,
+          session:
+              authState.session ?? Supabase.instance.client.auth.currentSession,
+          isOnboardingComplete: isOnboardingDone,
+        );
+      }
+      return AppSessionState.unauthenticated(
+        isOnboardingComplete: isOnboardingDone,
+      );
+    },
+    loading: () {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser != null) {
+        return AppSessionState.authenticated(
+          user: currentUser,
+          session: Supabase.instance.client.auth.currentSession,
+          isOnboardingComplete: isOnboardingDone,
+        );
+      }
+      return AppSessionState.loading(isOnboardingComplete: isOnboardingDone);
+    },
+    error: (_, __) =>
+        AppSessionState.unauthenticated(isOnboardingComplete: isOnboardingDone),
+  );
 });
 
 // ─── Auth Service ───────────────────────────────────────────────
