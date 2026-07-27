@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,7 @@ import 'core/theme/app_colors.dart';
 import 'features/themes/models/flow_theme.dart';
 import 'presentation/navigation/app_router.dart';
 import 'core/bootstrap/app_startup_coordinator.dart';
+import 'core/error/app_logger.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +35,11 @@ Future<void> main() async {
     if (Sentry.isEnabled) {
       Sentry.captureException(details.exception, stackTrace: details.stack);
     }
+  };
+
+  // Catch unhandled asynchronous dispatcher errors
+  PlatformDispatcher.instance.onError = (error, stack) {
+    return AppLogger.handleUnhandledError(error, stack);
   };
 
   // Initialize Supabase (skip if not configured — local-first mode)
